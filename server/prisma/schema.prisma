@@ -1,0 +1,449 @@
+// Prisma Schema for Class Accounting & Management System (CAMS)
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// 1. Roles & Permissions
+model Role {
+  id          String       @id @default(uuid())
+  name        String       @unique // SUPER_ADMIN, ADMIN, ACCOUNTANT, TEACHER, RECEPTIONIST, PARENT, STUDENT
+  description String?
+  users       User[]
+  permissions Permission[]
+  createdAt   DateTime     @default(now())
+}
+
+model Permission {
+  id          String   @id @default(uuid())
+  roleId      String
+  role        Role     @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  module      String   // students, classes, attendance, payments, accounting, etc.
+  canRead     Boolean  @default(true)
+  canWrite    Boolean  @default(false)
+  canDelete   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+}
+
+// 2. Users
+model User {
+  id           String        @id @default(uuid())
+  username     String        @unique
+  email        String?       @unique
+  passwordHash String
+  name         String
+  roleId       String
+  role         Role          @relation(fields: [roleId], references: [id])
+  phone        String?
+  avatar       String?
+  isActive     Boolean       @default(true)
+  lastLogin    DateTime?
+  teacherId    String?       @unique
+  teacher      Teacher?      @relation(fields: [teacherId], references: [id])
+  parentId     String?       @unique
+  parent       Parent?       @relation(fields: [parentId], references: [id])
+  studentId    String?       @unique
+  student      Student?      @relation(fields: [studentId], references: [id])
+  auditLogs    AuditLog[]
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+}
+
+// 3. Parents
+model Parent {
+  id           String    @id @default(uuid())
+  name         String
+  phone        String
+  whatsapp     String?
+  email        String?
+  occupation   String?
+  address      String?
+  relationship String?   @default("Parent") // Father, Mother, Guardian
+  user         User?
+  students     Student[]
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+}
+
+// 4. Students
+model Student {
+  id               String            @id @default(uuid())
+  studentIdNumber  String            @unique // e.g. STU-2026-001
+  qrCodeToken      String            @unique // Secure random token encoded in QR (no sensitive data exposed)
+  rfidTag          String?           @unique // 125kHz HID RFID Card / Keyfob UID
+  fullName         String
+  dateOfBirth      DateTime?
+  gender           String?           // Male, Female, Other
+  school           String?
+  grade            String            // Grade 10, Grade 11, etc.
+  address          String?
+  city             String?
+  photo            String?
+  phone            String?
+  whatsapp         String?
+  email            String?
+  emergencyContact String?
+  registrationDate DateTime          @default(now())
+  status           String            @default("ACTIVE") // ACTIVE, INACTIVE, SUSPENDED, ALUMNI
+  notes            String?
+  parentId         String?
+  parent           Parent?           @relation(fields: [parentId], references: [id])
+  parentName       String?           // Cached / direct field
+  parentPhone      String?           // Cached / direct field
+  user             User?
+  enrollments      ClassStudent[]
+  attendances      Attendance[]
+  feeRecords       FeeRecord[]
+  payments         Payment[]
+  examResults      ExamResult[]
+  documents        Document[]
+  messages         SMSLog[]
+  whatsappLogs     WhatsAppLog[]
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+}
+
+// 5. Teachers
+model Teacher {
+  id            String            @id @default(uuid())
+  teacherIdNumber String          @unique // e.g. TCH-001
+  name          String
+  photo         String?
+  phone         String
+  email         String?
+  address       String?
+  qualifications String?
+  paymentRate   Float             @default(70.0) // Percentage or flat rate
+  paymentMethod String            @default("Percentage") // Percentage, FlatRate, PerStudent
+  status        String            @default("ACTIVE")
+  user          User?
+  classes       Class[]
+  payments      TeacherPayment[]
+  materials     LearningMaterial[]
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+}
+
+// 6. Subjects
+model Subject {
+  id          String             @id @default(uuid())
+  code        String             @unique // e.g. SCI-10, MTH-11
+  name        String             // Science, Mathematics, English, etc.
+  description String?
+  classes     Class[]
+  materials   LearningMaterial[]
+  exams       Exam[]
+  createdAt   DateTime           @default(now())
+}
+
+// 7. Classes
+model Class {
+  id             String             @id @default(uuid())
+  classCode      String             @unique // e.g. CLS-MAT-10A
+  name           String             // Grade 10 - Mathematics (Theory)
+  subjectId      String
+  subject        Subject            @relation(fields: [subjectId], references: [id])
+  teacherId      String
+  teacher        Teacher            @relation(fields: [teacherId], references: [id])
+  grade          String
+  classGroup     String?            // Group A, Group B, Revision
+  dayOfWeek      String             // Monday, Tuesday, etc.
+  startTime      String             // e.g. 08:30
+  endTime        String             // e.g. 11:30
+  room           String?            // Hall 1, Lab 2
+  monthlyFee     Float              // in LKR, e.g. 2500
+  maxStudents    Int                @default(50)
+  status         String             @default("ACTIVE") // ACTIVE, INACTIVE, ARCHIVED
+  students       ClassStudent[]
+  sessions       AttendanceSession[]
+  feeRecords     FeeRecord[]
+  materials      LearningMaterial[]
+  exams          Exam[]
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+}
+
+// 8. Class Students (Enrollment)
+model ClassStudent {
+  id        String   @id @default(uuid())
+  classId   String
+  class     Class    @relation(fields: [classId], references: [id], onDelete: Cascade)
+  studentId String
+  student   Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  enrolledAt DateTime @default(now())
+  status    String   @default("ACTIVE") // ACTIVE, DROPPED
+
+  @@unique([classId, studentId])
+}
+
+// 9. Attendance Session & Attendance
+model AttendanceSession {
+  id          String       @id @default(uuid())
+  classId     String
+  class       Class        @relation(fields: [classId], references: [id])
+  date        DateTime     // Date only (midnight or full)
+  title       String?      // e.g. "Week 4 - Trigonometry"
+  startedAt   DateTime     @default(now())
+  endedAt     DateTime?
+  takenBy     String?      // User name or ID
+  attendances Attendance[]
+  createdAt   DateTime     @default(now())
+
+  @@unique([classId, date])
+}
+
+model Attendance {
+  id         String            @id @default(uuid())
+  sessionId  String
+  session    AttendanceSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  studentId  String
+  student    Student           @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  classId    String
+  date       DateTime
+  status     String            @default("PRESENT") // PRESENT, ABSENT, LATE, EXCUSED
+  scannedAt  DateTime          @default(now())
+  method     String            @default("QR_CODE") // QR_CODE, BARCODE, RFID, MANUAL, ID_CARD
+  remark     String?
+  recordedBy String?           // User who recorded
+
+  @@unique([studentId, classId, date])
+}
+
+// 10. Fee Structures & Monthly Fee Records
+model FeeRecord {
+  id              String        @id @default(uuid())
+  studentId       String
+  student         Student       @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  classId         String
+  class           Class         @relation(fields: [classId], references: [id], onDelete: Cascade)
+  month           String        // e.g. "2026-09" or "September 2026"
+  baseFee         Float         // Fee amount (Rs.)
+  discount        Float         @default(0.0)
+  previousBalance Float         @default(0.0)
+  totalDue        Float         // (baseFee + previousBalance) - discount
+  paidAmount      Float         @default(0.0)
+  remainingBalance Float        // totalDue - paidAmount
+  status          String        @default("PENDING") // PENDING, PARTIAL, PAID, OVERDUE
+  dueDate         DateTime?
+  payments        PaymentItem[]
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  @@unique([studentId, classId, month])
+}
+
+// 11. Payments & Receipts
+model Payment {
+  id            String        @id @default(uuid())
+  receiptNumber String        @unique // e.g. REC-2026-0042
+  studentId     String
+  student       Student       @relation(fields: [studentId], references: [id])
+  totalAmount   Float         // Total amount paid in this transaction
+  paymentMethod String        // Cash, Bank Transfer, Card, Online Payment, Other
+  paymentDate   DateTime      @default(now())
+  cashier       String        // User name who processed payment
+  reference     String?       // Check # / Bank slip #
+  notes         String?
+  items         PaymentItem[]
+  createdAt     DateTime      @default(now())
+}
+
+model PaymentItem {
+  id          String    @id @default(uuid())
+  paymentId   String
+  payment     Payment   @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+  feeRecordId String
+  feeRecord   FeeRecord @relation(fields: [feeRecordId], references: [id], onDelete: Cascade)
+  amountPaid  Float
+  balanceLeft Float     // Remaining balance on this fee record after this item
+  description String?
+}
+
+// 12. Accounting: Income & Expenses
+model Income {
+  id          String   @id @default(uuid())
+  category    String   // Student Fees, Registration Fees, Exam Fees, Material Fees, Other Income
+  amount      Float
+  source      String?  // Reference or student name
+  paymentId   String?  // Optional relation to payment
+  receiptNo   String?
+  date        DateTime @default(now())
+  description String?
+  receivedBy  String?
+  createdAt   DateTime @default(now())
+}
+
+model Expense {
+  id          String   @id @default(uuid())
+  category    String   // Teacher Payments, Rent, Electricity, Internet, Equipment, Printing, Advertising, Other Expenses
+  title       String
+  amount      Float
+  date        DateTime @default(now())
+  paidTo      String?
+  paymentMethod String @default("Cash") // Cash, Bank Transfer, Card
+  receiptNo   String?
+  description String?
+  recordedBy  String?
+  createdAt   DateTime @default(now())
+}
+
+// 13. Teacher Payouts
+model TeacherPayment {
+  id            String   @id @default(uuid())
+  teacherId     String
+  teacher       Teacher  @relation(fields: [teacherId], references: [id])
+  month         String   // e.g. "2026-09"
+  classId       String?
+  totalRevenue  Float    // Total student fees collected for this teacher's class
+  rate          Float    // Teacher's agreed percentage or rate
+  payoutAmount  Float    // Net teacher payout
+  status        String   @default("PAID") // PENDING, PAID
+  paidDate      DateTime @default(now())
+  paymentMethod String   @default("Bank Transfer")
+  referenceNo   String?
+  notes         String?
+  createdAt     DateTime @default(now())
+}
+
+// 14. Assessments & Exams
+model Exam {
+  id          String       @id @default(uuid())
+  title       String       // e.g. "Term 1 Mathematics Assessment"
+  examType    String       // Class Test, Monthly Test, Term Exam, Assignment, Quiz
+  subjectId   String
+  subject     Subject      @relation(fields: [subjectId], references: [id])
+  classId     String?
+  class       Class?       @relation(fields: [classId], references: [id])
+  date        DateTime
+  totalMarks  Float        @default(100.0)
+  passMarks   Float        @default(40.0)
+  results     ExamResult[]
+  createdAt   DateTime     @default(now())
+}
+
+model ExamResult {
+  id        String   @id @default(uuid())
+  examId    String
+  exam      Exam     @relation(fields: [examId], references: [id], onDelete: Cascade)
+  studentId String
+  student   Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  marks     Float
+  grade     String   // A, B, C, S, F
+  rank      Int?
+  comment   String?
+  createdAt DateTime @default(now())
+
+  @@unique([examId, studentId])
+}
+
+// 15. Learning Materials
+model LearningMaterial {
+  id          String   @id @default(uuid())
+  title       String
+  description String?
+  fileType    String   // PDF, Document, Image, Video, Link, Past Paper
+  fileUrl     String
+  fileSize    String?
+  subjectId   String
+  subject     Subject  @relation(fields: [subjectId], references: [id])
+  classId     String?
+  class       Class?   @relation(fields: [classId], references: [id])
+  teacherId   String?
+  teacher     Teacher? @relation(fields: [teacherId], references: [id])
+  grade       String?
+  lessonTopic String?
+  uploadDate  DateTime @default(now())
+}
+
+// 16. Messaging & Communications
+model SMSLog {
+  id          String   @id @default(uuid())
+  studentId   String?
+  student     Student? @relation(fields: [studentId], references: [id])
+  recipient   String   // Phone number
+  message     String
+  type        String   // ATTENDANCE_ALERT, PAYMENT_RECEIPT, FEE_REMINDER, ANNOUNCEMENT
+  status      String   @default("SENT") // SENT, FAILED, DELIVERED
+  sentAt      DateTime @default(now())
+}
+
+model WhatsAppLog {
+  id          String   @id @default(uuid())
+  studentId   String?
+  student     Student? @relation(fields: [studentId], references: [id])
+  recipient   String
+  templateName String
+  message     String
+  status      String   @default("DELIVERED") // SENT, DELIVERED, READ, FAILED
+  sentAt      DateTime @default(now())
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String?  // If targeted to a specific user
+  title     String
+  message   String
+  type      String   // ATTENDANCE, PAYMENT, FEE_DUE, CLASS_UPDATE, MATERIAL, EXAM
+  isRead    Boolean  @default(false)
+  linkUrl   String?
+  createdAt DateTime @default(now())
+}
+
+model PushSubscription {
+  id        String   @id @default(uuid())
+  userId    String?
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  createdAt DateTime @default(now())
+}
+
+model Announcement {
+  id          String   @id @default(uuid())
+  title       String
+  content     String
+  targetRole  String   @default("ALL") // ALL, STUDENTS, TEACHERS, PARENTS
+  grade       String?
+  classId     String?
+  postedBy    String
+  priority    String   @default("NORMAL") // NORMAL, URGENT
+  createdAt   DateTime @default(now())
+}
+
+// 17. Documents & Student Files
+model Document {
+  id        String   @id @default(uuid())
+  studentId String
+  student   Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  name      String
+  fileUrl   String
+  docType   String?  // Birth Certificate, School Leaving, Medical, Photo
+  createdAt DateTime @default(now())
+}
+
+// 18. Audit Logs
+model AuditLog {
+  id        String   @id @default(uuid())
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id])
+  userName  String?
+  userRole  String?
+  action    String   // LOGIN, STUDENT_CREATE, PAYMENT_RECORD, ATTENDANCE_SCAN, etc.
+  details   String?
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime @default(now())
+}
+
+// 19. System Settings
+model SystemSetting {
+  id        String   @id @default(uuid())
+  key       String   @unique
+  value     String
+  category  String   @default("GENERAL") // GENERAL, BRANDING, SMS, WHATSAPP, FINANCIAL, PWA
+  updatedAt DateTime @updatedAt
+}
