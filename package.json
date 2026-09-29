@@ -3,13 +3,34 @@
   "version": "1.0.0",
   "description": "Class Accounting Management System (CAMS) - Modern PWA",
   "scripts": {
-    "install:all": "npm install && cd server && npm install && cd ../client && npm install",
+    "install:all": "npm install && npm install --prefix server && npm install --prefix client",
     "dev:server": "npm run dev --prefix server",
     "dev:client": "npm run dev --prefix client",
     "dev": "concurrently -n \"SERVER,CLIENT\" -c \"blue,green\" \"npm run dev --prefix server\" \"npm run dev --prefix client\"",
-    "build": "cd server && npm run build && cd ../client && npm run build"
+    "build:client": "npm run build --prefix client",
+    "build:server": "npm run build --prefix server",
+    "build": "npm run build --prefix client",
+    "vercel-build": "npm install --prefix server && npm install --prefix client && npm run build --prefix client"
+  },
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "cors": "^2.8.6",
+    "dotenv": "^16.6.1",
+    "express": "^4.22.3",
+    "jsonwebtoken": "^9.0.3",
+    "multer": "^1.4.5-lts.1",
+    "qrcode": "^1.5.4"
   },
   "devDependencies": {
-    "concurrently": "^9.1.0"
+    "@types/bcryptjs": "^2.4.6",
+    "@types/cors": "^2.8.19",
+    "@types/express": "^4.17.25",
+    "@types/jsonwebtoken": "^9.0.10",
+    "@types/multer": "^1.4.13",
+    "@types/node": "^20.19.43",
+    "@types/qrcode": "^1.5.6",
+    "concurrently": "^9.1.0",
+    "tsx": "^4.23.15",
+    "typescript": "^5.7.2"
   }
 }
