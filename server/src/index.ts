@@ -34,26 +34,26 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 // Static files for uploaded materials / photos
 app.use('/uploads', express.static(path.join(__dirname, '..', 'uploads')));
 
-// Register API Routes
-app.use('/api/auth', authRoutes);
-app.use('/api/students', studentRoutes);
-app.use('/api/classes', classRoutes);
-app.use('/api/attendance', attendanceRoutes);
-app.use('/api/payments', paymentRoutes);
-app.use('/api/pending-fees', pendingFeeRoutes);
-app.use('/api/accounting', accountingRoutes);
-app.use('/api/teachers', teacherRoutes);
-app.use('/api/exams', examRoutes);
-app.use('/api/materials', materialRoutes);
-app.use('/api/messaging', messagingRoutes);
-app.use('/api/reports', reportRoutes);
-app.use('/api/settings', settingsRoutes);
-app.use('/api/audit', auditRoutes);
-app.use('/api/dashboard', dashboardRoutes);
-app.use('/api/notifications', notificationRoutes);
+// Register API Routes (support both /api/* and direct /* paths for serverless compatibility)
+app.use(['/api/auth', '/auth'], authRoutes);
+app.use(['/api/students', '/students'], studentRoutes);
+app.use(['/api/classes', '/classes'], classRoutes);
+app.use(['/api/attendance', '/attendance'], attendanceRoutes);
+app.use(['/api/payments', '/payments'], paymentRoutes);
+app.use(['/api/pending-fees', '/pending-fees'], pendingFeeRoutes);
+app.use(['/api/accounting', '/accounting'], accountingRoutes);
+app.use(['/api/teachers', '/teachers'], teacherRoutes);
+app.use(['/api/exams', '/exams'], examRoutes);
+app.use(['/api/materials', '/materials'], materialRoutes);
+app.use(['/api/messaging', '/messaging'], messagingRoutes);
+app.use(['/api/reports', '/reports'], reportRoutes);
+app.use(['/api/settings', '/settings'], settingsRoutes);
+app.use(['/api/audit', '/audit'], auditRoutes);
+app.use(['/api/dashboard', '/dashboard'], dashboardRoutes);
+app.use(['/api/notifications', '/notifications'], notificationRoutes);
 
 // Health check endpoint
-app.get('/api/health', (req, res) => {
+app.get(['/api/health', '/health'], (req, res) => {
   res.json({ status: 'ok', name: 'Class Accounting Management System (CAMS) API', time: new Date() });
 });
 
