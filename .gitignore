@@ -21,6 +21,8 @@ build/
 *.db-journal
 *.db-wal
 *.db-shm
+data/
+*/data/
 
 # OS generated files
 .DS_Store
