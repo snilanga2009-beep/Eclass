@@ -374,7 +374,11 @@ export interface DatabaseData {
   settings: SystemSetting[];
 }
 
-const DATA_DIR = path.join(__dirname, '..', 'data');
+const IS_VERCEL = !!process.env.VERCEL;
+const BUNDLED_DATA_DIR = path.join(__dirname, '..', 'data');
+const BUNDLED_DATA_FILE = path.join(BUNDLED_DATA_DIR, 'db.json');
+
+const DATA_DIR = IS_VERCEL ? '/tmp/cams_data' : BUNDLED_DATA_DIR;
 const DATA_FILE = path.join(DATA_DIR, 'db.json');
 
 // In-Memory Database Store with Atomic Persistence
@@ -421,6 +425,11 @@ class DatabaseStore {
     try {
       if (!fs.existsSync(DATA_DIR)) {
         fs.mkdirSync(DATA_DIR, { recursive: true });
+      }
+      if (IS_VERCEL && !fs.existsSync(DATA_FILE) && fs.existsSync(BUNDLED_DATA_FILE)) {
+        try {
+          fs.copyFileSync(BUNDLED_DATA_FILE, DATA_FILE);
+        } catch (e) {}
       }
       if (fs.existsSync(DATA_FILE)) {
         const raw = fs.readFileSync(DATA_FILE, 'utf-8');
