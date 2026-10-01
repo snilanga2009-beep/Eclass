@@ -168,6 +168,7 @@ export const App: React.FC = () => {
               onNavigate={setCurrentTab} 
               onOpenReceipt={(r) => setActiveReceiptNumber(r)}
               onOpenQuickScan={handleOpenQuickScan}
+              onOpenStudentProfile={(id) => setActiveProfileStudentId(id)}
             />
           )}
 

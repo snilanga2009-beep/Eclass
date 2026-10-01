@@ -20,10 +20,40 @@ router.get('/', authenticateToken, (req: AuthRequest, res: Response) => {
       c.status === 'ACTIVE' && c.dayOfWeek.toLowerCase() === currentDayName.toLowerCase()
     );
 
-    // Today's attendance
-    const todaysAttendances = db.data.attendances.filter(a => a.date === today);
-    const todaysPresentCount = todaysAttendances.filter(a => a.status === 'PRESENT' || a.status === 'LATE').length;
-    const todaysAbsentCount = todaysAttendances.filter(a => a.status === 'ABSENT').length;
+    // Today's attendance & student attendance roster
+    const allAttendanceDates = Array.from(new Set(db.data.attendances.map(a => a.date))).sort().reverse();
+    const targetAttendanceDate = String(req.query.attendanceDate || (
+      db.data.attendances.some(a => a.date === today) 
+        ? today 
+        : (allAttendanceDates[0] || today)
+    ));
+
+    const dayAttendances = db.data.attendances.filter(a => a.date === targetAttendanceDate);
+    const todaysPresentCount = dayAttendances.filter(a => a.status === 'PRESENT' || a.status === 'LATE').length;
+    const todaysAbsentCount = dayAttendances.filter(a => a.status === 'ABSENT').length;
+
+    const todaysAttendanceList = dayAttendances.map(a => {
+      const student = db.data.students.find(s => s.id === a.studentId);
+      const cls = db.data.classes.find(c => c.id === a.classId);
+      const teacher = cls ? db.data.teachers.find(t => t.id === cls.teacherId) : null;
+      return {
+        id: a.id,
+        studentId: a.studentId,
+        studentName: student?.fullName || 'Student',
+        studentIdNumber: student?.studentIdNumber || 'N/A',
+        studentPhoto: student?.photo || '',
+        studentGrade: student?.grade || 'General',
+        classId: a.classId,
+        className: cls?.name || 'Tuition Class',
+        classCode: cls?.classCode || '',
+        teacherName: teacher?.name || 'Academy Staff',
+        date: a.date,
+        status: a.status,
+        scannedAt: a.scannedAt,
+        method: a.method || 'QR_CODE',
+        recordedBy: a.recordedBy || 'Gate Scanner'
+      };
+    }).sort((a, b) => new Date(b.scannedAt).getTime() - new Date(a.scannedAt).getTime());
 
     // Revenues
     const todayRevenue = db.data.payments
@@ -128,6 +158,9 @@ router.get('/', authenticateToken, (req: AuthRequest, res: Response) => {
       recentPayments,
       recentRegistrations,
       todaysClasses,
+      attendanceDate: targetAttendanceDate,
+      allAttendanceDates,
+      todaysAttendanceList,
       charts: {
         revenueChart,
         attendanceChart,

@@ -13,7 +13,12 @@ import {
   QrCode,
   Sparkles,
   ChevronRight,
-  Clock
+  Clock,
+  Search,
+  Filter,
+  Eye,
+  Radio,
+  GraduationCap
 } from 'lucide-react';
 import { apiRequest, formatLKR, formatDate } from '../api';
 import { useAuth } from '../context/AuthContext';
@@ -36,22 +41,40 @@ interface DashboardProps {
   onNavigate: (tab: string) => void;
   onOpenReceipt: (receiptNo: string) => void;
   onOpenQuickScan: () => void;
+  onOpenStudentProfile?: (studentId: string) => void;
 }
 
 export const Dashboard: React.FC<DashboardProps> = ({
   onNavigate,
   onOpenReceipt,
-  onOpenQuickScan
+  onOpenQuickScan,
+  onOpenStudentProfile
 }) => {
   const { user } = useAuth();
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    apiRequest('/dashboard')
-      .then(res => setData(res))
+  // Attendance Section Filters & Date
+  const [selectedAttDate, setSelectedAttDate] = useState<string>('');
+  const [attSearch, setAttSearch] = useState<string>('');
+  const [attClassFilter, setAttClassFilter] = useState<string>('ALL');
+  const [attStatusFilter, setAttStatusFilter] = useState<string>('ALL');
+
+  const loadDashboard = (attDate?: string) => {
+    const url = attDate ? `/dashboard?attendanceDate=${attDate}` : '/dashboard';
+    apiRequest(url)
+      .then(res => {
+        setData(res);
+        if (res?.attendanceDate) {
+          setSelectedAttDate(res.attendanceDate);
+        }
+      })
       .catch(err => console.error('Failed to load dashboard:', err))
       .finally(() => setLoading(false));
+  };
+
+  useEffect(() => {
+    loadDashboard();
   }, []);
 
   if (loading) {
@@ -276,6 +299,431 @@ export const Dashboard: React.FC<DashboardProps> = ({
           </div>
         </div>
       </div>
+
+      {/* TODAY'S LIVE ATTENDANCE ROSTER & CLASS ATTENDED CARD */}
+      {(() => {
+        const todayStr = new Date().toISOString().substring(0, 10);
+        const todaysAttendanceList: any[] = data?.todaysAttendanceList || [];
+        const allAttendanceDates: string[] = data?.allAttendanceDates || [];
+        const currentAttendanceDate = selectedAttDate || data?.attendanceDate || todayStr;
+
+        // Unique classes represented in this session
+        const uniqueAttClasses = Array.from(
+          new Map(todaysAttendanceList.map((a: any) => [a.classId, { id: a.classId, name: a.className, code: a.classCode }])).values()
+        );
+
+        // Filtered attendance list
+        const filteredAttendanceList = todaysAttendanceList.filter((a: any) => {
+          if (attClassFilter !== 'ALL' && a.classId !== attClassFilter) return false;
+          if (attStatusFilter !== 'ALL' && a.status !== attStatusFilter) return false;
+          if (attSearch) {
+            const q = attSearch.toLowerCase();
+            return (
+              a.studentName.toLowerCase().includes(q) ||
+              a.studentIdNumber.toLowerCase().includes(q) ||
+              a.className.toLowerCase().includes(q) ||
+              (a.teacherName && a.teacherName.toLowerCase().includes(q))
+            );
+          }
+          return true;
+        });
+
+        const presentCount = todaysAttendanceList.filter(a => a.status === 'PRESENT').length;
+        const lateCount = todaysAttendanceList.filter(a => a.status === 'LATE').length;
+
+        return (
+          <div className="p-5 sm:p-6 rounded-3xl bg-white border border-slate-200/90 shadow-sm space-y-5">
+            {/* Header & Date Controls */}
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-4 border-b border-slate-100">
+              <div className="space-y-1">
+                <div className="flex items-center space-x-2">
+                  <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-700 border border-emerald-500/30 text-[10px] font-bold uppercase tracking-wider flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                    <span>Live Gate Check-In Feed</span>
+                  </span>
+                  <span className="text-xs text-slate-400 font-mono">
+                    Session: <strong>{currentAttendanceDate}</strong>
+                  </span>
+                </div>
+                <h3 className="text-lg sm:text-xl font-black text-slate-900 tracking-tight">
+                  Today's Attendance Roster & Attended Classes
+                </h3>
+                <p className="text-xs text-slate-500">
+                  Full list of students who attended today, which tuition class they checked into, and exact arrival timestamps.
+                </p>
+              </div>
+
+              {/* Date & Action Controls */}
+              <div className="flex flex-wrap items-center gap-2">
+                {/* Quick Date Pills */}
+                <div className="flex items-center bg-slate-100 p-1 rounded-2xl border border-slate-200">
+                  <button
+                    onClick={() => {
+                      setSelectedAttDate(todayStr);
+                      loadDashboard(todayStr);
+                    }}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                      currentAttendanceDate === todayStr
+                        ? 'bg-white text-slate-900 shadow-sm'
+                        : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                  >
+                    Today
+                  </button>
+                  {allAttendanceDates.filter(d => d !== todayStr).slice(0, 1).map(dateStr => (
+                    <button
+                      key={dateStr}
+                      onClick={() => {
+                        setSelectedAttDate(dateStr);
+                        loadDashboard(dateStr);
+                      }}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                        currentAttendanceDate === dateStr
+                          ? 'bg-emerald-600 text-white shadow-sm'
+                          : 'text-emerald-700 hover:text-emerald-900'
+                      }`}
+                    >
+                      Active Session ({dateStr})
+                    </button>
+                  ))}
+                </div>
+
+                {/* Custom Date Input */}
+                <input
+                  type="date"
+                  value={currentAttendanceDate}
+                  onChange={(e) => {
+                    setSelectedAttDate(e.target.value);
+                    loadDashboard(e.target.value);
+                  }}
+                  className="px-3 py-1.5 rounded-2xl bg-white border border-slate-200 text-xs font-semibold text-slate-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                />
+
+                {/* Launch Scanner */}
+                <button
+                  onClick={onOpenQuickScan}
+                  className="px-3.5 py-1.5 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-bold text-xs shadow-md shadow-emerald-600/30 flex items-center space-x-1.5 hover:from-emerald-500 hover:to-teal-500 transition-all active:scale-95"
+                >
+                  <QrCode size={14} />
+                  <span>Scan QR / RFID</span>
+                </button>
+
+                {/* Open Attendance Tab */}
+                <button
+                  onClick={() => onNavigate('attendance')}
+                  className="px-3.5 py-1.5 rounded-2xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs transition-all shadow-sm flex items-center space-x-1"
+                >
+                  <span>Attendance Desk</span>
+                  <ChevronRight size={14} />
+                </button>
+              </div>
+            </div>
+
+            {/* Attendance KPI Summary & Filter Bar */}
+            <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
+              {/* Search Bar */}
+              <div className="relative flex-1">
+                <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                <input
+                  type="text"
+                  placeholder="Search student name, ID (STU-...), class, teacher..."
+                  value={attSearch}
+                  onChange={(e) => setAttSearch(e.target.value)}
+                  className="w-full pl-9 pr-4 py-2 rounded-2xl bg-slate-50 border border-slate-200 text-xs focus:ring-2 focus:ring-slate-900 focus:outline-none"
+                />
+              </div>
+
+              {/* Filters */}
+              <div className="flex items-center space-x-2 overflow-x-auto pb-1 md:pb-0 touch-scroll-x no-scrollbar">
+                {/* Class Filter Dropdown */}
+                <select
+                  value={attClassFilter}
+                  onChange={(e) => setAttClassFilter(e.target.value)}
+                  className="px-3 py-2 rounded-2xl border border-slate-200 text-xs bg-slate-50 font-semibold text-slate-700 focus:outline-none shrink-0"
+                >
+                  <option value="ALL">All Enrolled Classes ({todaysAttendanceList.length})</option>
+                  {uniqueAttClasses.map(c => (
+                    <option key={c.id} value={c.id}>{c.name}</option>
+                  ))}
+                </select>
+
+                {/* Status Filter Dropdown */}
+                <select
+                  value={attStatusFilter}
+                  onChange={(e) => setAttStatusFilter(e.target.value)}
+                  className="px-3 py-2 rounded-2xl border border-slate-200 text-xs bg-slate-50 font-semibold text-slate-700 focus:outline-none shrink-0"
+                >
+                  <option value="ALL">All Status</option>
+                  <option value="PRESENT">Present ({presentCount})</option>
+                  <option value="LATE">Late ({lateCount})</option>
+                </select>
+
+                {/* Active Count Badge */}
+                <span className="px-3 py-2 rounded-2xl bg-slate-100 text-slate-700 text-xs font-bold shrink-0">
+                  {filteredAttendanceList.length} of {todaysAttendanceList.length} Students
+                </span>
+              </div>
+            </div>
+
+            {/* Quick Class Filter Pills */}
+            {uniqueAttClasses.length > 1 && (
+              <div className="flex items-center space-x-2 touch-scroll-x no-scrollbar pb-1 pt-1">
+                <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider shrink-0 mr-1">
+                  Classes:
+                </span>
+                <button
+                  onClick={() => setAttClassFilter('ALL')}
+                  className={`px-3 py-1 rounded-xl text-xs font-bold transition-all shrink-0 ${
+                    attClassFilter === 'ALL'
+                      ? 'bg-slate-900 text-white shadow-sm'
+                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                  }`}
+                >
+                  All ({todaysAttendanceList.length})
+                </button>
+                {uniqueAttClasses.map(c => {
+                  const count = todaysAttendanceList.filter(a => a.classId === c.id).length;
+                  const isSelected = attClassFilter === c.id;
+                  return (
+                    <button
+                      key={c.id}
+                      onClick={() => setAttClassFilter(c.id)}
+                      className={`px-3 py-1 rounded-xl text-xs font-bold transition-all flex items-center space-x-1.5 shrink-0 ${
+                        isSelected
+                          ? 'bg-brand-600 text-white shadow-sm'
+                          : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                      }`}
+                    >
+                      <span>{c.name}</span>
+                      <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono ${
+                        isSelected ? 'bg-brand-700 text-white' : 'bg-slate-200 text-slate-700'
+                      }`}>
+                        {count}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* Desktop Table View (Visible on md and up) */}
+            <div className="hidden md:block overflow-x-auto rounded-2xl border border-slate-200/80">
+              <table className="w-full text-xs text-left">
+                <thead className="bg-slate-50 text-slate-500 font-semibold uppercase tracking-wider text-[10px] border-b border-slate-200">
+                  <tr>
+                    <th className="py-3 px-4">Student Name & ID</th>
+                    <th className="py-3 px-4">Class Attended</th>
+                    <th className="py-3 px-4">Check-In Time</th>
+                    <th className="py-3 px-4">Status</th>
+                    <th className="py-3 px-4">Scan Method</th>
+                    <th className="py-3 px-4">Gate Operator</th>
+                    <th className="py-3 px-4 text-right">Student Profile</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {filteredAttendanceList.length === 0 ? (
+                    <tr>
+                      <td colSpan={7} className="py-12 text-center text-slate-400">
+                        <div className="space-y-2">
+                          <CheckCircle2 size={32} className="text-slate-300 mx-auto" />
+                          <p className="font-semibold text-slate-600">No attendance records found for this date/filter.</p>
+                          <p className="text-[11px] text-slate-400">
+                            Scan a student ID card with the QR scanner, or switch to an active session date.
+                          </p>
+                          {allAttendanceDates.length > 0 && currentAttendanceDate !== allAttendanceDates[0] && (
+                            <button
+                              onClick={() => {
+                                setSelectedAttDate(allAttendanceDates[0]);
+                                loadDashboard(allAttendanceDates[0]);
+                              }}
+                              className="mt-2 px-4 py-1.5 rounded-xl bg-slate-900 text-white font-bold text-xs shadow-sm hover:bg-slate-800 transition-colors"
+                            >
+                              View Active Session ({allAttendanceDates[0]})
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ) : (
+                    filteredAttendanceList.map((att: any) => {
+                      const checkInTime = att.scannedAt
+                        ? new Date(att.scannedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+                        : '--:--';
+
+                      return (
+                        <tr key={att.id} className="hover:bg-slate-50/70 transition-colors">
+                          {/* 1. Student Name & ID */}
+                          <td className="py-3 px-4">
+                            <div className="flex items-center space-x-3">
+                              <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-brand-500 to-indigo-600 text-white font-bold text-xs flex items-center justify-center shrink-0 overflow-hidden shadow-sm">
+                                {att.studentPhoto ? (
+                                  <img src={att.studentPhoto} alt="" className="w-full h-full object-cover" />
+                                ) : (
+                                  att.studentName.charAt(0)
+                                )}
+                              </div>
+                              <div>
+                                <p className="font-bold text-slate-900 leading-tight">{att.studentName}</p>
+                                <div className="flex items-center space-x-1.5 mt-0.5">
+                                  <span className="font-mono text-[10px] text-slate-500">{att.studentIdNumber}</span>
+                                  <span className="text-slate-300">•</span>
+                                  <span className="text-[10px] text-slate-500">{att.studentGrade}</span>
+                                </div>
+                              </div>
+                            </div>
+                          </td>
+
+                          {/* 2. Class Attended */}
+                          <td className="py-3 px-4">
+                            <div>
+                              <p className="font-bold text-slate-900">{att.className}</p>
+                              <div className="flex items-center space-x-1.5 mt-0.5">
+                                {att.classCode && (
+                                  <span className="font-mono text-[9px] px-1.5 py-0.2 rounded bg-slate-100 text-slate-700 font-bold">
+                                    {att.classCode}
+                                  </span>
+                                )}
+                                <span className="text-[10px] text-slate-500">
+                                  Teacher: <strong className="text-slate-700">{att.teacherName}</strong>
+                                </span>
+                              </div>
+                            </div>
+                          </td>
+
+                          {/* 3. Check-In Time */}
+                          <td className="py-3 px-4">
+                            <span className="inline-flex items-center space-x-1 text-slate-700 font-mono text-xs font-semibold">
+                              <Clock size={12} className="text-slate-400" />
+                              <span>{checkInTime}</span>
+                            </span>
+                          </td>
+
+                          {/* 4. Status */}
+                          <td className="py-3 px-4">
+                            <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider inline-flex items-center gap-1 ${
+                              att.status === 'PRESENT'
+                                ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                                : 'bg-amber-50 text-amber-700 border border-amber-200'
+                            }`}>
+                              <span className={`w-1.5 h-1.5 rounded-full ${att.status === 'PRESENT' ? 'bg-emerald-500' : 'bg-amber-500'}`} />
+                              <span>{att.status}</span>
+                            </span>
+                          </td>
+
+                          {/* 5. Scan Method */}
+                          <td className="py-3 px-4">
+                            <span className="px-2 py-0.5 rounded-lg bg-slate-100 text-slate-700 font-mono text-[10px] font-bold flex items-center gap-1 w-fit">
+                              {att.method === 'RFID' ? (
+                                <>
+                                  <Radio size={11} className="text-indigo-600" />
+                                  <span>125kHz RFID</span>
+                                </>
+                              ) : att.method === 'QR_CODE' ? (
+                                <>
+                                  <QrCode size={11} className="text-amber-600" />
+                                  <span>QR Scan</span>
+                                </>
+                              ) : (
+                                <>
+                                  <CheckCircle2 size={11} className="text-teal-600" />
+                                  <span>{att.method || 'ID Card'}</span>
+                                </>
+                              )}
+                            </span>
+                          </td>
+
+                          {/* 6. Gate Operator */}
+                          <td className="py-3 px-4 text-slate-500 font-medium">
+                            {att.recordedBy}
+                          </td>
+
+                          {/* 7. Action */}
+                          <td className="py-3 px-4 text-right">
+                            <button
+                              onClick={() => {
+                                if (onOpenStudentProfile) {
+                                  onOpenStudentProfile(att.studentId);
+                                } else {
+                                  onNavigate('students');
+                                }
+                              }}
+                              className="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-900 hover:text-white text-slate-700 font-bold text-xs transition-all shadow-sm"
+                            >
+                              Profile
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Mobile Touch-Friendly Cards (Visible on mobile < md) */}
+            <div className="md:hidden space-y-3">
+              {filteredAttendanceList.length === 0 ? (
+                <div className="p-8 text-center text-xs text-slate-400 bg-slate-50 rounded-2xl">
+                  No attendance records found for this date.
+                </div>
+              ) : (
+                filteredAttendanceList.map((att: any) => {
+                  const checkInTime = att.scannedAt
+                    ? new Date(att.scannedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                    : '--:--';
+
+                  return (
+                    <div key={att.id} className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-2.5">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-2">
+                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                            att.status === 'PRESENT' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
+                          }`}>
+                            {att.status}
+                          </span>
+                          <span className="text-[10px] font-mono text-slate-500 flex items-center gap-1">
+                            <Clock size={11} /> {checkInTime}
+                          </span>
+                        </div>
+                        <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-white text-slate-700 border border-slate-200">
+                          {att.method || 'QR_CODE'}
+                        </span>
+                      </div>
+
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <p className="font-bold text-sm text-slate-900">{att.studentName}</p>
+                          <p className="text-[10px] text-slate-500 font-mono">{att.studentIdNumber} • {att.studentGrade}</p>
+                        </div>
+                        <button
+                          onClick={() => {
+                            if (onOpenStudentProfile) {
+                              onOpenStudentProfile(att.studentId);
+                            } else {
+                              onNavigate('students');
+                            }
+                          }}
+                          className="px-3 py-1 rounded-xl bg-slate-900 text-white font-bold text-xs shadow-sm"
+                        >
+                          Profile
+                        </button>
+                      </div>
+
+                      <div className="pt-2 border-t border-slate-200/80 flex items-center justify-between text-xs">
+                        <div>
+                          <p className="font-bold text-brand-700 leading-tight">{att.className}</p>
+                          <p className="text-[10px] text-slate-500">Teacher: {att.teacherName}</p>
+                        </div>
+                        <span className="text-[10px] text-slate-400">By: {att.recordedBy}</span>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Interactive Charts Section */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
