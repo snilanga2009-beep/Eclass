@@ -16,7 +16,8 @@ import {
   Info,
   CreditCard,
   Smartphone,
-  Check
+  Check,
+  Clock
 } from 'lucide-react';
 import { decodeQRFromFile, decodeQRFromVideo } from '../utils/qrScanner';
 
@@ -45,6 +46,7 @@ export const QRScannerModal: React.FC<QRScannerModalProps> = ({
   const [processing, setProcessing] = useState<boolean>(false);
   const [manualToken, setManualToken] = useState<string>('');
   const [lastScanResult, setLastScanResult] = useState<any | null>(null);
+  const [payLaterNotice, setPayLaterNotice] = useState<string | null>(null);
 
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -426,6 +428,17 @@ export const QRScannerModal: React.FC<QRScannerModalProps> = ({
             </div>
           )}
 
+          {/* Pay Later Notice Toast */}
+          {payLaterNotice && (
+            <div className="w-full max-w-[320px] p-3 rounded-2xl bg-amber-500/20 border border-amber-400/50 text-amber-200 text-xs flex items-center space-x-2 animate-in fade-in duration-150">
+              <Clock size={16} className="text-amber-400 shrink-0" />
+              <div className="flex-1">
+                <p className="font-bold text-amber-300">Pay Later Scheduled</p>
+                <p className="text-[11px] text-amber-100">{payLaterNotice}</p>
+              </div>
+            </div>
+          )}
+
           {/* Last Scan Result Card */}
           {lastScanResult && (
             <div className={`w-full max-w-[320px] p-3.5 rounded-2xl border text-xs animate-in zoom-in-95 duration-200 ${
@@ -518,8 +531,8 @@ export const QRScannerModal: React.FC<QRScannerModalProps> = ({
                         </div>
                       )}
 
-                      {/* YES / NO Confirmation Buttons */}
-                      <div className="grid grid-cols-2 gap-2 pt-1">
+                      {/* Action Decision Buttons */}
+                      <div className="space-y-1.5 pt-1">
                         <button
                           type="button"
                           onClick={() => {
@@ -529,22 +542,39 @@ export const QRScannerModal: React.FC<QRScannerModalProps> = ({
                               onOpenPaymentModal(lastScanResult.student.id, targetFeeId);
                             }
                           }}
-                          className="w-full py-2.5 px-3 rounded-xl bg-gradient-to-r from-emerald-500 via-teal-500 to-indigo-600 hover:from-emerald-400 hover:to-indigo-500 text-white font-black text-[11px] shadow-md shadow-emerald-500/30 flex items-center justify-center space-x-1 transition-all active:scale-95"
+                          className="w-full py-2.5 px-3 rounded-xl bg-gradient-to-r from-emerald-500 via-teal-500 to-indigo-600 hover:from-emerald-400 hover:to-indigo-500 text-white font-black text-xs shadow-md shadow-emerald-500/30 flex items-center justify-center space-x-1.5 transition-all active:scale-95"
                         >
-                          <Check size={14} />
+                          <Check size={15} />
                           <span>YES, Collect Fee</span>
                         </button>
 
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setLastScanResult(null);
-                          }}
-                          className="w-full py-2.5 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-[11px] border border-slate-700 flex items-center justify-center space-x-1 transition-all active:scale-95"
-                        >
-                          <X size={14} />
-                          <span>NO, Skip</span>
-                        </button>
+                        <div className="grid grid-cols-2 gap-1.5">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const name = lastScanResult.student?.fullName || 'Student';
+                              setPayLaterNotice(`${name} noted to pay fee after class finishes.`);
+                              setLastScanResult(null);
+                              setTimeout(() => setPayLaterNotice(null), 4000);
+                            }}
+                            className="w-full py-2 px-2.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 font-bold text-[11px] border border-amber-500/40 flex items-center justify-center space-x-1 transition-all active:scale-95"
+                            title="Student will pay after class finishes"
+                          >
+                            <Clock size={13} className="text-amber-400" />
+                            <span>⏰ Pay Later</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setLastScanResult(null);
+                            }}
+                            className="w-full py-2 px-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-[11px] border border-slate-700 flex items-center justify-center space-x-1 transition-all active:scale-95"
+                          >
+                            <X size={13} />
+                            <span>NO, Skip</span>
+                          </button>
+                        </div>
                       </div>
                     </div>
                   )}

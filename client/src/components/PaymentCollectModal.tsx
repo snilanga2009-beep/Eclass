@@ -8,7 +8,7 @@ interface PaymentCollectModalProps {
   onClose: () => void;
   preselectedStudentId?: string | null;
   preselectedFeeRecordId?: string | null;
-  onPaymentSuccess: (receiptNumber: string) => void;
+  onPaymentSuccess: (receiptNumber: string, studentId?: string) => void;
 }
 
 export const PaymentCollectModal: React.FC<PaymentCollectModalProps> = ({
@@ -20,6 +20,7 @@ export const PaymentCollectModal: React.FC<PaymentCollectModalProps> = ({
 }) => {
   const [students, setStudents] = useState<any[]>([]);
   const [selectedStudentId, setSelectedStudentId] = useState<string>('');
+  const [isChangingStudent, setIsChangingStudent] = useState(false);
   const [studentDetails, setStudentDetails] = useState<any>(null);
   const [paymentMethod, setPaymentMethod] = useState('Cash');
   const [reference, setReference] = useState('');
@@ -31,6 +32,7 @@ export const PaymentCollectModal: React.FC<PaymentCollectModalProps> = ({
 
   useEffect(() => {
     if (isOpen) {
+      setIsChangingStudent(false);
       apiRequest<any[]>('/students?status=ACTIVE').then(res => {
         setStudents(res || []);
         if (preselectedStudentId) {
@@ -125,7 +127,7 @@ export const PaymentCollectModal: React.FC<PaymentCollectModalProps> = ({
         origin: { y: 0.6 }
       });
 
-      onPaymentSuccess(res.receiptNumber);
+      onPaymentSuccess(res.receiptNumber, selectedStudentId);
       onClose();
     } catch (err: any) {
       setError(err.message || 'Payment processing failed');
@@ -159,21 +161,61 @@ export const PaymentCollectModal: React.FC<PaymentCollectModalProps> = ({
             </div>
           )}
 
-          {/* Student Selector */}
-          <div>
-            <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Select Student</label>
-            <select
-              value={selectedStudentId}
-              onChange={(e) => setSelectedStudentId(e.target.value)}
-              className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 bg-white"
-            >
-              {students.map(s => (
-                <option key={s.id} value={s.id}>
-                  {s.fullName} ({s.studentIdNumber}) - {s.grade}
-                </option>
-              ))}
-            </select>
-          </div>
+          {/* Student Selector / Targeted Student View */}
+          {preselectedStudentId && !isChangingStudent && studentDetails ? (
+            <div className="p-3.5 rounded-2xl bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200 flex items-center justify-between shadow-sm">
+              <div className="flex items-center space-x-3 min-w-0">
+                {studentDetails.photo ? (
+                  <img src={studentDetails.photo} alt="" className="w-11 h-11 rounded-2xl object-cover ring-2 ring-emerald-500/30 shrink-0" />
+                ) : (
+                  <div className="w-11 h-11 rounded-2xl bg-emerald-600 text-white font-bold flex items-center justify-center text-sm shrink-0">
+                    {studentDetails.fullName?.charAt(0) || 'S'}
+                  </div>
+                )}
+                <div className="min-w-0">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-700 block">Student Selected</span>
+                  <h4 className="font-extrabold text-sm text-slate-900 truncate">{studentDetails.fullName}</h4>
+                  <p className="text-xs font-mono text-slate-600 truncate">{studentDetails.studentIdNumber} • {studentDetails.grade}</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsChangingStudent(true)}
+                className="text-xs font-bold text-slate-600 hover:text-slate-900 bg-white px-2.5 py-1.5 rounded-xl border border-slate-200 shadow-sm transition-all shrink-0 ml-2"
+              >
+                Change
+              </button>
+            </div>
+          ) : (
+            <div>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">Select Student</label>
+                {preselectedStudentId && isChangingStudent && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedStudentId(preselectedStudentId);
+                      setIsChangingStudent(false);
+                    }}
+                    className="text-[11px] font-bold text-brand-600 hover:underline"
+                  >
+                    Back to Scanned Student
+                  </button>
+                )}
+              </div>
+              <select
+                value={selectedStudentId}
+                onChange={(e) => setSelectedStudentId(e.target.value)}
+                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 bg-white"
+              >
+                {students.map(s => (
+                  <option key={s.id} value={s.id}>
+                    {s.fullName} ({s.studentIdNumber}) - {s.grade}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
 
           {/* Pending Fees Table */}
           {loading ? (

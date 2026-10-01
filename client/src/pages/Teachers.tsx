@@ -185,6 +185,8 @@ export const Teachers: React.FC = () => {
     switch (method) {
       case 'Percentage':
         return 'Percentage (%)';
+      case 'DayClassCommission':
+        return 'Day Class Commission (%)';
       case 'FlatRate':
         return 'Flat Monthly';
       case 'PerStudent':
@@ -202,6 +204,8 @@ export const Teachers: React.FC = () => {
     switch (method) {
       case 'Percentage':
         return 'bg-blue-50 text-blue-700 border-blue-200';
+      case 'DayClassCommission':
+        return 'bg-teal-50 text-teal-800 border-teal-200';
       case 'FlatRate':
         return 'bg-emerald-50 text-emerald-700 border-emerald-200';
       case 'PerStudent':
@@ -218,6 +222,8 @@ export const Teachers: React.FC = () => {
     switch (teacher.paymentMethod) {
       case 'Percentage':
         return `${rate}%`;
+      case 'DayClassCommission':
+        return `${rate}% / day class`;
       case 'FlatRate':
         return `${formatLKR(rate)} / mo`;
       case 'PerStudent':
@@ -237,7 +243,7 @@ export const Teachers: React.FC = () => {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">Teacher Management</h1>
-          <p className="text-xs text-slate-500 mt-0.5">Faculty profiles, remuneration models (Percentage, Flat Monthly, Per Student, Hourly), and class contracts</p>
+          <p className="text-xs text-slate-500 mt-0.5">Faculty profiles, remuneration models (Day Class Commission %, Percentage, Flat Monthly, Per Student, Hourly), and class contracts</p>
         </div>
 
         <button
@@ -275,6 +281,7 @@ export const Teachers: React.FC = () => {
               className="px-2.5 py-1.5 rounded-xl border border-slate-200 text-xs bg-white text-slate-700 font-medium focus:outline-none focus:ring-2 focus:ring-brand-500/20"
             >
               <option value="ALL">All Payout Methods</option>
+              <option value="DayClassCommission">Day Class Commission (%)</option>
               <option value="Percentage">Percentage (%)</option>
               <option value="FlatRate">Flat Monthly</option>
               <option value="PerStudent">Per Student</option>
@@ -525,7 +532,7 @@ export const Teachers: React.FC = () => {
                       onChange={(e) => {
                         const newMethod = e.target.value;
                         let defaultRate = formData.paymentRate;
-                        if (newMethod === 'Percentage' && (defaultRate > 100 || defaultRate <= 0)) defaultRate = 70;
+                        if ((newMethod === 'Percentage' || newMethod === 'DayClassCommission') && (defaultRate > 100 || defaultRate <= 0)) defaultRate = 70;
                         if (newMethod === 'FlatRate' && defaultRate <= 100) defaultRate = 50000;
                         if (newMethod === 'PerStudent' && defaultRate > 5000) defaultRate = 500;
                         if (newMethod === 'Hourly' && defaultRate > 10000) defaultRate = 2500;
@@ -533,6 +540,7 @@ export const Teachers: React.FC = () => {
                       }}
                       className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs bg-white font-semibold focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500"
                     >
+                      <option value="DayClassCommission">Day class Commission Rate (%)</option>
                       <option value="Percentage">Percentage (%) - Revenue Commission</option>
                       <option value="FlatRate">Flat Monthly - Fixed Monthly Retainer</option>
                       <option value="PerStudent">Per Student - Rate per Paid Student</option>
@@ -543,6 +551,7 @@ export const Teachers: React.FC = () => {
 
                   <div>
                     <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                      {formData.paymentMethod === 'DayClassCommission' && 'Day class Commission Rate (%)'}
                       {formData.paymentMethod === 'Percentage' && 'Commission Rate (%)'}
                       {formData.paymentMethod === 'FlatRate' && 'Monthly Flat Amount (Rs.)'}
                       {formData.paymentMethod === 'PerStudent' && 'Rate per Student (Rs.)'}
@@ -553,13 +562,13 @@ export const Teachers: React.FC = () => {
                       <input
                         type="number"
                         min="0"
-                        max={formData.paymentMethod === 'Percentage' ? 100 : undefined}
+                        max={(formData.paymentMethod === 'Percentage' || formData.paymentMethod === 'DayClassCommission') ? 100 : undefined}
                         value={formData.paymentRate}
                         onChange={(e) => setFormData({ ...formData, paymentRate: Number(e.target.value) })}
                         className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs font-bold focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500"
                       />
                       <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">
-                        {formData.paymentMethod === 'Percentage' ? '%' : 'LKR'}
+                        {(formData.paymentMethod === 'Percentage' || formData.paymentMethod === 'DayClassCommission') ? '%' : 'LKR'}
                       </span>
                     </div>
                   </div>
@@ -709,7 +718,7 @@ export const Teachers: React.FC = () => {
                       onChange={(e) => {
                         const newMethod = e.target.value;
                         let defaultRate = editFormData.paymentRate;
-                        if (newMethod === 'Percentage' && (defaultRate > 100 || defaultRate <= 0)) defaultRate = 70;
+                        if ((newMethod === 'Percentage' || newMethod === 'DayClassCommission') && (defaultRate > 100 || defaultRate <= 0)) defaultRate = 70;
                         if (newMethod === 'FlatRate' && defaultRate <= 100) defaultRate = 50000;
                         if (newMethod === 'PerStudent' && defaultRate > 5000) defaultRate = 500;
                         if (newMethod === 'Hourly' && defaultRate > 10000) defaultRate = 2500;
@@ -717,6 +726,7 @@ export const Teachers: React.FC = () => {
                       }}
                       className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs bg-white font-semibold focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500"
                     >
+                      <option value="DayClassCommission">Day class Commission Rate (%)</option>
                       <option value="Percentage">Percentage (%) - Revenue Commission</option>
                       <option value="FlatRate">Flat Monthly - Fixed Monthly Retainer</option>
                       <option value="PerStudent">Per Student - Rate per Paid Student</option>
@@ -727,6 +737,7 @@ export const Teachers: React.FC = () => {
 
                   <div>
                     <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                      {editFormData.paymentMethod === 'DayClassCommission' && 'Day class Commission Rate (%)'}
                       {editFormData.paymentMethod === 'Percentage' && 'Commission Rate (%)'}
                       {editFormData.paymentMethod === 'FlatRate' && 'Monthly Flat Amount (Rs.)'}
                       {editFormData.paymentMethod === 'PerStudent' && 'Rate per Student (Rs.)'}
@@ -737,13 +748,13 @@ export const Teachers: React.FC = () => {
                       <input
                         type="number"
                         min="0"
-                        max={editFormData.paymentMethod === 'Percentage' ? 100 : undefined}
+                        max={(editFormData.paymentMethod === 'Percentage' || editFormData.paymentMethod === 'DayClassCommission') ? 100 : undefined}
                         value={editFormData.paymentRate}
                         onChange={(e) => setEditFormData({ ...editFormData, paymentRate: Number(e.target.value) })}
                         className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs font-bold focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500"
                       />
                       <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">
-                        {editFormData.paymentMethod === 'Percentage' ? '%' : 'LKR'}
+                        {(editFormData.paymentMethod === 'Percentage' || editFormData.paymentMethod === 'DayClassCommission') ? '%' : 'LKR'}
                       </span>
                     </div>
                   </div>

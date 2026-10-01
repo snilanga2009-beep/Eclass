@@ -857,8 +857,8 @@ export const Attendance: React.FC<AttendanceProps> = ({
                       </div>
                     )}
 
-                    {/* YES / NO Confirmation Action Buttons */}
-                    <div className="grid grid-cols-2 gap-2 pt-1">
+                    {/* Action Decision Buttons */}
+                    <div className="space-y-2 pt-1">
                       <button
                         type="button"
                         onClick={() => {
@@ -867,20 +867,35 @@ export const Attendance: React.FC<AttendanceProps> = ({
                             onOpenPaymentModal(scanResult.student.id, targetFeeId);
                           }
                         }}
-                        className="py-2.5 px-3 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-extrabold text-xs shadow-md shadow-emerald-600/30 flex items-center justify-center space-x-1.5 transition-all active:scale-95"
+                        className="w-full py-2.5 px-3 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-extrabold text-xs shadow-md shadow-emerald-600/30 flex items-center justify-center space-x-1.5 transition-all active:scale-95"
                       >
                         <Check size={15} />
                         <span>YES, Collect Fee</span>
                       </button>
 
-                      <button
-                        type="button"
-                        onClick={() => setScanResult(null)}
-                        className="py-2.5 px-3 rounded-xl bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold text-xs flex items-center justify-center space-x-1.5 transition-all active:scale-95"
-                      >
-                        <X size={15} />
-                        <span>NO, Later</span>
-                      </button>
+                      <div className="grid grid-cols-2 gap-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            alert(`Noted: Student ${scanResult.student?.fullName} marked to pay after class finishes.`);
+                            setScanResult(null);
+                          }}
+                          className="py-2 px-2.5 rounded-xl bg-amber-100 hover:bg-amber-200 text-amber-900 border border-amber-300 font-bold text-xs flex items-center justify-center space-x-1 transition-all active:scale-95"
+                          title="Student will pay after class finishes"
+                        >
+                          <Clock size={13} className="text-amber-700" />
+                          <span>⏰ Pay Later</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => setScanResult(null)}
+                          className="py-2 px-2.5 rounded-xl bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold text-xs flex items-center justify-center space-x-1 transition-all active:scale-95"
+                        >
+                          <X size={13} />
+                          <span>Dismiss</span>
+                        </button>
+                      </div>
                     </div>
                   </div>
                 )}
@@ -1064,7 +1079,7 @@ export const Attendance: React.FC<AttendanceProps> = ({
               )}
             </div>
 
-            <div className="grid grid-cols-2 gap-2 pt-1">
+            <div className="space-y-2 pt-1">
               <button
                 type="button"
                 onClick={() => {
@@ -1074,20 +1089,35 @@ export const Attendance: React.FC<AttendanceProps> = ({
                     onOpenPaymentModal(stu.id, stu.feeRecordId);
                   }
                 }}
-                className="py-3 px-3 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-extrabold text-xs shadow-md shadow-emerald-600/30 flex items-center justify-center gap-1.5 transition-all active:scale-95"
+                className="w-full py-3 px-3 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-extrabold text-xs shadow-md shadow-emerald-600/30 flex items-center justify-center gap-1.5 transition-all active:scale-95"
               >
                 <Check size={16} />
                 <span>YES, Collect Fee</span>
               </button>
 
-              <button
-                type="button"
-                onClick={() => setFeePromptStudent(null)}
-                className="py-3 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs flex items-center justify-center gap-1.5 transition-all active:scale-95"
-              >
-                <X size={16} />
-                <span>NO, Skip</span>
-              </button>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    alert(`Noted: Student ${feePromptStudent.fullName} marked to pay after class finishes.`);
+                    setFeePromptStudent(null);
+                  }}
+                  className="py-2.5 px-3 rounded-xl bg-amber-100 hover:bg-amber-200 text-amber-900 border border-amber-300 font-bold text-xs flex items-center justify-center gap-1.5 transition-all active:scale-95"
+                  title="Student will pay after class finishes"
+                >
+                  <Clock size={14} className="text-amber-700" />
+                  <span>⏰ Pay Later</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setFeePromptStudent(null)}
+                  className="py-2.5 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs flex items-center justify-center gap-1.5 transition-all active:scale-95"
+                >
+                  <X size={14} />
+                  <span>NO, Skip</span>
+                </button>
+              </div>
             </div>
           </div>
         </div>

@@ -210,7 +210,12 @@ router.post('/assign-rfid', authenticateToken, requireRoles(['SUPER_ADMIN', 'ADM
 router.get('/:id', authenticateToken, async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
-    const student = db.data.students.find(s => s.id === id);
+    const student = db.data.students.find(s => 
+      s.id === id || 
+      (s.studentIdNumber && s.studentIdNumber.toLowerCase() === id.toLowerCase()) || 
+      s.qrCodeToken === id || 
+      s.rfidTag === id
+    );
 
     if (!student) {
       return res.status(404).json({ error: 'Student profile not found' });

@@ -298,8 +298,11 @@ export const App: React.FC = () => {
         onClose={() => setIsPaymentModalOpen(false)}
         preselectedStudentId={preselectedPayStudentId}
         preselectedFeeRecordId={preselectedPayFeeId}
-        onPaymentSuccess={(receiptNumber) => {
+        onPaymentSuccess={(receiptNumber, studentId) => {
           setActiveReceiptNumber(receiptNumber);
+          if (studentId) {
+            setActiveProfileStudentId(studentId);
+          }
         }}
       />
 

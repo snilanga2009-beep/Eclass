@@ -15,7 +15,9 @@ import {
   Search,
   Filter,
   Sparkles,
-  Layers
+  Layers,
+  Edit3,
+  Trash2
 } from 'lucide-react';
 import { apiRequest, formatLKR } from '../api';
 import { Class } from '../types';
@@ -39,6 +41,18 @@ export const ALL_GRADES = [
 const COMMON_DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 const COMMON_BATCHES = ['Theory', 'Revision', 'Paper Class', 'English Medium', 'Sinhala Medium'];
 const FEE_PRESETS = [1500, 2000, 2500, 3000, 3500, 4000];
+
+export const SUBJECT_CATEGORIES = [
+  'Primary (Grades 1-5)',
+  'Junior Secondary (Grades 6-9)',
+  'Ordinary Level (O/L)',
+  'A/L - Science & Mathematics',
+  'A/L - Commerce & Business',
+  'A/L - Arts & Humanities',
+  'Languages & Technology',
+  'General Curriculum',
+  'Vocational & Skills'
+];
 
 interface ClassesProps {
   onOpenQuickScan: () => void;
@@ -75,6 +89,36 @@ export const Classes: React.FC<ClassesProps> = ({ onOpenQuickScan, onOpenStudent
     monthlyFee: 2500,
     maxStudents: 60
   });
+
+  // Edit Class Modal
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editingClass, setEditingClass] = useState<any>(null);
+  const [editFormData, setEditFormData] = useState({
+    id: '',
+    name: '',
+    subjectId: '',
+    teacherId: '',
+    grade: 'Grade 1',
+    classGroup: 'Theory',
+    dayOfWeek: 'Saturday',
+    startTime: '08:00',
+    endTime: '10:00',
+    room: 'Hall 1',
+    monthlyFee: 2500,
+    maxStudents: 60,
+    status: 'ACTIVE'
+  });
+
+  // Custom Subject Modal
+  const [isAddSubjectModalOpen, setIsAddSubjectModalOpen] = useState(false);
+  const [newSubjectData, setNewSubjectData] = useState({
+    name: '',
+    category: 'Ordinary Level (O/L)',
+    code: '',
+    description: ''
+  });
+  const [savingSubject, setSavingSubject] = useState(false);
+
   const [submitting, setSubmitting] = useState(false);
   const [modalError, setModalError] = useState<string | null>(null);
 
@@ -148,6 +192,85 @@ export const Classes: React.FC<ClassesProps> = ({ onOpenQuickScan, onOpenStudent
       setModalError(err.message || 'Failed to create class');
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleOpenEdit = (c: any) => {
+    setEditingClass(c);
+    setEditFormData({
+      id: c.id,
+      name: c.name || '',
+      subjectId: c.subjectId || (c.subject?.id || ''),
+      teacherId: c.teacherId || (c.teacher?.id || ''),
+      grade: c.grade || 'Grade 1',
+      classGroup: c.classGroup || 'Theory',
+      dayOfWeek: c.dayOfWeek || 'Saturday',
+      startTime: c.startTime || '08:00',
+      endTime: c.endTime || '10:00',
+      room: c.room || 'Hall 1',
+      monthlyFee: c.monthlyFee || 2500,
+      maxStudents: c.maxStudents || 60,
+      status: c.status || 'ACTIVE'
+    });
+    setModalError(null);
+    setIsEditModalOpen(true);
+  };
+
+  const handleEditSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setModalError(null);
+    if (!editFormData.name || !editFormData.subjectId || !editFormData.teacherId) {
+      setModalError('Class title, subject, and teacher are required');
+      return;
+    }
+    setSubmitting(true);
+    try {
+      await apiRequest(`/classes/${editFormData.id}`, {
+        method: 'PUT',
+        body: JSON.stringify(editFormData)
+      });
+      setIsEditModalOpen(false);
+      fetchClasses();
+    } catch (err: any) {
+      setModalError(err.message || 'Failed to update class');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleDeleteClass = async (c: any) => {
+    if (!window.confirm(`Are you sure you want to delete class "${c.name}" (${c.classCode})? This action cannot be undone.`)) {
+      return;
+    }
+    try {
+      await apiRequest(`/classes/${c.id}`, { method: 'DELETE' });
+      fetchClasses();
+    } catch (err: any) {
+      alert(err.message || 'Failed to delete class');
+    }
+  };
+
+  const handleCreateSubject = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newSubjectData.name.trim()) return;
+    setSavingSubject(true);
+    try {
+      const created = await apiRequest<any>('/classes/subjects', {
+        method: 'POST',
+        body: JSON.stringify(newSubjectData)
+      });
+      setSubjects(prev => [...prev, created]);
+      if (isEditModalOpen) {
+        setEditFormData(prev => ({ ...prev, subjectId: created.id }));
+      } else {
+        setFormData(prev => ({ ...prev, subjectId: created.id }));
+      }
+      setIsAddSubjectModalOpen(false);
+      setNewSubjectData({ name: '', category: 'Ordinary Level (O/L)', code: '', description: '' });
+    } catch (err: any) {
+      alert(err.message || 'Failed to create subject');
+    } finally {
+      setSavingSubject(false);
     }
   };
 
@@ -344,13 +467,35 @@ export const Classes: React.FC<ClassesProps> = ({ onOpenQuickScan, onOpenStudent
                 <span>Enrolled: <strong className="text-slate-800">{c.enrolledCount || 0}</strong> / {c.maxStudents}</span>
               </div>
 
-              <button
-                onClick={() => handleOpenRoster(c.id)}
-                className="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-brand-50 text-brand-700 text-xs font-semibold flex items-center gap-1 transition-colors"
-              >
-                <Eye size={13} />
-                <span>Roster</span>
-              </button>
+              <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => handleOpenRoster(c.id)}
+                  className="px-2.5 py-1.5 rounded-xl bg-slate-100 hover:bg-brand-50 text-brand-700 text-xs font-semibold flex items-center gap-1 transition-colors"
+                  title="View Enrolled Students"
+                >
+                  <Eye size={13} />
+                  <span>Roster</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => handleOpenEdit(c)}
+                  className="p-1.5 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200 text-xs font-semibold flex items-center transition-colors"
+                  title="Edit Class Details"
+                >
+                  <Edit3 size={13} />
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => handleDeleteClass(c)}
+                  className="p-1.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-xs font-semibold flex items-center transition-colors"
+                  title="Delete Class"
+                >
+                  <Trash2 size={13} />
+                </button>
+              </div>
             </div>
           </div>
         ))}
@@ -508,17 +653,44 @@ export const Classes: React.FC<ClassesProps> = ({ onOpenQuickScan, onOpenStudent
                 </div>
 
                 <div>
-                  <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1.5">Subject Curriculum *</label>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wider">Subject Curriculum *</label>
+                    <button
+                      type="button"
+                      onClick={() => setIsAddSubjectModalOpen(true)}
+                      className="text-[10px] font-bold text-emerald-600 hover:text-emerald-700 hover:underline flex items-center gap-1"
+                    >
+                      <Plus size={11} />
+                      <span>Add Subject / Category</span>
+                    </button>
+                  </div>
                   <select
                     value={formData.subjectId}
                     onChange={(e) => setFormData({ ...formData, subjectId: e.target.value })}
                     className="w-full px-3.5 py-2.5 rounded-2xl border border-slate-300 text-xs bg-white font-semibold text-slate-900 focus:ring-2 focus:ring-emerald-500"
                   >
-                    {subjects.map(s => (
-                      <option key={s.id} value={s.id}>
-                        {s.name} ({s.code || 'SUBJ'})
-                      </option>
-                    ))}
+                    {SUBJECT_CATEGORIES.map(cat => {
+                      const catSubjects = subjects.filter(s => (s.category || 'General Curriculum') === cat);
+                      if (catSubjects.length === 0) return null;
+                      return (
+                        <optgroup key={cat} label={cat}>
+                          {catSubjects.map(s => (
+                            <option key={s.id} value={s.id}>
+                              {s.name} ({s.code || 'SUBJ'})
+                            </option>
+                          ))}
+                        </optgroup>
+                      );
+                    })}
+                    {subjects.filter(s => s.category && !SUBJECT_CATEGORIES.includes(s.category)).length > 0 && (
+                      <optgroup label="Custom Categories">
+                        {subjects.filter(s => s.category && !SUBJECT_CATEGORIES.includes(s.category)).map(s => (
+                          <option key={s.id} value={s.id}>
+                            {s.name} ({s.code || 'SUBJ'}) • {s.category}
+                          </option>
+                        ))}
+                      </optgroup>
+                    )}
                   </select>
                 </div>
               </div>
@@ -690,6 +862,403 @@ export const Classes: React.FC<ClassesProps> = ({ onOpenQuickScan, onOpenStudent
                 >
                   <Plus size={16} />
                   <span>{submitting ? 'Creating Class...' : 'Save & Publish Tuition Class'}</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* EDIT CLASS MODAL */}
+      {isEditModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="w-full max-w-2xl bg-white rounded-3xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[92vh]">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 bg-slate-50">
+              <div className="flex items-center space-x-2.5">
+                <div className="w-8 h-8 rounded-xl bg-amber-500/20 text-amber-700 flex items-center justify-center font-bold">
+                  <Edit3 size={16} />
+                </div>
+                <div>
+                  <h3 className="font-bold text-sm text-slate-800 uppercase tracking-wider">Edit Tuition Class</h3>
+                  <p className="text-[11px] text-slate-500 font-mono font-semibold">{editingClass?.classCode}</p>
+                </div>
+              </div>
+              <button onClick={() => setIsEditModalOpen(false)} className="p-1 rounded-lg text-slate-400 hover:text-slate-700">
+                <X size={18} />
+              </button>
+            </div>
+
+            <form onSubmit={handleEditSubmit} className="flex-1 overflow-y-auto p-6 space-y-4">
+              {modalError && (
+                <div className="p-3.5 rounded-2xl bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-center gap-2">
+                  <AlertCircle size={16} className="shrink-0" />
+                  <span>{modalError}</span>
+                </div>
+              )}
+
+              {/* Class Title */}
+              <div>
+                <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1.5">Class Title *</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. 2026 Combined Maths Theory"
+                  value={editFormData.name}
+                  onChange={(e) => setEditFormData({ ...editFormData, name: e.target.value })}
+                  className="w-full px-4 py-2.5 rounded-2xl border border-slate-300 text-xs font-semibold text-slate-900 focus:ring-2 focus:ring-amber-500 focus:outline-none"
+                />
+              </div>
+
+              {/* Grade and Subject */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1.5">Target Grade Level *</label>
+                  <select
+                    value={editFormData.grade}
+                    onChange={(e) => setEditFormData({ ...editFormData, grade: e.target.value })}
+                    className="w-full px-3.5 py-2.5 rounded-2xl border border-slate-300 text-xs bg-white font-semibold text-slate-900 focus:ring-2 focus:ring-amber-500"
+                  >
+                    <optgroup label="Primary (Grades 1 to 5)">
+                      <option value="Grade 1">Grade 1</option>
+                      <option value="Grade 2">Grade 2</option>
+                      <option value="Grade 3">Grade 3</option>
+                      <option value="Grade 4">Grade 4</option>
+                      <option value="Grade 5">Grade 5 (Scholarship)</option>
+                    </optgroup>
+                    <optgroup label="Junior Secondary (Grades 6 to 9)">
+                      <option value="Grade 6">Grade 6</option>
+                      <option value="Grade 7">Grade 7</option>
+                      <option value="Grade 8">Grade 8</option>
+                      <option value="Grade 9">Grade 9</option>
+                    </optgroup>
+                    <optgroup label="Ordinary Level (Grades 10 to 11)">
+                      <option value="Grade 10">Grade 10</option>
+                      <option value="Grade 11">Grade 11 (O/L)</option>
+                    </optgroup>
+                    <optgroup label="Advanced Level (Grades 12 to 13)">
+                      <option value="Grade 12">Grade 12 (A/L)</option>
+                      <option value="Grade 13">Grade 13 (A/L)</option>
+                    </optgroup>
+                  </select>
+                </div>
+
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wider">Subject Curriculum *</label>
+                    <button
+                      type="button"
+                      onClick={() => setIsAddSubjectModalOpen(true)}
+                      className="text-[10px] font-bold text-emerald-600 hover:text-emerald-700 hover:underline flex items-center gap-1"
+                    >
+                      <Plus size={11} />
+                      <span>Add Subject / Category</span>
+                    </button>
+                  </div>
+                  <select
+                    value={editFormData.subjectId}
+                    onChange={(e) => setEditFormData({ ...editFormData, subjectId: e.target.value })}
+                    className="w-full px-3.5 py-2.5 rounded-2xl border border-slate-300 text-xs bg-white font-semibold text-slate-900 focus:ring-2 focus:ring-amber-500"
+                  >
+                    {SUBJECT_CATEGORIES.map(cat => {
+                      const catSubjects = subjects.filter(s => (s.category || 'General Curriculum') === cat);
+                      if (catSubjects.length === 0) return null;
+                      return (
+                        <optgroup key={cat} label={cat}>
+                          {catSubjects.map(s => (
+                            <option key={s.id} value={s.id}>
+                              {s.name} ({s.code || 'SUBJ'})
+                            </option>
+                          ))}
+                        </optgroup>
+                      );
+                    })}
+                    {subjects.filter(s => s.category && !SUBJECT_CATEGORIES.includes(s.category)).length > 0 && (
+                      <optgroup label="Custom Categories">
+                        {subjects.filter(s => s.category && !SUBJECT_CATEGORIES.includes(s.category)).map(s => (
+                          <option key={s.id} value={s.id}>
+                            {s.name} ({s.code || 'SUBJ'}) • {s.category}
+                          </option>
+                        ))}
+                      </optgroup>
+                    )}
+                  </select>
+                </div>
+              </div>
+
+              {/* Teacher & Batch Type */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1.5">Assigned Lecturer / Teacher *</label>
+                  <select
+                    value={editFormData.teacherId}
+                    onChange={(e) => setEditFormData({ ...editFormData, teacherId: e.target.value })}
+                    className="w-full px-3.5 py-2.5 rounded-2xl border border-slate-300 text-xs bg-white font-semibold text-slate-900 focus:ring-2 focus:ring-amber-500"
+                  >
+                    {teachers.map(t => (
+                      <option key={t.id} value={t.id}>
+                        {t.name} • {t.qualifications || 'Lecturer'}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1.5">Batch / Stream Category</label>
+                  <input
+                    type="text"
+                    value={editFormData.classGroup}
+                    onChange={(e) => setEditFormData({ ...editFormData, classGroup: e.target.value })}
+                    className="w-full px-3.5 py-2.5 rounded-2xl border border-slate-300 text-xs"
+                  />
+                  <div className="flex items-center gap-1.5 mt-1.5 overflow-x-auto">
+                    {COMMON_BATCHES.map(b => (
+                      <button
+                        type="button"
+                        key={b}
+                        onClick={() => setEditFormData({ ...editFormData, classGroup: b })}
+                        className={`px-2 py-0.5 rounded-lg text-[10px] font-medium border transition-colors ${
+                          editFormData.classGroup === b 
+                            ? 'bg-amber-50 border-amber-300 text-amber-800 font-bold' 
+                            : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'
+                        }`}
+                      >
+                        {b}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Day of Week Selector */}
+              <div>
+                <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1.5">Class Schedule Day *</label>
+                <div className="grid grid-cols-7 gap-1.5">
+                  {COMMON_DAYS.map(day => {
+                    const isSelected = editFormData.dayOfWeek === day;
+                    return (
+                      <button
+                        type="button"
+                        key={day}
+                        onClick={() => setEditFormData({ ...editFormData, dayOfWeek: day })}
+                        className={`py-2 rounded-xl text-xs font-bold transition-all text-center ${
+                          isSelected
+                            ? 'bg-amber-600 text-white shadow-md shadow-amber-600/30'
+                            : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                        }`}
+                      >
+                        <span className="hidden sm:inline">{day}</span>
+                        <span className="sm:hidden">{day.substring(0, 3)}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Time and Room */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1.5">Start Time *</label>
+                  <input
+                    type="time"
+                    required
+                    value={editFormData.startTime}
+                    onChange={(e) => setEditFormData({ ...editFormData, startTime: e.target.value })}
+                    className="w-full px-3.5 py-2.5 rounded-2xl border border-slate-300 text-xs font-mono font-bold"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1.5">End Time *</label>
+                  <input
+                    type="time"
+                    required
+                    value={editFormData.endTime}
+                    onChange={(e) => setEditFormData({ ...editFormData, endTime: e.target.value })}
+                    className="w-full px-3.5 py-2.5 rounded-2xl border border-slate-300 text-xs font-mono font-bold"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1.5">Hall / Classroom</label>
+                  <input
+                    type="text"
+                    value={editFormData.room}
+                    onChange={(e) => setEditFormData({ ...editFormData, room: e.target.value })}
+                    className="w-full px-3.5 py-2.5 rounded-2xl border border-slate-300 text-xs"
+                  />
+                </div>
+              </div>
+
+              {/* Fee, Student Capacity & Status */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1.5">Monthly Tuition Fee (Rs.) *</label>
+                  <input
+                    type="number"
+                    min="500"
+                    step="100"
+                    required
+                    value={editFormData.monthlyFee}
+                    onChange={(e) => setEditFormData({ ...editFormData, monthlyFee: Number(e.target.value) })}
+                    className="w-full px-4 py-2.5 rounded-2xl border border-slate-300 text-sm font-black text-slate-900"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1.5">Max Student Capacity</label>
+                  <input
+                    type="number"
+                    min="5"
+                    max="500"
+                    value={editFormData.maxStudents}
+                    onChange={(e) => setEditFormData({ ...editFormData, maxStudents: Number(e.target.value) })}
+                    className="w-full px-4 py-2.5 rounded-2xl border border-slate-300 text-sm font-bold text-slate-900"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1.5">Class Status</label>
+                  <select
+                    value={editFormData.status}
+                    onChange={(e) => setEditFormData({ ...editFormData, status: e.target.value })}
+                    className="w-full px-3.5 py-2.5 rounded-2xl border border-slate-300 text-xs font-bold text-slate-900 bg-white"
+                  >
+                    <option value="ACTIVE">ACTIVE (Running)</option>
+                    <option value="INACTIVE">INACTIVE (Paused)</option>
+                    <option value="ARCHIVED">ARCHIVED</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Actions */}
+              <div className="flex items-center justify-end space-x-3 pt-4 border-t border-slate-200">
+                <button
+                  type="button"
+                  onClick={() => setIsEditModalOpen(false)}
+                  className="px-5 py-2.5 rounded-2xl border border-slate-300 text-slate-600 text-xs font-bold hover:bg-slate-100 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={submitting}
+                  className="px-6 py-2.5 rounded-2xl bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-500 hover:to-orange-500 text-white text-xs font-bold shadow-lg shadow-amber-600/30 transition-all disabled:opacity-50 flex items-center gap-2"
+                >
+                  <CheckCircle2 size={16} />
+                  <span>{submitting ? 'Updating...' : 'Update Class Details'}</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ADD CUSTOM SUBJECT & CATEGORY MODAL */}
+      {isAddSubjectModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="w-full max-w-md bg-white rounded-3xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 bg-slate-50">
+              <div className="flex items-center space-x-2.5">
+                <div className="w-8 h-8 rounded-xl bg-emerald-500/20 text-emerald-700 flex items-center justify-center font-bold">
+                  <BookOpen size={16} />
+                </div>
+                <div>
+                  <h3 className="font-bold text-sm text-slate-800 uppercase tracking-wider">Add Subject Curriculum</h3>
+                  <p className="text-[11px] text-slate-500">Create auto or custom category subject</p>
+                </div>
+              </div>
+              <button onClick={() => setIsAddSubjectModalOpen(false)} className="p-1 rounded-lg text-slate-400 hover:text-slate-700">
+                <X size={18} />
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateSubject} className="p-6 space-y-4">
+              <div>
+                <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1.5">Subject Name *</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. Agricultural Science (A/L)"
+                  value={newSubjectData.name}
+                  onChange={(e) => {
+                    const name = e.target.value;
+                    const autoCode = name.substring(0, 3).toUpperCase() + '-' + Math.floor(100 + Math.random() * 900);
+                    setNewSubjectData({
+                      ...newSubjectData,
+                      name,
+                      code: newSubjectData.code || autoCode
+                    });
+                  }}
+                  className="w-full px-4 py-2.5 rounded-2xl border border-slate-300 text-xs font-semibold text-slate-900 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1.5">Curriculum Category *</label>
+                <select
+                  value={newSubjectData.category}
+                  onChange={(e) => setNewSubjectData({ ...newSubjectData, category: e.target.value })}
+                  className="w-full px-3.5 py-2.5 rounded-2xl border border-slate-300 text-xs font-semibold text-slate-900 bg-white focus:ring-2 focus:ring-emerald-500"
+                >
+                  {SUBJECT_CATEGORIES.map(cat => (
+                    <option key={cat} value={cat}>{cat}</option>
+                  ))}
+                  <option value="Custom">Custom / Other Category</option>
+                </select>
+              </div>
+
+              {newSubjectData.category === 'Custom' && (
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1.5">Type Custom Category Name</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. Higher National Diploma / Special Stream"
+                    onChange={(e) => setNewSubjectData({ ...newSubjectData, category: e.target.value })}
+                    className="w-full px-4 py-2 rounded-xl border border-slate-300 text-xs"
+                  />
+                </div>
+              )}
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1.5">Subject Code</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. AGR-AL"
+                    value={newSubjectData.code}
+                    onChange={(e) => setNewSubjectData({ ...newSubjectData, code: e.target.value.toUpperCase() })}
+                    className="w-full px-3.5 py-2.5 rounded-2xl border border-slate-300 text-xs font-mono font-bold"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1.5">Brief Notes</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. New syllabus"
+                    value={newSubjectData.description}
+                    onChange={(e) => setNewSubjectData({ ...newSubjectData, description: e.target.value })}
+                    className="w-full px-3.5 py-2.5 rounded-2xl border border-slate-300 text-xs"
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end space-x-3 pt-3 border-t border-slate-200">
+                <button
+                  type="button"
+                  onClick={() => setIsAddSubjectModalOpen(false)}
+                  className="px-4 py-2 rounded-xl border border-slate-300 text-slate-600 text-xs font-bold hover:bg-slate-100"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={savingSubject}
+                  className="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-md shadow-emerald-600/30 transition-all flex items-center gap-1.5"
+                >
+                  <Plus size={14} />
+                  <span>{savingSubject ? 'Saving...' : 'Add Subject'}</span>
                 </button>
               </div>
             </form>

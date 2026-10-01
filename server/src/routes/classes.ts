@@ -52,37 +52,42 @@ router.get('/', authenticateToken, async (req: AuthRequest, res: Response) => {
 router.get('/subjects', authenticateToken, async (req: AuthRequest, res: Response) => {
   try {
     const DEFAULT_SUBJECTS = [
-      { id: 'subj-math', code: 'MTH-AL', name: 'Combined Mathematics (A/L)', description: 'G.C.E. Advanced Level Combined Mathematics' },
-      { id: 'subj-phy', code: 'PHY-AL', name: 'Physics (A/L)', description: 'G.C.E. Advanced Level Physics' },
-      { id: 'subj-chem', code: 'CHM-AL', name: 'Chemistry (A/L)', description: 'G.C.E. Advanced Level Chemistry' },
-      { id: 'subj-bio', code: 'BIO-AL', name: 'Biology (A/L)', description: 'G.C.E. Advanced Level Biology' },
-      { id: 'subj-ict', code: 'ICT-AL', name: 'ICT (A/L & O/L)', description: 'Information & Communication Technology' },
-      { id: 'subj-acc', code: 'ACC-AL', name: 'Accounting & Business (A/L)', description: 'Financial Accounting & Business Studies' },
-      { id: 'subj-econ', code: 'ECN-AL', name: 'Economics (A/L)', description: 'Micro & Macro Economics' },
-      { id: 'subj-eng', code: 'ENG-OL', name: 'English Language (O/L & General)', description: 'Grammar, Writing & Spoken English' },
-      { id: 'subj-sec-math', code: 'MTH-SEC', name: 'Mathematics (Grade 6 - 11)', description: 'Secondary school general mathematics' },
-      { id: 'subj-sec-sci', code: 'SCI-SEC', name: 'Science (Grade 6 - 11)', description: 'Integrated science curriculum' },
-      { id: 'subj-sec-his', code: 'HIS-SEC', name: 'History (Grade 6 - 11)', description: 'Sri Lankan and world history' },
-      { id: 'subj-sec-com', code: 'COM-OL', name: 'Commerce & Entrepreneurship (O/L)', description: 'Business & accounting basics' },
-      { id: 'subj-scholarship', code: 'SCH-G5', name: 'Grade 5 Scholarship (ශිෂ්‍යත්වය)', description: 'Scholarship exam questions, IQ & essays' },
-      { id: 'subj-prim-math', code: 'MTH-PRI', name: 'Primary Mathematics (Grade 1 - 5)', description: 'Early numeracy and mental math' },
-      { id: 'subj-prim-eng', code: 'ENG-PRI', name: 'Primary English (Grade 1 - 5)', description: 'Phonics, vocabulary and reading' },
-      { id: 'subj-prim-sin', code: 'SIN-PRI', name: 'Primary Sinhala (Grade 1 - 5)', description: 'Language and creative writing' },
-      { id: 'subj-prim-env', code: 'ENV-PRI', name: 'Environmental Studies / පරිසරය (Grade 1 - 5)', description: 'Science & environment discovery' }
+      { id: 'subj-math', code: 'MTH-AL', name: 'Combined Mathematics (A/L)', category: 'A/L - Science & Mathematics', description: 'G.C.E. Advanced Level Combined Mathematics' },
+      { id: 'subj-phy', code: 'PHY-AL', name: 'Physics (A/L)', category: 'A/L - Science & Mathematics', description: 'G.C.E. Advanced Level Physics' },
+      { id: 'subj-chem', code: 'CHM-AL', name: 'Chemistry (A/L)', category: 'A/L - Science & Mathematics', description: 'G.C.E. Advanced Level Chemistry' },
+      { id: 'subj-bio', code: 'BIO-AL', name: 'Biology (A/L)', category: 'A/L - Science & Mathematics', description: 'G.C.E. Advanced Level Biology' },
+      { id: 'subj-ict', code: 'ICT-AL', name: 'ICT (A/L & O/L)', category: 'Languages & Technology', description: 'Information & Communication Technology' },
+      { id: 'subj-acc', code: 'ACC-AL', name: 'Accounting & Business (A/L)', category: 'A/L - Commerce & Business', description: 'Financial Accounting & Business Studies' },
+      { id: 'subj-econ', code: 'ECN-AL', name: 'Economics (A/L)', category: 'A/L - Commerce & Business', description: 'Micro & Macro Economics' },
+      { id: 'subj-eng', code: 'ENG-OL', name: 'English Language (O/L & General)', category: 'Languages & Technology', description: 'Grammar, Writing & Spoken English' },
+      { id: 'subj-sec-math', code: 'MTH-SEC', name: 'Mathematics (Grade 6 - 11)', category: 'Junior Secondary (Grades 6-9)', description: 'Secondary school general mathematics' },
+      { id: 'subj-sec-sci', code: 'SCI-SEC', name: 'Science (Grade 6 - 11)', category: 'Junior Secondary (Grades 6-9)', description: 'Integrated science curriculum' },
+      { id: 'subj-sec-his', code: 'HIS-SEC', name: 'History (Grade 6 - 11)', category: 'Junior Secondary (Grades 6-9)', description: 'Sri Lankan and world history' },
+      { id: 'subj-sec-com', code: 'COM-OL', name: 'Commerce & Entrepreneurship (O/L)', category: 'Ordinary Level (O/L)', description: 'Business & accounting basics' },
+      { id: 'subj-scholarship', code: 'SCH-G5', name: 'Grade 5 Scholarship (ශිෂ්‍යත්වය)', category: 'Primary (Grades 1-5)', description: 'Scholarship exam questions, IQ & essays' },
+      { id: 'subj-prim-math', code: 'MTH-PRI', name: 'Primary Mathematics (Grade 1 - 5)', category: 'Primary (Grades 1-5)', description: 'Early numeracy and mental math' },
+      { id: 'subj-prim-eng', code: 'ENG-PRI', name: 'Primary English (Grade 1 - 5)', category: 'Primary (Grades 1-5)', description: 'Phonics, vocabulary and reading' },
+      { id: 'subj-prim-sin', code: 'SIN-PRI', name: 'Primary Sinhala (Grade 1 - 5)', category: 'Primary (Grades 1-5)', description: 'Language and creative writing' },
+      { id: 'subj-prim-env', code: 'ENV-PRI', name: 'Environmental Studies / පරිසරය (Grade 1 - 5)', category: 'Primary (Grades 1-5)', description: 'Science & environment discovery' }
     ];
 
     if (!db.data.subjects || db.data.subjects.length < DEFAULT_SUBJECTS.length) {
       if (!db.data.subjects) db.data.subjects = [];
       let added = false;
       DEFAULT_SUBJECTS.forEach(s => {
-        if (!db.data.subjects.some(exist => exist.id === s.id || exist.name === s.name)) {
+        const exist = db.data.subjects.find(e => e.id === s.id || e.name === s.name);
+        if (!exist) {
           db.data.subjects.push({
             id: s.id,
             code: s.code,
             name: s.name,
+            category: s.category,
             description: s.description,
             createdAt: new Date().toISOString()
           });
+          added = true;
+        } else if (!exist.category) {
+          exist.category = s.category;
           added = true;
         }
       });
@@ -97,10 +102,10 @@ router.get('/subjects', authenticateToken, async (req: AuthRequest, res: Respons
   }
 });
 
-// POST /api/classes/subjects - Create a new subject
+// POST /api/classes/subjects - Create a new subject with category
 router.post('/subjects', authenticateToken, requireRoles(['SUPER_ADMIN', 'ADMIN']), async (req: AuthRequest, res: Response) => {
   try {
-    const { name, code, description } = req.body;
+    const { name, code, category, description } = req.body;
     if (!name) {
       return res.status(400).json({ error: 'Subject name is required' });
     }
@@ -109,6 +114,7 @@ router.post('/subjects', authenticateToken, requireRoles(['SUPER_ADMIN', 'ADMIN'
       id: db.generateId(),
       name: name.trim(),
       code: cleanCode,
+      category: category || 'General Curriculum',
       description: description || `${name} Curriculum`,
       createdAt: new Date().toISOString()
     };
@@ -282,6 +288,88 @@ router.delete('/:id/unenroll/:studentId', authenticateToken, requireRoles(['SUPE
     return res.status(404).json({ error: 'Enrollment not found' });
   } catch (error) {
     return res.status(500).json({ error: 'Failed to unenroll student' });
+  }
+});
+
+// PUT /api/classes/:id - Edit and update class details
+router.put('/:id', authenticateToken, requireRoles(['SUPER_ADMIN', 'ADMIN']), async (req: AuthRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+    const cls = db.data.classes.find(c => c.id === id);
+    if (!cls) {
+      return res.status(404).json({ error: 'Class not found' });
+    }
+
+    const {
+      name,
+      subjectId,
+      teacherId,
+      grade,
+      classGroup,
+      dayOfWeek,
+      startTime,
+      endTime,
+      room,
+      monthlyFee,
+      maxStudents,
+      status
+    } = req.body;
+
+    if (name) cls.name = name.trim();
+    if (subjectId) cls.subjectId = subjectId;
+    if (teacherId) cls.teacherId = teacherId;
+    if (grade) cls.grade = grade;
+    if (classGroup !== undefined) cls.classGroup = classGroup;
+    if (dayOfWeek) cls.dayOfWeek = dayOfWeek;
+    if (startTime) cls.startTime = startTime;
+    if (endTime) cls.endTime = endTime;
+    if (room !== undefined) cls.room = room;
+    if (monthlyFee !== undefined) cls.monthlyFee = Number(monthlyFee);
+    if (maxStudents !== undefined) cls.maxStudents = Number(maxStudents);
+    if (status) cls.status = status;
+    cls.updatedAt = new Date().toISOString();
+
+    db.save();
+
+    await logAuditAction(req, 'CLASS_UPDATE', `Updated class ${cls.name} (${cls.classCode})`);
+
+    const teacher = db.data.teachers.find(t => t.id === cls.teacherId);
+    const subject = db.data.subjects.find(s => s.id === cls.subjectId);
+    const enrolledCount = db.data.classStudents.filter(cs => cs.classId === cls.id && cs.status === 'ACTIVE').length;
+
+    return res.json({
+      ...cls,
+      teacher,
+      subject,
+      enrolledCount
+    });
+  } catch (error) {
+    return res.status(500).json({ error: 'Failed to update class' });
+  }
+});
+
+// DELETE /api/classes/:id - Delete a class
+router.delete('/:id', authenticateToken, requireRoles(['SUPER_ADMIN', 'ADMIN']), async (req: AuthRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+    const index = db.data.classes.findIndex(c => c.id === id);
+    if (index === -1) {
+      return res.status(404).json({ error: 'Class not found' });
+    }
+
+    const deletedClass = db.data.classes[index];
+    db.data.classes.splice(index, 1);
+
+    // Also unenroll students from this class
+    db.data.classStudents = db.data.classStudents.filter(cs => cs.classId !== id);
+
+    db.save();
+
+    await logAuditAction(req, 'CLASS_DELETE', `Deleted class ${deletedClass.name} (${deletedClass.classCode})`);
+
+    return res.json({ success: true, message: `Class ${deletedClass.name} successfully deleted` });
+  } catch (error) {
+    return res.status(500).json({ error: 'Failed to delete class' });
   }
 });
 
