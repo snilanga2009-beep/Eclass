@@ -514,7 +514,7 @@ export const QRScannerModal: React.FC<QRScannerModalProps> = ({
                       {lastScanResult.student?.parentPhone && (
                         <div className="flex items-center justify-center gap-1 text-[10px] text-slate-300 pt-0.5">
                           <Smartphone size={11} className="text-emerald-400 shrink-0" />
-                          <span className="truncate">SMS to Parent: <strong className="text-white font-mono">{lastScanResult.student.parentPhone}</strong></span>
+                          <span className="truncate">SMS receipt to Parent on Fee Pay: <strong className="text-white font-mono">{lastScanResult.student.parentPhone}</strong></span>
                         </div>
                       )}
 

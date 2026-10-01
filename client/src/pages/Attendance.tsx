@@ -1059,7 +1059,7 @@ export const Attendance: React.FC<AttendanceProps> = ({
               {feePromptStudent.parentPhone && (
                 <p className="text-[10px] text-slate-400 mt-1.5 flex items-center justify-center gap-1">
                   <Smartphone size={11} className="text-emerald-500" />
-                  <span>SMS receipt to: <strong className="text-slate-700 font-mono">{feePromptStudent.parentPhone}</strong></span>
+                  <span>SMS receipt on Fee Pay: <strong className="text-slate-700 font-mono">{feePromptStudent.parentPhone}</strong></span>
                 </p>
               )}
             </div>

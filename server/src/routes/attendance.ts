@@ -3,7 +3,6 @@ import QRCode from 'qrcode';
 import db, { Attendance, AttendanceSession } from '../db';
 import { AuthRequest, authenticateToken, requireRoles } from '../middleware/auth';
 import { logAuditAction } from '../middleware/audit';
-import { dispatchRealSMS } from '../services/smsService';
 
 const router = Router();
 
@@ -336,46 +335,14 @@ router.post('/scan', authenticateToken, async (req: AuthRequest, res: Response) 
 
     db.data.attendances.push(newAttendance);
 
-    // Dispatch real-time SMS & WhatsApp alert to parent
-    const targetPhone = student.parentPhone || student.phone;
-    if (targetPhone) {
-      const scanTimeStr = new Date(newAttendance.scannedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-      const methodLabel = scanMethod === 'RFID' ? '125kHz RFID Card' : 'QR Scanner';
-      const alertMsg = `Dear Parent, your child ${student.fullName} has arrived and was marked PRESENT for ${currentClass.name} today at ${scanTimeStr} via ${methodLabel}. - Apex Institute`;
-
-      try {
-        await dispatchRealSMS(targetPhone, alertMsg);
-      } catch (smsErr) {
-        console.warn('Live SMS dispatch notice:', smsErr);
-      }
-
-      db.data.smsLogs.unshift({
-        id: db.generateId(),
-        studentId: student.id,
-        recipient: targetPhone,
-        message: alertMsg,
-        type: 'ATTENDANCE_ALERT',
-        status: 'DELIVERED',
-        sentAt: new Date().toISOString()
-      });
-
-      db.data.whatsappLogs.unshift({
-        id: db.generateId(),
-        studentId: student.id,
-        recipient: targetPhone,
-        templateName: 'attendance_alert',
-        message: alertMsg,
-        status: 'DELIVERED',
-        sentAt: new Date().toISOString()
-      });
-    }
-
+    // Attendance scan SMS is muted as requested ("when i scend qr 1 sms please off, aftre pay calss fress sms keep")
+    // Fee payment receipt SMS remains active on POST /api/payments
     db.save();
 
     await logAuditAction(
       req,
       'ATTENDANCE_SCAN',
-      `Marked attendance for ${student.fullName} in ${currentClass.name} via ${scanMethod}. SMS & WhatsApp alert sent to ${targetPhone || 'N/A'}`
+      `Marked attendance for ${student.fullName} in ${currentClass.name} via ${scanMethod} (Scan SMS muted; fee receipt SMS active).`
     );
 
     return res.json({
