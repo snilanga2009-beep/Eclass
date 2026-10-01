@@ -6,7 +6,14 @@ console.log('[Build] Current working directory:', process.cwd());
 
 if (fs.existsSync('./client/package.json')) {
   // Running from project root
-  console.log('[Build] Detected project root. Building client via --prefix client...');
+  console.log('[Build] Detected project root.');
+  
+  if (!fs.existsSync('./client/node_modules/vite')) {
+    console.log('[Build] Installing client dependencies (vite, react, etc.)...');
+    execSync('npm install --prefix client --include=dev', { stdio: 'inherit' });
+  }
+
+  console.log('[Build] Building client via --prefix client...');
   execSync('npm run build --prefix client', { stdio: 'inherit' });
 
   // Guarantee dist exists at both ./dist and ./client/dist
@@ -20,7 +27,12 @@ if (fs.existsSync('./client/package.json')) {
   }
 } else {
   // Running from inside client/ directory
-  console.log('[Build] Detected client directory. Running standard build...');
+  console.log('[Build] Detected client directory.');
+  if (!fs.existsSync('./node_modules/vite')) {
+    console.log('[Build] Installing dependencies...');
+    execSync('npm install --include=dev', { stdio: 'inherit' });
+  }
+  console.log('[Build] Running standard build...');
   execSync('npm run build', { stdio: 'inherit' });
 
   // Guarantee dist exists at both ./dist and ./client/dist
