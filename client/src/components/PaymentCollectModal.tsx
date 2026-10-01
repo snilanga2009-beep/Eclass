@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, CreditCard, Check, AlertCircle, DollarSign } from 'lucide-react';
+import { X, CreditCard, Check, AlertCircle, DollarSign, Smartphone, CheckCircle2 } from 'lucide-react';
 import { apiRequest, formatLKR } from '../api';
 import confetti from 'canvas-confetti';
 
@@ -180,6 +180,31 @@ export const PaymentCollectModal: React.FC<PaymentCollectModalProps> = ({
             <div className="text-center py-6 text-xs text-slate-400">Loading fee records...</div>
           ) : studentDetails ? (
             <div>
+              {/* Parent SMS Receipt Alert Banner */}
+              <div className="mb-4 p-3.5 rounded-2xl bg-indigo-50/90 border border-indigo-200 text-indigo-950 text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 shadow-sm">
+                <div className="flex items-center space-x-3">
+                  <div className="w-8 h-8 rounded-xl bg-indigo-600/10 border border-indigo-400/30 flex items-center justify-center text-indigo-700 shrink-0">
+                    <Smartphone size={16} />
+                  </div>
+                  <div>
+                    <p className="font-extrabold text-indigo-900 text-xs flex items-center gap-1.5">
+                      <span>Instant SMS &amp; WhatsApp Receipt to Parent</span>
+                      <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[9px] font-black uppercase tracking-wider">
+                        Active
+                      </span>
+                    </p>
+                    <p className="text-[11px] text-indigo-800/90 font-medium">
+                      Recipient Mobile: <strong className="font-mono text-slate-900 font-bold">{studentDetails.parentPhone || studentDetails.phone || 'No phone recorded'}</strong>
+                      {studentDetails.parentName && <span className="text-slate-600 ml-1">({studentDetails.parentName})</span>}
+                    </p>
+                  </div>
+                </div>
+                <div className="text-[10px] font-bold text-indigo-600 flex items-center gap-1 shrink-0 self-end sm:self-auto">
+                  <CheckCircle2 size={13} className="text-emerald-600" />
+                  <span>Auto-Dispatched on Submit</span>
+                </div>
+              </div>
+
               <div className="flex items-center justify-between mb-2">
                 <span className="text-xs font-bold text-slate-700 uppercase tracking-wider">Outstanding Monthly Fees</span>
                 <span className="text-xs text-slate-500">{studentDetails.fullName}</span>

@@ -19,7 +19,8 @@ import {
   Radio,
   Laptop,
   HelpCircle,
-  Zap
+  Zap,
+  CreditCard
 } from 'lucide-react';
 import { apiRequest, formatDate, formatLKR } from '../api';
 import confetti from 'canvas-confetti';
@@ -32,9 +33,14 @@ import { RFIDGuideModal } from '../components/RFIDGuideModal';
 interface AttendanceProps {
   onOpenStudentProfile: (studentId: string) => void;
   autoOpenScanner?: boolean;
+  onOpenPaymentModal?: (studentId: string, feeRecordId?: string) => void;
 }
 
-export const Attendance: React.FC<AttendanceProps> = ({ onOpenStudentProfile, autoOpenScanner = false }) => {
+export const Attendance: React.FC<AttendanceProps> = ({ 
+  onOpenStudentProfile, 
+  autoOpenScanner = false,
+  onOpenPaymentModal 
+}) => {
   const [classes, setClasses] = useState<any[]>([]);
   const [selectedClassId, setSelectedClassId] = useState<string>('');
   const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().substring(0, 10));
@@ -764,11 +770,67 @@ export const Attendance: React.FC<AttendanceProps> = ({ onOpenStudentProfile, au
                   </div>
                 </div>
 
-                {/* Overdue Fee Warning Alert Banner */}
-                {scanResult.feeWarning && (
-                  <div className="p-3 rounded-xl bg-amber-100/90 border border-amber-300 text-amber-900 text-xs flex items-center justify-between">
-                    <span className="font-semibold">⚠️ Pending Fee: Rs. {scanResult.feeWarning.due.toLocaleString()} for {scanResult.feeWarning.month}</span>
-                    <span className="font-bold underline cursor-pointer text-amber-950">Collect at Desk</span>
+                {/* Overdue Fee Warning Alert & Instant Collection Card */}
+                {(scanResult.hasPendingFees || scanResult.feeWarning || (scanResult.pendingFees && scanResult.pendingFees.length > 0)) && (
+                  <div className="mt-3 p-3.5 rounded-2xl bg-amber-100/90 border border-amber-300 text-amber-950 text-xs space-y-2.5">
+                    <div className="flex items-center justify-between">
+                      <span className="font-extrabold flex items-center gap-1.5 text-amber-900">
+                        <AlertTriangle size={15} className="text-amber-600 shrink-0" />
+                        <span>Outstanding Class Fees:</span>
+                      </span>
+                      <span className="font-black text-sm font-mono text-rose-700">
+                        Rs. {Number(scanResult.totalPendingAmount || scanResult.feeWarning?.due || 0).toLocaleString()}
+                      </span>
+                    </div>
+
+                    {/* Per-subject breakdown */}
+                    {scanResult.pendingFees && scanResult.pendingFees.length > 0 && (
+                      <div className="space-y-1.5 pt-1 border-t border-amber-200">
+                        {scanResult.pendingFees.map((fee: any) => (
+                          <div key={fee.id} className="flex items-center justify-between bg-white/70 px-2.5 py-1.5 rounded-xl border border-amber-200/60">
+                            <div>
+                              <p className="font-bold text-slate-800 text-[11px]">{fee.className}</p>
+                              <p className="text-[10px] text-slate-500 font-mono">Month: {fee.month}</p>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <span className="font-mono font-bold text-amber-800 text-[11px]">Rs. {Number(fee.remainingBalance).toLocaleString()}</span>
+                              {onOpenPaymentModal && (
+                                <button
+                                  type="button"
+                                  onClick={() => onOpenPaymentModal(scanResult.student.id, fee.id)}
+                                  className="px-2 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[10px] shadow-sm transition-all"
+                                >
+                                  Pay
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Recipient parent SMS badge */}
+                    {scanResult.student?.parentPhone && (
+                      <div className="flex items-center gap-1.5 text-[10px] text-slate-600 pt-1 border-t border-amber-200">
+                        <Smartphone size={12} className="text-emerald-600 shrink-0" />
+                        <span>Instant SMS receipt will be sent to Parent: <strong className="font-mono text-slate-900">{scanResult.student.parentPhone}</strong></span>
+                      </div>
+                    )}
+
+                    {/* Primary Desk Action */}
+                    {onOpenPaymentModal && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const targetFeeId = scanResult.feeWarning?.feeRecordId || scanResult.pendingFees?.[0]?.id;
+                          onOpenPaymentModal(scanResult.student.id, targetFeeId);
+                        }}
+                        className="w-full py-2.5 px-3 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-xs shadow-md flex items-center justify-center space-x-2 transition-all active:scale-95"
+                      >
+                        <CreditCard size={15} />
+                        <span>💳 Collect Tuition Fees &amp; Send Parent SMS</span>
+                      </button>
+                    )}
                   </div>
                 )}
               </div>
@@ -837,9 +899,21 @@ export const Attendance: React.FC<AttendanceProps> = ({ onOpenStudentProfile, au
 
                     <td className="py-2.5 px-3">
                       {item.hasPendingFees ? (
-                        <span className="px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200 text-[10px] font-bold">
-                          Fee Due: {formatLKR(item.remainingBalance)}
-                        </span>
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className="px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200 text-[10px] font-bold">
+                            Fee Due: {formatLKR(item.remainingBalance)}
+                          </span>
+                          {onOpenPaymentModal && (
+                            <button
+                              onClick={() => onOpenPaymentModal(item.student.id)}
+                              className="px-2 py-0.5 rounded bg-amber-600 hover:bg-amber-700 text-white text-[10px] font-bold transition-all flex items-center gap-1 shadow-sm"
+                              title="Pay fee & send parent SMS receipt"
+                            >
+                              <CreditCard size={10} />
+                              <span>Pay &amp; SMS</span>
+                            </button>
+                          )}
+                        </div>
                       ) : (
                         <span className="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-bold">
                           Fees Clear
@@ -900,6 +974,7 @@ export const Attendance: React.FC<AttendanceProps> = ({ onOpenStudentProfile, au
         onScanSuccess={handlePerformScan}
         selectedClassName={currentClass?.name}
         selectedDate={selectedDate}
+        onOpenPaymentModal={onOpenPaymentModal}
       />
 
       {/* 125kHz HID RFID Hardware Setup & Multi-PC LAN Guide */}

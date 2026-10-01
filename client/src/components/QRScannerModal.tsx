@@ -13,7 +13,9 @@ import {
   ArrowRight,
   RefreshCw,
   Zap,
-  Info
+  Info,
+  CreditCard,
+  Smartphone
 } from 'lucide-react';
 import { decodeQRFromFile, decodeQRFromVideo } from '../utils/qrScanner';
 
@@ -23,6 +25,7 @@ interface QRScannerModalProps {
   onScanSuccess: (decodedToken: string) => Promise<any>;
   selectedClassName?: string;
   selectedDate?: string;
+  onOpenPaymentModal?: (studentId: string, feeRecordId?: string) => void;
 }
 
 export const QRScannerModal: React.FC<QRScannerModalProps> = ({
@@ -30,7 +33,8 @@ export const QRScannerModal: React.FC<QRScannerModalProps> = ({
   onClose,
   onScanSuccess,
   selectedClassName = 'Selected Class',
-  selectedDate
+  selectedDate,
+  onOpenPaymentModal
 }) => {
   const [cameraActive, setCameraActive] = useState<boolean>(false);
   const [cameraFacing, setCameraFacing] = useState<'environment' | 'user'>('environment');
@@ -450,11 +454,71 @@ export const QRScannerModal: React.FC<QRScannerModalProps> = ({
                   )}
                   <p className="text-[11px] mt-0.5 opacity-90">{lastScanResult.message}</p>
 
-                  {/* Fee Balance Warning Banner if defaulter */}
-                  {lastScanResult.hasPendingFees && (
-                    <div className="mt-2 p-2 rounded-xl bg-rose-500/20 border border-rose-500/40 text-rose-200 text-[10px] font-bold flex items-center justify-between">
-                      <span>⚠️ Pending Balance Due:</span>
-                      <span className="font-mono text-white">Rs. {Number(lastScanResult.pendingAmount || 0).toLocaleString()}</span>
+                  {/* Fee Balance Warning & Instant Payment Collection */}
+                  {(lastScanResult.hasPendingFees || (lastScanResult.pendingFees && lastScanResult.pendingFees.length > 0) || lastScanResult.feeWarning) && (
+                    <div className="mt-2.5 p-2.5 rounded-xl bg-rose-950/70 border border-rose-500/40 text-rose-100 text-[11px] space-y-2">
+                      <div className="flex items-center justify-between font-bold">
+                        <span className="flex items-center gap-1 text-rose-300">
+                          <AlertTriangle size={13} className="text-rose-400" />
+                          <span>Class Fees Due:</span>
+                        </span>
+                        <span className="font-mono text-white text-xs font-black">
+                          Rs. {Number(lastScanResult.totalPendingAmount || lastScanResult.pendingAmount || lastScanResult.feeWarning?.due || 0).toLocaleString()}
+                        </span>
+                      </div>
+
+                      {/* Enrolled subjects breakdown */}
+                      {lastScanResult.pendingFees && lastScanResult.pendingFees.length > 0 && (
+                        <div className="space-y-1 pt-1 border-t border-rose-800/50">
+                          {lastScanResult.pendingFees.map((fee: any) => (
+                            <div key={fee.id} className="flex items-center justify-between bg-black/30 px-2 py-1 rounded-lg text-[10px]">
+                              <div className="truncate mr-1">
+                                <span className="font-semibold text-slate-200">{fee.className}</span>
+                                <span className="text-slate-400 ml-1">({fee.month})</span>
+                              </div>
+                              <div className="flex items-center gap-1.5 shrink-0">
+                                <span className="font-mono text-amber-300 font-bold">Rs. {Number(fee.remainingBalance).toLocaleString()}</span>
+                                {onOpenPaymentModal && (
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      onClose();
+                                      onOpenPaymentModal(lastScanResult.student.id, fee.id);
+                                    }}
+                                    className="px-1.5 py-0.5 rounded bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-[9px] transition-all"
+                                  >
+                                    Pay
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* SMS Notification Target */}
+                      {lastScanResult.student?.parentPhone && (
+                        <div className="flex items-center gap-1 text-[10px] text-slate-300 pt-1 border-t border-rose-800/40">
+                          <Smartphone size={11} className="text-emerald-400 shrink-0" />
+                          <span className="truncate">SMS will be sent to: <strong className="text-white font-mono">{lastScanResult.student.parentPhone}</strong></span>
+                        </div>
+                      )}
+
+                      {/* Primary One-Click Pay Button */}
+                      {onOpenPaymentModal && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const targetFeeId = lastScanResult.feeWarning?.feeRecordId || lastScanResult.pendingFees?.[0]?.id;
+                            onClose();
+                            onOpenPaymentModal(lastScanResult.student.id, targetFeeId);
+                          }}
+                          className="w-full mt-1.5 py-2 px-3 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white font-extrabold text-[11px] shadow-md flex items-center justify-center space-x-1.5 transition-all active:scale-95"
+                        >
+                          <CreditCard size={13} />
+                          <span>💳 Pay Class Fees &amp; Send Parent SMS</span>
+                        </button>
+                      )}
                     </div>
                   )}
                 </div>

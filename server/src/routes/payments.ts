@@ -2,6 +2,7 @@ import { Router, Response } from 'express';
 import db, { Payment, PaymentItem, Income, FeeRecord } from '../db';
 import { AuthRequest, authenticateToken, requireRoles } from '../middleware/auth';
 import { logAuditAction } from '../middleware/audit';
+import { dispatchRealSMS } from '../services/smsService';
 
 const router = Router();
 
@@ -257,12 +258,20 @@ router.post('/', authenticateToken, requireRoles(['SUPER_ADMIN', 'ADMIN', 'ACCOU
 
     // Dispatch instant Payment Receipt SMS & WhatsApp to parent
     const targetPhone = student.parentPhone || student.phone;
+    let smsDispatched = false;
     if (targetPhone) {
       const remainingTotal = db.data.feeRecords
         .filter(f => f.studentId === student.id && f.status !== 'PAID')
         .reduce((sum, f) => sum + f.remainingBalance, 0);
 
-      const paymentMsg = `Thank you! Received Rs. ${grandTotalPaid.toLocaleString()} for ${student.fullName}. Receipt #${receiptNumber}. Outstanding balance: Rs. ${remainingTotal.toLocaleString()}. - Apex Institute`;
+      const paymentMsg = `Dear Parent, received Rs. ${grandTotalPaid.toLocaleString()} for ${student.fullName}. Receipt #${receiptNumber}. Outstanding balance: Rs. ${remainingTotal.toLocaleString()}. - Apex Institute`;
+
+      try {
+        await dispatchRealSMS(targetPhone, paymentMsg);
+        smsDispatched = true;
+      } catch (smsErr) {
+        console.warn('Live SMS dispatch notice:', smsErr);
+      }
 
       db.data.smsLogs.unshift({
         id: db.generateId(),
@@ -296,7 +305,9 @@ router.post('/', authenticateToken, requireRoles(['SUPER_ADMIN', 'ADMIN', 'ACCOU
     return res.status(201).json({
       message: 'Payment recorded successfully',
       receiptNumber,
-      payment: newPayment
+      payment: newPayment,
+      smsSent: !!targetPhone,
+      parentPhone: targetPhone || null
     });
   } catch (error: any) {
     console.error('Payment processing error:', error);

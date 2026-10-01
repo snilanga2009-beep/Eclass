@@ -189,6 +189,7 @@ export const App: React.FC = () => {
           {currentTab === 'attendance' && (
             <Attendance 
               onOpenStudentProfile={(id) => setActiveProfileStudentId(id)}
+              onOpenPaymentModal={(stuId, feeId) => handleOpenPayFee(stuId, feeId)}
             />
           )}
 
@@ -319,6 +320,7 @@ export const App: React.FC = () => {
         onClose={() => setIsGlobalScannerOpen(false)}
         onScanSuccess={handleGlobalScanSuccess}
         selectedClassName={todayClasses[0]?.name || "Today's Class"}
+        onOpenPaymentModal={(stuId, feeId) => handleOpenPayFee(stuId, feeId)}
       />
     </div>
   );

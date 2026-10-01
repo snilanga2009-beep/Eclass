@@ -3,6 +3,7 @@ import QRCode from 'qrcode';
 import db, { Attendance, AttendanceSession } from '../db';
 import { AuthRequest, authenticateToken, requireRoles } from '../middleware/auth';
 import { logAuditAction } from '../middleware/audit';
+import { dispatchRealSMS } from '../services/smsService';
 
 const router = Router();
 
@@ -237,6 +238,31 @@ router.post('/scan', authenticateToken, async (req: AuthRequest, res: Response) 
     const currentClass = activeClass;
     const targetClassId = currentClass.id;
 
+    // Compute all pending fees for this student across all enrolled subjects/classes
+    const studentFeeRecords = db.data.feeRecords.filter(f => f.studentId === student.id);
+    const pendingFees = studentFeeRecords
+      .filter(f => f.remainingBalance > 0)
+      .map(f => {
+        const c = db.data.classes.find(clsItem => clsItem.id === f.classId);
+        const t = c ? db.data.teachers.find(tch => tch.id === c.teacherId) : null;
+        return {
+          id: f.id,
+          classId: f.classId,
+          className: c?.name || 'Tuition Class',
+          classCode: c?.classCode || '',
+          teacherName: t?.name || 'Academy Staff',
+          month: f.month,
+          baseFee: f.baseFee,
+          totalDue: f.totalDue,
+          paidAmount: f.paidAmount,
+          remainingBalance: f.remainingBalance,
+          isCurrentClass: f.classId === targetClassId
+        };
+      });
+
+    const totalPendingAmount = pendingFees.reduce((sum, f) => sum + f.remainingBalance, 0);
+    const currentClassPending = pendingFees.find(f => f.classId === targetClassId);
+
     // Check duplicate attendance for student + class + date
     const existingAttendance = db.data.attendances.find(a => 
       a.studentId === student.id && 
@@ -252,7 +278,8 @@ router.post('/scan', authenticateToken, async (req: AuthRequest, res: Response) 
           fullName: student.fullName,
           studentIdNumber: student.studentIdNumber,
           photo: student.photo,
-          grade: student.grade
+          grade: student.grade,
+          parentPhone: student.parentPhone
         },
         class: {
           id: currentClass.id,
@@ -260,6 +287,18 @@ router.post('/scan', authenticateToken, async (req: AuthRequest, res: Response) 
           classCode: currentClass.classCode
         },
         attendance: existingAttendance,
+        pendingFees,
+        totalPendingAmount,
+        hasPendingFees: pendingFees.length > 0,
+        feeWarning: currentClassPending ? {
+          month: currentClassPending.month,
+          due: currentClassPending.remainingBalance,
+          feeRecordId: currentClassPending.id
+        } : (pendingFees.length > 0 ? {
+          month: pendingFees[0].month,
+          due: totalPendingAmount,
+          feeRecordId: pendingFees[0].id
+        } : null),
         message: `Attendance already marked at ${new Date(existingAttendance.scannedAt).toLocaleTimeString()}`
       });
     }
@@ -304,6 +343,12 @@ router.post('/scan', authenticateToken, async (req: AuthRequest, res: Response) 
       const methodLabel = scanMethod === 'RFID' ? '125kHz RFID Card' : 'QR Scanner';
       const alertMsg = `Dear Parent, your child ${student.fullName} has arrived and was marked PRESENT for ${currentClass.name} today at ${scanTimeStr} via ${methodLabel}. - Apex Institute`;
 
+      try {
+        await dispatchRealSMS(targetPhone, alertMsg);
+      } catch (smsErr) {
+        console.warn('Live SMS dispatch notice:', smsErr);
+      }
+
       db.data.smsLogs.unshift({
         id: db.generateId(),
         studentId: student.id,
@@ -341,7 +386,7 @@ router.post('/scan', authenticateToken, async (req: AuthRequest, res: Response) 
         studentIdNumber: student.studentIdNumber,
         photo: student.photo,
         grade: student.grade,
-        parentPhone: student.parentPhone
+        parentPhone: student.parentPhone || student.phone
       },
       class: {
         id: currentClass.id,
@@ -349,10 +394,18 @@ router.post('/scan', authenticateToken, async (req: AuthRequest, res: Response) 
         classCode: currentClass.classCode
       },
       attendance: newAttendance,
-      feeWarning: feePending ? {
-        month: feeRecord.month,
-        due: feeRecord.remainingBalance
-      } : null,
+      pendingFees,
+      totalPendingAmount,
+      hasPendingFees: pendingFees.length > 0,
+      feeWarning: currentClassPending ? {
+        month: currentClassPending.month,
+        due: currentClassPending.remainingBalance,
+        feeRecordId: currentClassPending.id
+      } : (pendingFees.length > 0 ? {
+        month: pendingFees[0].month,
+        due: totalPendingAmount,
+        feeRecordId: pendingFees[0].id
+      } : null),
       message: `Successfully marked PRESENT for ${student.fullName}`
     });
   } catch (error: any) {
