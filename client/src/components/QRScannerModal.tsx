@@ -15,7 +15,8 @@ import {
   Zap,
   Info,
   CreditCard,
-  Smartphone
+  Smartphone,
+  Check
 } from 'lucide-react';
 import { decodeQRFromFile, decodeQRFromVideo } from '../utils/qrScanner';
 
@@ -262,37 +263,37 @@ export const QRScannerModal: React.FC<QRScannerModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/80 backdrop-blur-md animate-in fade-in duration-200">
-      <div className="relative w-full max-w-lg bg-slate-900 border border-slate-800 rounded-3xl shadow-2xl flex flex-col max-h-[92vh] overflow-hidden text-white">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-2.5 sm:p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200">
+      <div className="relative w-full max-w-md bg-slate-900 border border-slate-800 rounded-2xl sm:rounded-3xl shadow-2xl flex flex-col max-h-[95vh] sm:max-h-[92vh] overflow-hidden text-white">
         
         {/* Top Header Bar */}
-        <div className="px-5 py-4 border-b border-slate-800 flex items-center justify-between bg-slate-900/90 backdrop-blur">
-          <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 rounded-2xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center border border-emerald-500/30">
-              <QrCode size={20} />
+        <div className="px-4 sm:px-5 py-3.5 sm:py-4 border-b border-slate-800 flex items-center justify-between bg-slate-900/90 backdrop-blur">
+          <div className="flex items-center space-x-2.5 sm:space-x-3">
+            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center border border-emerald-500/30 shrink-0">
+              <QrCode size={18} />
             </div>
             <div>
-              <div className="flex items-center space-x-2">
-                <h3 className="text-sm font-bold text-white">Camera QR Scanner</h3>
+              <div className="flex items-center space-x-1.5 sm:space-x-2">
+                <h3 className="text-xs sm:text-sm font-bold text-white">Camera QR Scanner</h3>
                 <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
               </div>
-              <p className="text-[11px] text-slate-400 truncate max-w-[200px] sm:max-w-xs">{selectedClassName}</p>
+              <p className="text-[10px] sm:text-[11px] text-slate-400 truncate max-w-[170px] sm:max-w-xs">{selectedClassName}</p>
             </div>
           </div>
 
-          <div className="flex items-center space-x-1.5">
+          <div className="flex items-center space-x-1 sm:space-x-1.5">
             {/* Audio Beep Toggle */}
             <button
               type="button"
               onClick={() => setSoundEnabled(!soundEnabled)}
-              className={`p-2 rounded-xl border text-xs transition-colors ${
+              className={`p-1.5 sm:p-2 rounded-xl border text-xs transition-colors ${
                 soundEnabled 
                   ? 'bg-slate-800 border-slate-700 text-slate-200' 
                   : 'bg-slate-800/50 border-slate-800 text-slate-500'
               }`}
               title={soundEnabled ? 'Mute Beep' : 'Enable Beep'}
             >
-              {soundEnabled ? <Volume2 size={16} /> : <VolumeX size={16} />}
+              {soundEnabled ? <Volume2 size={15} /> : <VolumeX size={15} />}
             </button>
 
             {/* Camera Switcher (Front/Back) */}
@@ -300,10 +301,10 @@ export const QRScannerModal: React.FC<QRScannerModalProps> = ({
               <button
                 type="button"
                 onClick={toggleCameraFacing}
-                className="p-2 rounded-xl bg-slate-800 border border-slate-700 text-slate-200 hover:bg-slate-700 transition-colors"
+                className="p-1.5 sm:p-2 rounded-xl bg-slate-800 border border-slate-700 text-slate-200 hover:bg-slate-700 transition-colors"
                 title="Switch Camera (Front/Back)"
               >
-                <SwitchCamera size={16} />
+                <SwitchCamera size={15} />
               </button>
             )}
 
@@ -311,18 +312,18 @@ export const QRScannerModal: React.FC<QRScannerModalProps> = ({
             <button
               type="button"
               onClick={onClose}
-              className="p-2 rounded-xl bg-slate-800 hover:bg-rose-500/20 hover:text-rose-400 border border-slate-700 text-slate-400 transition-colors"
+              className="p-1.5 sm:p-2 rounded-xl bg-slate-800 hover:bg-rose-500/20 hover:text-rose-400 border border-slate-700 text-slate-400 transition-colors"
             >
-              <X size={18} />
+              <X size={17} />
             </button>
           </div>
         </div>
 
         {/* Viewport Area */}
-        <div className="p-4 sm:p-6 flex-1 flex flex-col items-center justify-center overflow-y-auto space-y-4">
+        <div className="p-3 sm:p-5 flex-1 flex flex-col items-center justify-start overflow-y-auto space-y-3 w-full">
           
           {/* Live Camera Viewfinder Box */}
-          <div className="relative w-full aspect-square max-w-[320px] rounded-3xl bg-black border-2 border-slate-800 overflow-hidden shadow-inner flex items-center justify-center">
+          <div className="relative w-full aspect-square max-w-[230px] sm:max-w-[270px] rounded-2xl sm:rounded-3xl bg-black border-2 border-slate-800 overflow-hidden shadow-inner flex items-center justify-center shrink-0">
             
             {/* Native Video Stream */}
             <video
@@ -454,28 +455,41 @@ export const QRScannerModal: React.FC<QRScannerModalProps> = ({
                   )}
                   <p className="text-[11px] mt-0.5 opacity-90">{lastScanResult.message}</p>
 
-                  {/* Fee Balance Warning & Instant Payment Collection */}
-                  {(lastScanResult.hasPendingFees || (lastScanResult.pendingFees && lastScanResult.pendingFees.length > 0) || lastScanResult.feeWarning) && (
-                    <div className="mt-2.5 p-2.5 rounded-xl bg-rose-950/70 border border-rose-500/40 text-rose-100 text-[11px] space-y-2">
-                      <div className="flex items-center justify-between font-bold">
-                        <span className="flex items-center gap-1 text-rose-300">
-                          <AlertTriangle size={13} className="text-rose-400" />
-                          <span>Class Fees Due:</span>
-                        </span>
-                        <span className="font-mono text-white text-xs font-black">
-                          Rs. {Number(lastScanResult.totalPendingAmount || lastScanResult.pendingAmount || lastScanResult.feeWarning?.due || 0).toLocaleString()}
+                  {/* Interactive Fee Collection Prompt Question */}
+                  {lastScanResult.student && (
+                    <div className="mt-2.5 p-3 rounded-2xl bg-gradient-to-b from-indigo-950/90 via-slate-900 to-indigo-950/90 border-2 border-indigo-400/60 shadow-xl space-y-2 text-center animate-in fade-in duration-150">
+                      <div className="flex items-center justify-center space-x-1.5">
+                        <div className="w-6 h-6 rounded-lg bg-indigo-500/20 text-indigo-400 flex items-center justify-center border border-indigo-500/30">
+                          <CreditCard size={13} />
+                        </div>
+                        <span className="text-[10px] font-black tracking-wider uppercase text-indigo-300">
+                          Collect Class Fee Prompt
                         </span>
                       </div>
 
+                      <p className="text-xs font-black text-white leading-snug">
+                        Need to Collect Class Fee now for <span className="text-emerald-400">{lastScanResult.student.fullName}</span>?
+                      </p>
+
+                      {(lastScanResult.hasPendingFees || (lastScanResult.pendingFees && lastScanResult.pendingFees.length > 0) || lastScanResult.feeWarning) ? (
+                        <div className="p-2 rounded-xl bg-rose-500/20 border border-rose-500/40 text-rose-200 text-[10px] font-bold flex items-center justify-between">
+                          <span>⚠️ Balance Due:</span>
+                          <span className="font-mono text-white text-xs font-black">
+                            Rs. {Number(lastScanResult.totalPendingAmount || lastScanResult.pendingAmount || lastScanResult.feeWarning?.due || 0).toLocaleString()}
+                          </span>
+                        </div>
+                      ) : (
+                        <div className="p-1.5 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-[10px] font-semibold">
+                          ✓ All fees currently clear. Collect upcoming month?
+                        </div>
+                      )}
+
                       {/* Enrolled subjects breakdown */}
                       {lastScanResult.pendingFees && lastScanResult.pendingFees.length > 0 && (
-                        <div className="space-y-1 pt-1 border-t border-rose-800/50">
+                        <div className="space-y-1 max-h-24 overflow-y-auto text-left pr-1">
                           {lastScanResult.pendingFees.map((fee: any) => (
-                            <div key={fee.id} className="flex items-center justify-between bg-black/30 px-2 py-1 rounded-lg text-[10px]">
-                              <div className="truncate mr-1">
-                                <span className="font-semibold text-slate-200">{fee.className}</span>
-                                <span className="text-slate-400 ml-1">({fee.month})</span>
-                              </div>
+                            <div key={fee.id} className="flex items-center justify-between bg-black/40 px-2 py-1 rounded-lg text-[10px]">
+                              <span className="truncate text-slate-300 mr-1">{fee.className} ({fee.month})</span>
                               <div className="flex items-center gap-1.5 shrink-0">
                                 <span className="font-mono text-amber-300 font-bold">Rs. {Number(fee.remainingBalance).toLocaleString()}</span>
                                 {onOpenPaymentModal && (
@@ -496,29 +510,42 @@ export const QRScannerModal: React.FC<QRScannerModalProps> = ({
                         </div>
                       )}
 
-                      {/* SMS Notification Target */}
+                      {/* Parent SMS notice */}
                       {lastScanResult.student?.parentPhone && (
-                        <div className="flex items-center gap-1 text-[10px] text-slate-300 pt-1 border-t border-rose-800/40">
+                        <div className="flex items-center justify-center gap-1 text-[10px] text-slate-300 pt-0.5">
                           <Smartphone size={11} className="text-emerald-400 shrink-0" />
-                          <span className="truncate">SMS will be sent to: <strong className="text-white font-mono">{lastScanResult.student.parentPhone}</strong></span>
+                          <span className="truncate">SMS to Parent: <strong className="text-white font-mono">{lastScanResult.student.parentPhone}</strong></span>
                         </div>
                       )}
 
-                      {/* Primary One-Click Pay Button */}
-                      {onOpenPaymentModal && (
+                      {/* YES / NO Confirmation Buttons */}
+                      <div className="grid grid-cols-2 gap-2 pt-1">
                         <button
                           type="button"
                           onClick={() => {
                             const targetFeeId = lastScanResult.feeWarning?.feeRecordId || lastScanResult.pendingFees?.[0]?.id;
                             onClose();
-                            onOpenPaymentModal(lastScanResult.student.id, targetFeeId);
+                            if (onOpenPaymentModal) {
+                              onOpenPaymentModal(lastScanResult.student.id, targetFeeId);
+                            }
                           }}
-                          className="w-full mt-1.5 py-2 px-3 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white font-extrabold text-[11px] shadow-md flex items-center justify-center space-x-1.5 transition-all active:scale-95"
+                          className="w-full py-2.5 px-3 rounded-xl bg-gradient-to-r from-emerald-500 via-teal-500 to-indigo-600 hover:from-emerald-400 hover:to-indigo-500 text-white font-black text-[11px] shadow-md shadow-emerald-500/30 flex items-center justify-center space-x-1 transition-all active:scale-95"
                         >
-                          <CreditCard size={13} />
-                          <span>💳 Pay Class Fees &amp; Send Parent SMS</span>
+                          <Check size={14} />
+                          <span>YES, Collect Fee</span>
                         </button>
-                      )}
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setLastScanResult(null);
+                          }}
+                          className="w-full py-2.5 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-[11px] border border-slate-700 flex items-center justify-center space-x-1 transition-all active:scale-95"
+                        >
+                          <X size={14} />
+                          <span>NO, Skip</span>
+                        </button>
+                      </div>
                     </div>
                   )}
                 </div>
