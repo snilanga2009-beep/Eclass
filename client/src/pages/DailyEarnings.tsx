@@ -165,6 +165,16 @@ export const DailyEarnings: React.FC<DailyEarningsProps> = ({ onOpenReceipt }) =
             >
               Yesterday
             </button>
+            <button
+              onClick={() => setSelectedDate('2026-09-08')}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                selectedDate === '2026-09-08'
+                  ? 'bg-emerald-600 text-white shadow-sm'
+                  : 'text-emerald-700 hover:text-emerald-900'
+              }`}
+            >
+              Batch (Sep 8)
+            </button>
           </div>
 
           {/* Custom Date Input */}

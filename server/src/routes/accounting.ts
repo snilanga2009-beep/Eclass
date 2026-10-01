@@ -160,10 +160,11 @@ router.get('/daily-collection', authenticateToken, requireRoles(['SUPER_ADMIN', 
         const teacher = cls ? db.data.teachers.find(t => t.id === cls.teacherId) : null;
 
         const classKey = cls ? cls.id : 'GENERAL';
-        const rate = teacher && teacher.paymentRate !== undefined ? teacher.paymentRate : 70;
+        const isPercentage = !teacher || teacher.paymentMethod === 'Percentage' || (teacher.paymentRate && teacher.paymentRate <= 100);
+        const rate = isPercentage ? (teacher?.paymentRate || 70) : 70;
         const amt = pi.amountPaid || 0;
         const teacherPortion = Math.round(amt * (rate / 100));
-        const academyPortion = amt - teacherPortion;
+        const academyPortion = Math.max(0, amt - teacherPortion);
 
         totalTeacherCommissions += teacherPortion;
         totalAcademyShare += academyPortion;
