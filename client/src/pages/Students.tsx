@@ -21,7 +21,10 @@ import {
   Copy,
   ExternalLink,
   Smartphone,
-  Check
+  Check,
+  BookOpen,
+  Clock,
+  RefreshCw
 } from 'lucide-react';
 import { apiRequest, formatLKR, formatDate } from '../api';
 import { Student } from '../types';
@@ -71,6 +74,11 @@ export const Students: React.FC<StudentsProps> = ({ onOpenProfile, onOpenIDCard 
   });
   const [submitting, setSubmitting] = useState(false);
   const [modalError, setModalError] = useState<string | null>(null);
+
+  // Class Enrollment picker state for Register Modal
+  const [classesLoading, setClassesLoading] = useState(false);
+  const [classSearch, setClassSearch] = useState('');
+  const [classGradeFilter, setClassGradeFilter] = useState('ALL');
 
   // Parent Portal SMS Link Confirmation Modal State
   const [portalSmsInfo, setPortalSmsInfo] = useState<{
@@ -134,10 +142,31 @@ export const Students: React.FC<StudentsProps> = ({ onOpenProfile, onOpenIDCard 
     }
   };
 
+  const fetchClasses = async () => {
+    setClassesLoading(true);
+    try {
+      const res = await apiRequest<any[]>('/classes');
+      setClasses(res || []);
+    } catch (err) {
+      console.error('Failed to load classes:', err);
+    } finally {
+      setClassesLoading(false);
+    }
+  };
+
   useEffect(() => {
     fetchStudents();
-    apiRequest<any[]>('/classes').then(res => setClasses(res || []));
+    fetchClasses();
   }, [gradeFilter, statusFilter, classFilter]);
+
+  // When Add Modal is opened, ensure fresh classes are fetched
+  useEffect(() => {
+    if (isAddModalOpen) {
+      fetchClasses();
+      setClassSearch('');
+      setClassGradeFilter('ALL');
+    }
+  }, [isAddModalOpen]);
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -216,6 +245,32 @@ export const Students: React.FC<StudentsProps> = ({ onOpenProfile, onOpenIDCard 
     link.click();
     document.body.removeChild(link);
   };
+
+  // Computed helpers for Register Student Class Enrollment
+  const filteredClasses = classes.filter(c => {
+    const s = classSearch.toLowerCase().trim();
+    const matchesSearch = !s ||
+      (c.name && c.name.toLowerCase().includes(s)) ||
+      (c.subject?.name && c.subject.name.toLowerCase().includes(s)) ||
+      (c.teacher?.name && c.teacher.name.toLowerCase().includes(s)) ||
+      (c.grade && c.grade.toLowerCase().includes(s)) ||
+      (c.dayOfWeek && c.dayOfWeek.toLowerCase().includes(s));
+
+    const matchesGrade = 
+      classGradeFilter === 'ALL' 
+        ? true 
+        : classGradeFilter === 'MATCH_STUDENT' 
+          ? c.grade === formData.grade 
+          : c.grade === classGradeFilter;
+
+    return matchesSearch && matchesGrade;
+  });
+
+  const matchingGradeCount = classes.filter(c => c.grade === formData.grade).length;
+
+  const totalSelectedFees = classes
+    .filter(c => formData.enrolledClassIds.includes(c.id))
+    .reduce((sum, c) => sum + (Number(c.monthlyFee) || 0), 0);
 
   return (
     <div className="space-y-6">
@@ -752,27 +807,204 @@ export const Students: React.FC<StudentsProps> = ({ onOpenProfile, onOpenIDCard 
                   />
                 </div>
 
-                {/* Class Enrollment Select */}
-                <div className="sm:col-span-2">
-                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Enroll into Initial Classes</label>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-40 overflow-y-auto p-2 border border-slate-200 rounded-xl bg-slate-50">
-                    {classes.map(c => (
-                      <label key={c.id} className="flex items-center space-x-2 text-xs p-1.5 rounded-lg hover:bg-white cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={formData.enrolledClassIds.includes(c.id)}
-                          onChange={(e) => {
-                            if (e.target.checked) {
-                              setFormData({ ...formData, enrolledClassIds: [...formData.enrolledClassIds, c.id] });
+                {/* Enhanced Class Enrollment Section */}
+                <div className="sm:col-span-2 space-y-2.5 pt-2 border-t border-slate-100">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <BookOpen size={16} className="text-brand-600" />
+                        <label className="text-xs font-bold text-slate-800 uppercase tracking-wider">
+                          Enroll into Initial Classes
+                        </label>
+                      </div>
+                      <p className="text-[11px] text-slate-500 mt-0.5">
+                        Select tuition batches to enroll this student upon registration. Fee records are generated automatically.
+                      </p>
+                    </div>
+
+                    <div className="flex items-center gap-2 shrink-0">
+                      <span className="px-2.5 py-1 rounded-xl bg-indigo-50 border border-indigo-200/80 text-indigo-700 font-bold text-[11px]">
+                        {formData.enrolledClassIds.length} Selected &bull; {formatLKR(totalSelectedFees)}/mo
+                      </span>
+                      <button
+                        type="button"
+                        onClick={fetchClasses}
+                        disabled={classesLoading}
+                        title="Reload Classes List"
+                        className="p-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 text-xs transition-colors flex items-center gap-1"
+                      >
+                        <RefreshCw size={13} className={classesLoading ? 'animate-spin text-brand-600' : ''} />
+                        <span className="text-[10px] hidden sm:inline">Refresh</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Search and Grade Filter Bar */}
+                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 bg-slate-50 p-2.5 rounded-2xl border border-slate-200">
+                    <div className="relative flex-1">
+                      <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                      <input
+                        type="text"
+                        placeholder="Search by class name, subject, or teacher..."
+                        value={classSearch}
+                        onChange={(e) => setClassSearch(e.target.value)}
+                        className="w-full pl-8 pr-7 py-1.5 rounded-xl border border-slate-200 bg-white text-xs focus:ring-2 focus:ring-brand-500"
+                      />
+                      {classSearch && (
+                        <button
+                          type="button"
+                          onClick={() => setClassSearch('')}
+                          className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                        >
+                          <X size={12} />
+                        </button>
+                      )}
+                    </div>
+
+                    <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => setClassGradeFilter('ALL')}
+                        className={`px-2.5 py-1 rounded-xl text-[11px] font-bold transition-all ${
+                          classGradeFilter === 'ALL'
+                            ? 'bg-brand-600 text-white shadow-sm shadow-brand-600/30'
+                            : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-100'
+                        }`}
+                      >
+                        All Classes ({classes.length})
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setClassGradeFilter('MATCH_STUDENT')}
+                        className={`px-2.5 py-1 rounded-xl text-[11px] font-bold transition-all ${
+                          classGradeFilter === 'MATCH_STUDENT'
+                            ? 'bg-brand-600 text-white shadow-sm shadow-brand-600/30'
+                            : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-100'
+                        }`}
+                      >
+                        Matching Grade: {formData.grade} ({matchingGradeCount})
+                      </button>
+
+                      {filteredClasses.length > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const filteredIds = filteredClasses.map(c => c.id);
+                            const allSelected = filteredIds.every(id => formData.enrolledClassIds.includes(id));
+                            if (allSelected) {
+                              setFormData({
+                                ...formData,
+                                enrolledClassIds: formData.enrolledClassIds.filter(id => !filteredIds.includes(id))
+                              });
                             } else {
-                              setFormData({ ...formData, enrolledClassIds: formData.enrolledClassIds.filter(id => id !== c.id) });
+                              const combined = Array.from(new Set([...formData.enrolledClassIds, ...filteredIds]));
+                              setFormData({ ...formData, enrolledClassIds: combined });
                             }
                           }}
-                          className="rounded text-brand-600 focus:ring-brand-500"
-                        />
-                        <span className="truncate">{c.name} ({formatLKR(c.monthlyFee)})</span>
-                      </label>
-                    ))}
+                          className="px-2.5 py-1 rounded-xl text-[11px] font-semibold bg-white border border-slate-200 hover:bg-slate-100 text-slate-700"
+                        >
+                          {filteredClasses.every(c => formData.enrolledClassIds.includes(c.id)) ? 'Deselect All' : 'Select All'}
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Classes List View Container */}
+                  <div className="max-h-64 sm:max-h-72 overflow-y-auto p-2 border border-slate-200 rounded-2xl bg-slate-50/50 space-y-2">
+                    {classesLoading ? (
+                      <div className="py-8 text-center text-xs text-slate-500 flex flex-col items-center justify-center gap-2">
+                        <RefreshCw size={20} className="animate-spin text-brand-600" />
+                        <span>Loading tuition classes directory...</span>
+                      </div>
+                    ) : filteredClasses.length === 0 ? (
+                      <div className="py-8 text-center px-4">
+                        <p className="text-xs font-semibold text-slate-600">No classes match your search or filter</p>
+                        <p className="text-[11px] text-slate-400 mt-1">
+                          Try switching to "All Classes ({classes.length})" or clearing your search.
+                        </p>
+                        {(classGradeFilter !== 'ALL' || classSearch) && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setClassGradeFilter('ALL');
+                              setClassSearch('');
+                            }}
+                            className="mt-3 px-3 py-1 rounded-xl bg-white border border-slate-300 text-slate-700 text-xs font-semibold hover:bg-slate-100 shadow-sm"
+                          >
+                            Show All Classes
+                          </button>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        {filteredClasses.map(c => {
+                          const isSelected = formData.enrolledClassIds.includes(c.id);
+                          return (
+                            <div
+                              key={c.id}
+                              onClick={() => {
+                                if (isSelected) {
+                                  setFormData({
+                                    ...formData,
+                                    enrolledClassIds: formData.enrolledClassIds.filter(id => id !== c.id)
+                                  });
+                                } else {
+                                  setFormData({
+                                    ...formData,
+                                    enrolledClassIds: [...formData.enrolledClassIds, c.id]
+                                  });
+                                }
+                              }}
+                              className={`p-3 rounded-2xl border transition-all cursor-pointer flex flex-col justify-between gap-2 ${
+                                isSelected
+                                  ? 'bg-brand-50/80 border-brand-500 shadow-sm ring-1 ring-brand-400/40'
+                                  : 'bg-white border-slate-200/90 hover:border-slate-300 hover:shadow-xs'
+                              }`}
+                            >
+                              <div className="flex items-start gap-2.5">
+                                <input
+                                  type="checkbox"
+                                  checked={isSelected}
+                                  onChange={() => {}}
+                                  className="mt-0.5 rounded text-brand-600 focus:ring-brand-500 h-4 w-4 shrink-0 pointer-events-none"
+                                />
+                                <div className="min-w-0 flex-1">
+                                  <div className="flex items-center justify-between gap-1 mb-1">
+                                    <span className="px-2 py-0.5 rounded-lg bg-indigo-50 text-indigo-700 text-[10px] font-bold border border-indigo-200/60 shrink-0">
+                                      {c.grade}
+                                    </span>
+                                    <span className="font-extrabold text-xs text-brand-700 font-mono">
+                                      {formatLKR(c.monthlyFee)}
+                                    </span>
+                                  </div>
+                                  <h5 className="font-bold text-xs text-slate-900 leading-snug line-clamp-2">
+                                    {c.name}
+                                  </h5>
+                                  {c.subject?.name && (
+                                    <p className="text-[11px] text-slate-500 mt-0.5 truncate">
+                                      {c.subject.name}
+                                    </p>
+                                  )}
+                                </div>
+                              </div>
+
+                              <div className="flex items-center justify-between text-[10px] text-slate-400 pt-1.5 border-t border-slate-100/80">
+                                <span className="truncate max-w-[130px] font-medium text-slate-600">
+                                  {c.teacher?.name || 'Assigned Faculty'}
+                                </span>
+                                {(c.dayOfWeek || c.startTime) && (
+                                  <span className="flex items-center gap-1 font-mono text-slate-500 shrink-0">
+                                    <Clock size={11} className="text-slate-400" />
+                                    <span>{c.dayOfWeek ? `${c.dayOfWeek.slice(0, 3)} ` : ''}{c.startTime || ''}</span>
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
