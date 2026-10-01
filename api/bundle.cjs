@@ -6,11 +6,7 @@ var __getOwnPropNames = Object.getOwnPropertyNames;
 var __getProtoOf = Object.getPrototypeOf;
 var __hasOwnProp = Object.prototype.hasOwnProperty;
 var __commonJS = (cb, mod) => function __require() {
-  try {
-    return mod || (0, cb[__getOwnPropNames(cb)[0]])((mod = { exports: {} }).exports, mod), mod.exports;
-  } catch (e) {
-    throw mod = 0, e;
-  }
+  return mod || (0, cb[__getOwnPropNames(cb)[0]])((mod = { exports: {} }).exports, mod), mod.exports;
 };
 var __export = (target, all) => {
   for (var name in all)
@@ -15303,7 +15299,7 @@ var require_shams = __commonJS({
         return true;
       }
       var obj = {};
-      var sym = /* @__PURE__ */ Symbol("test");
+      var sym = Symbol("test");
       var symObj = Object(sym);
       if (typeof sym === "string") {
         return false;
@@ -15362,7 +15358,7 @@ var require_has_symbols = __commonJS({
       if (typeof origSymbol("foo") !== "symbol") {
         return false;
       }
-      if (typeof /* @__PURE__ */ Symbol("bar") !== "symbol") {
+      if (typeof Symbol("bar") !== "symbol") {
         return false;
       }
       return hasSymbolSham();
@@ -27393,7 +27389,7 @@ var require_range2 = __commonJS({
 var require_comparator = __commonJS({
   "server/node_modules/semver/classes/comparator.js"(exports2, module2) {
     "use strict";
-    var ANY = /* @__PURE__ */ Symbol("SemVer ANY");
+    var ANY = Symbol("SemVer ANY");
     var Comparator = class _Comparator {
       static get ANY() {
         return ANY;
@@ -33571,10 +33567,6 @@ var import_cors = __toESM(require_lib3());
 var import_dotenv = __toESM(require_main());
 var import_path2 = __toESM(require("path"));
 
-// server/src/seed.ts
-var import_bcryptjs = __toESM(require_bcryptjs());
-var import_crypto = __toESM(require("crypto"));
-
 // server/src/db.ts
 var import_fs = __toESM(require("fs"));
 var import_path = __toESM(require("path"));
@@ -33674,6 +33666,8 @@ var db = new DatabaseStore();
 var db_default = db;
 
 // server/src/seed.ts
+var import_bcryptjs = __toESM(require_bcryptjs());
+var import_crypto = __toESM(require("crypto"));
 async function seedDatabase() {
   console.log("--- Initializing CAMS Database Seeding ---");
   if (db_default.data.students.length >= 50 && db_default.data.users.length >= 7) {
@@ -37246,6 +37240,23 @@ var PORT = process.env.PORT || 5e3;
 app.use((0, import_cors.default)());
 app.use(import_express17.default.json({ limit: "10mb" }));
 app.use(import_express17.default.urlencoded({ extended: true, limit: "10mb" }));
+var initPromise = null;
+app.use(async (req, res, next) => {
+  try {
+    if (!db_default.data.users || db_default.data.users.length < 5) {
+      if (!initPromise) {
+        initPromise = seedDatabase().catch((err) => {
+          console.error("[DB Init Error]:", err);
+          initPromise = null;
+        });
+      }
+      await initPromise;
+    }
+  } catch (err) {
+    console.error("Database initialization error:", err);
+  }
+  next();
+});
 app.use("/uploads", import_express17.default.static(import_path2.default.join(__dirname, "..", "uploads")));
 app.use(["/api/auth", "/auth"], auth_default);
 app.use(["/api/students", "/students"], students_default);
@@ -37263,7 +37274,7 @@ app.use(["/api/settings", "/settings"], settings_default);
 app.use(["/api/audit", "/audit"], audit_default);
 app.use(["/api/dashboard", "/dashboard"], dashboard_default);
 app.use(["/api/notifications", "/notifications"], notifications_default);
-app.get(["/api/health", "/health"], (req, res) => {
+app.get(["/api/health", "/health", "/api", "/"], (req, res) => {
   res.json({ status: "ok", name: "Class Accounting Management System (CAMS) API", time: /* @__PURE__ */ new Date() });
 });
 async function startServer() {

@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import path from 'path';
+import db from './db';
 import { seedDatabase } from './seed';
 
 // Routes
@@ -31,6 +32,25 @@ app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
+// Ensure database is initialized with default users/roles in serverless environments (e.g. Vercel)
+let initPromise: Promise<void> | null = null;
+app.use(async (req, res, next) => {
+  try {
+    if (!db.data.users || db.data.users.length < 5) {
+      if (!initPromise) {
+        initPromise = seedDatabase().catch(err => {
+          console.error('[DB Init Error]:', err);
+          initPromise = null;
+        });
+      }
+      await initPromise;
+    }
+  } catch (err) {
+    console.error('Database initialization error:', err);
+  }
+  next();
+});
+
 // Static files for uploaded materials / photos
 app.use('/uploads', express.static(path.join(__dirname, '..', 'uploads')));
 
@@ -52,8 +72,8 @@ app.use(['/api/audit', '/audit'], auditRoutes);
 app.use(['/api/dashboard', '/dashboard'], dashboardRoutes);
 app.use(['/api/notifications', '/notifications'], notificationRoutes);
 
-// Health check endpoint
-app.get(['/api/health', '/health'], (req, res) => {
+// Health check and root ping endpoints
+app.get(['/api/health', '/health', '/api', '/'], (req, res) => {
   res.json({ status: 'ok', name: 'Class Accounting Management System (CAMS) API', time: new Date() });
 });
 

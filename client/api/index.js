@@ -1,6 +1,8 @@
+import { createRequire } from 'module';
+const require = createRequire(import.meta.url);
 const bundled = require('./bundle.cjs');
 const app = bundled.default || bundled;
 
-module.exports = (req, res) => {
+export default (req, res) => {
   return app(req, res);
 };
