@@ -129,8 +129,8 @@ export const Payments: React.FC<PaymentsProps> = ({ onOpenReceipt, onOpenPayment
         </div>
       </div>
 
-      {/* Payments Table */}
-      <div className="bg-white rounded-3xl border border-slate-200/80 shadow-sm overflow-hidden">
+      {/* Desktop Payments Table (Visible on md and up) */}
+      <div className="hidden md:block bg-white rounded-3xl border border-slate-200/80 shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-xs text-left">
             <thead className="bg-slate-50/80 text-slate-500 font-semibold uppercase tracking-wider text-[10px] border-b border-slate-200">
@@ -197,6 +197,56 @@ export const Payments: React.FC<PaymentsProps> = ({ onOpenReceipt, onOpenPayment
             </tbody>
           </table>
         </div>
+      </div>
+
+      {/* Mobile Touch-Friendly Payment Cards (Visible on mobile < md) */}
+      <div className="md:hidden space-y-3">
+        {loading ? (
+          <div className="p-8 text-center text-xs text-slate-400 bg-white rounded-3xl border border-slate-200">
+            Loading payments ledger...
+          </div>
+        ) : payments.length === 0 ? (
+          <div className="p-8 text-center text-xs text-slate-400 bg-white rounded-3xl border border-slate-200">
+            No payment records found.
+          </div>
+        ) : (
+          payments.map(p => (
+            <div 
+              key={p.id} 
+              className="p-4 rounded-3xl bg-white border border-slate-200/90 shadow-sm space-y-3"
+            >
+              <div className="flex items-center justify-between">
+                <div>
+                  <span className="font-mono font-bold text-xs text-brand-700">{p.receiptNumber}</span>
+                  <span className="text-[10px] text-slate-400 ml-2">{formatDate(p.paymentDate)}</span>
+                </div>
+                <span className="px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-bold">
+                  {p.paymentMethod}
+                </span>
+              </div>
+
+              <div className="flex items-start justify-between">
+                <div>
+                  <p className="font-bold text-sm text-slate-900">{p.student?.fullName || 'Student'}</p>
+                  <p className="text-[10px] text-slate-500 font-mono">{p.student?.studentIdNumber}</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-base font-black text-slate-900">{formatLKR(p.totalAmount)}</p>
+                  <p className="text-[10px] text-slate-400">Cashier: {p.cashier}</p>
+                </div>
+              </div>
+
+              <div className="pt-2 border-t border-slate-100 flex items-center justify-end">
+                <button
+                  onClick={() => onOpenReceipt(p.receiptNumber)}
+                  className="w-full py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs transition-colors flex items-center justify-center space-x-1.5 shadow-sm"
+                >
+                  <span>View & Print Thermal Receipt</span>
+                </button>
+              </div>
+            </div>
+          ))
+        )}
       </div>
     </div>
   );

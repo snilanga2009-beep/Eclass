@@ -18,7 +18,8 @@ import {
   ChevronRight,
   LogOut,
   Sparkles,
-  Radio
+  Radio,
+  Coins
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { UserRole } from '../types';
@@ -126,6 +127,17 @@ export const Sidebar: React.FC<SidebarProps> = ({
     },
 
     // FINANCE
+    { 
+      id: 'daily-earnings', 
+      label: 'Daily Collection & Earnings', 
+      icon: Coins, 
+      roles: ['SUPER_ADMIN', 'ADMIN', 'ACCOUNTANT', 'RECEPTIONIST'], 
+      category: 'FINANCE',
+      gradient: 'from-amber-500 to-emerald-600',
+      glow: 'shadow-amber-500/25',
+      badge: 'TODAY',
+      badgeColor: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
+    },
     { 
       id: 'payments', 
       label: 'Fee Cashier & Receipts', 

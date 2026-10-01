@@ -10,11 +10,13 @@ import {
   CheckCircle2,
   Clock,
   ChevronDown,
-  LogOut
+  LogOut,
+  ShieldCheck
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { UserRole } from '../types';
 import { apiRequest } from '../api';
+import { RolePermissionsModal } from './RolePermissionsModal';
 
 interface HeaderProps {
   onOpenMobileMenu: () => void;
@@ -32,6 +34,7 @@ export const Header: React.FC<HeaderProps> = ({
   const { user, switchRole, logout } = useAuth();
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [roleMenuOpen, setRoleMenuOpen] = useState(false);
+  const [isRoleGuideOpen, setIsRoleGuideOpen] = useState(false);
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
 
   const availableRoles: { role: UserRole; label: string; desc: string; color: string }[] = [
@@ -169,8 +172,19 @@ export const Header: React.FC<HeaderProps> = ({
                   </button>
                 ))}
 
-                {/* Sign Out Option */}
-                <div className="pt-2 mt-2 border-t border-slate-100">
+                {/* Role Permissions Guide Button */}
+                <div className="pt-2 mt-2 border-t border-slate-100 space-y-1">
+                  <button
+                    onClick={() => {
+                      setRoleMenuOpen(false);
+                      setIsRoleGuideOpen(true);
+                    }}
+                    className="w-full text-left px-3 py-2 rounded-xl flex items-center space-x-2.5 text-indigo-700 bg-indigo-50/70 hover:bg-indigo-100 transition-colors font-semibold text-xs"
+                  >
+                    <ShieldCheck size={14} className="shrink-0 text-indigo-600" />
+                    <span>View Role Permissions Matrix</span>
+                  </button>
+
                   <button
                     onClick={() => {
                       setRoleMenuOpen(false);
@@ -228,6 +242,13 @@ export const Header: React.FC<HeaderProps> = ({
           )}
         </div>
       </div>
+
+      {/* Global Role Permissions Matrix Modal */}
+      <RolePermissionsModal
+        isOpen={isRoleGuideOpen}
+        onClose={() => setIsRoleGuideOpen(false)}
+        currentRole={user?.role}
+      />
     </header>
   );
 };

@@ -207,7 +207,7 @@ export const ParentPortal: React.FC<ParentPortalProps> = ({ onOpenReceipt, onOpe
 
         {/* Multi-Child Selector Tabs */}
         {children.length > 1 && (
-          <div className="mt-5 pt-4 border-t border-white/10 flex items-center space-x-2 overflow-x-auto pb-1">
+          <div className="mt-5 pt-4 border-t border-white/10 flex items-center space-x-2 touch-scroll-x no-scrollbar pb-1">
             <span className="text-xs font-bold text-teal-200 shrink-0 mr-1">Select Child:</span>
             {children.map(child => {
               const isSelected = selectedChildId === child.id;
@@ -261,7 +261,7 @@ export const ParentPortal: React.FC<ParentPortalProps> = ({ onOpenReceipt, onOpe
       )}
 
       {/* Main Tab Navigation Buttons */}
-      <div className="flex items-center space-x-2 border-b border-slate-200 pb-2 overflow-x-auto">
+      <div className="flex items-center space-x-2 border-b border-slate-200 pb-2 touch-scroll-x no-scrollbar">
         <button
           onClick={() => setActiveTab('attendance')}
           className={`px-4 py-2.5 rounded-2xl font-bold text-xs transition-all flex items-center space-x-2 shrink-0 ${

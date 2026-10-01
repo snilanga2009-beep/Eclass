@@ -74,6 +74,210 @@ router.get('/summary', authenticateToken, async (req: AuthRequest, res: Response
   }
 });
 
+// GET /api/accounting/daily-collection - Comprehensive Daily Collection, Earnings, & Cash Drawer Handover Report
+router.get('/daily-collection', authenticateToken, requireRoles(['SUPER_ADMIN', 'ADMIN', 'ACCOUNTANT', 'RECEPTIONIST']), async (req: AuthRequest, res: Response) => {
+  try {
+    const todayStr = new Date().toISOString().substring(0, 10);
+    const targetDate = String(req.query.date || todayStr);
+
+    // Filter payments for target date
+    const dayPayments = db.data.payments.filter(p => p.paymentDate && p.paymentDate.startsWith(targetDate));
+
+    // Summary Totals
+    const totalCollected = dayPayments.reduce((sum, p) => sum + (p.totalAmount || 0), 0);
+    const receiptCount = dayPayments.length;
+
+    // Payment Methods Breakdown
+    let cashInHand = 0;
+    let cardAmount = 0;
+    let bankTransferAmount = 0;
+    let onlineAmount = 0;
+    let otherMethodAmount = 0;
+
+    dayPayments.forEach(p => {
+      const amt = p.totalAmount || 0;
+      const m = (p.paymentMethod || '').toLowerCase();
+      if (m.includes('cash')) {
+        cashInHand += amt;
+      } else if (m.includes('card')) {
+        cardAmount += amt;
+      } else if (m.includes('bank')) {
+        bankTransferAmount += amt;
+      } else if (m.includes('online')) {
+        onlineAmount += amt;
+      } else {
+        otherMethodAmount += amt;
+      }
+    });
+
+    const digitalAndBank = cardAmount + bankTransferAmount + onlineAmount + otherMethodAmount;
+
+    // Daily Expenses (Petty cash / payouts paid out today)
+    const dayExpenses = db.data.expenses.filter(e => e.date && e.date.startsWith(targetDate));
+    const totalExpensesToday = dayExpenses.reduce((sum, e) => sum + (e.amount || 0), 0);
+    const netCashDrawerBalance = Math.max(0, cashInHand - totalExpensesToday);
+
+    // Cashier Breakdown (Front Office Staff who collected fees)
+    const cashierMap: { [key: string]: { name: string; receiptCount: number; totalCollected: number; cash: number; digital: number } } = {};
+    dayPayments.forEach(p => {
+      const cashierName = p.cashier || 'Front Desk Staff';
+      if (!cashierMap[cashierName]) {
+        cashierMap[cashierName] = { name: cashierName, receiptCount: 0, totalCollected: 0, cash: 0, digital: 0 };
+      }
+      cashierMap[cashierName].receiptCount += 1;
+      cashierMap[cashierName].totalCollected += p.totalAmount || 0;
+      if ((p.paymentMethod || '').toLowerCase().includes('cash')) {
+        cashierMap[cashierName].cash += p.totalAmount || 0;
+      } else {
+        cashierMap[cashierName].digital += p.totalAmount || 0;
+      }
+    });
+
+    // Class & Teacher Commission Breakdown
+    const classRevenueMap: { 
+      [key: string]: { 
+        classId: string; 
+        className: string; 
+        classCode: string; 
+        grade: string;
+        teacherName: string; 
+        rate: number;
+        totalCollected: number; 
+        studentCount: number;
+        teacherShare: number; 
+        academyShare: number;
+      } 
+    } = {};
+
+    let totalTeacherCommissions = 0;
+    let totalAcademyShare = 0;
+
+    dayPayments.forEach(p => {
+      const items = db.data.paymentItems.filter(pi => pi.paymentId === p.id);
+      items.forEach(pi => {
+        const fee = db.data.feeRecords.find(f => f.id === pi.feeRecordId);
+        const cls = fee ? db.data.classes.find(c => c.id === fee.classId) : null;
+        const teacher = cls ? db.data.teachers.find(t => t.id === cls.teacherId) : null;
+
+        const classKey = cls ? cls.id : 'GENERAL';
+        const rate = teacher && teacher.paymentRate !== undefined ? teacher.paymentRate : 70;
+        const amt = pi.amountPaid || 0;
+        const teacherPortion = Math.round(amt * (rate / 100));
+        const academyPortion = amt - teacherPortion;
+
+        totalTeacherCommissions += teacherPortion;
+        totalAcademyShare += academyPortion;
+
+        if (!classRevenueMap[classKey]) {
+          classRevenueMap[classKey] = {
+            classId: classKey,
+            className: cls?.name || 'General Tuition Fees',
+            classCode: cls?.classCode || 'GEN-FEE',
+            grade: cls?.grade || 'General',
+            teacherName: teacher?.name || 'Academy Staff',
+            rate,
+            totalCollected: 0,
+            studentCount: 0,
+            teacherShare: 0,
+            academyShare: 0
+          };
+        }
+
+        classRevenueMap[classKey].totalCollected += amt;
+        classRevenueMap[classKey].studentCount += 1;
+        classRevenueMap[classKey].teacherShare += teacherPortion;
+        classRevenueMap[classKey].academyShare += academyPortion;
+      });
+    });
+
+    // Populate day's transactions with student names and items
+    const transactions = dayPayments.map(p => {
+      const student = db.data.students.find(s => s.id === p.studentId);
+      const items = db.data.paymentItems
+        .filter(pi => pi.paymentId === p.id)
+        .map(pi => {
+          const fee = db.data.feeRecords.find(f => f.id === pi.feeRecordId);
+          const cls = fee ? db.data.classes.find(c => c.id === fee.classId) : null;
+          return {
+            ...pi,
+            className: cls?.name || 'Tuition Class',
+            month: fee?.month || ''
+          };
+        });
+
+      return {
+        id: p.id,
+        receiptNumber: p.receiptNumber,
+        studentIdNumber: student?.studentIdNumber || 'N/A',
+        studentName: student?.fullName || 'Student',
+        totalAmount: p.totalAmount,
+        paymentMethod: p.paymentMethod,
+        paymentDate: p.paymentDate,
+        cashier: p.cashier,
+        items
+      };
+    }).sort((a, b) => new Date(b.paymentDate).getTime() - new Date(a.paymentDate).getTime());
+
+    // Hourly Distribution for the day
+    const hourlyMap: { [slot: string]: number } = {
+      '07:00 - 09:00': 0,
+      '09:00 - 11:00': 0,
+      '11:00 - 13:00': 0,
+      '13:00 - 15:00': 0,
+      '15:00 - 17:00': 0,
+      '17:00 - 19:00': 0,
+      '19:00 - 21:00': 0
+    };
+
+    dayPayments.forEach(p => {
+      try {
+        const hour = new Date(p.paymentDate).getHours();
+        if (hour >= 7 && hour < 9) hourlyMap['07:00 - 09:00'] += p.totalAmount;
+        else if (hour >= 9 && hour < 11) hourlyMap['09:00 - 11:00'] += p.totalAmount;
+        else if (hour >= 11 && hour < 13) hourlyMap['11:00 - 13:00'] += p.totalAmount;
+        else if (hour >= 13 && hour < 15) hourlyMap['13:00 - 15:00'] += p.totalAmount;
+        else if (hour >= 15 && hour < 17) hourlyMap['15:00 - 17:00'] += p.totalAmount;
+        else if (hour >= 17 && hour < 19) hourlyMap['17:00 - 19:00'] += p.totalAmount;
+        else hourlyMap['19:00 - 21:00'] += p.totalAmount;
+      } catch {
+        hourlyMap['09:00 - 11:00'] += p.totalAmount;
+      }
+    });
+
+    return res.json({
+      date: targetDate,
+      totalCollected,
+      receiptCount,
+      methods: {
+        cash: cashInHand,
+        card: cardAmount,
+        bankTransfer: bankTransferAmount,
+        online: onlineAmount,
+        other: otherMethodAmount,
+        digitalTotal: digitalAndBank
+      },
+      drawerSettlement: {
+        cashCollected: cashInHand,
+        expensesPaidOut: totalExpensesToday,
+        netCashToHandover: netCashDrawerBalance,
+        digitalTotal: digitalAndBank
+      },
+      profitSharing: {
+        totalCollected,
+        teacherCommissions: totalTeacherCommissions,
+        academyNetShare: totalAcademyShare > 0 ? totalAcademyShare : (totalCollected - totalTeacherCommissions)
+      },
+      byClass: Object.values(classRevenueMap),
+      byCashier: Object.values(cashierMap),
+      hourlyBreakdown: Object.entries(hourlyMap).map(([timeSlot, amount]) => ({ timeSlot, amount })),
+      expensesToday: dayExpenses,
+      transactions
+    });
+  } catch (error) {
+    return res.status(500).json({ error: 'Failed to generate daily collection report' });
+  }
+});
+
 // GET /api/accounting/expenses - List Expenses
 router.get('/expenses', authenticateToken, async (req: AuthRequest, res: Response) => {
   try {

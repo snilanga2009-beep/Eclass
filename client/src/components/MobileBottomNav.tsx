@@ -16,7 +16,8 @@ import {
   ShieldCheck, 
   Settings, 
   LogOut,
-  Sparkles
+  Sparkles,
+  Coins
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
@@ -46,6 +47,7 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
   };
 
   const moreMenuItems = [
+    { id: 'daily-earnings', label: 'Daily Collection', icon: Coins, roles: ['SUPER_ADMIN', 'ADMIN', 'ACCOUNTANT', 'RECEPTIONIST'] },
     { id: 'classes', label: 'Classes', icon: BookOpen, roles: ['SUPER_ADMIN', 'ADMIN', 'TEACHER', 'RECEPTIONIST'] },
     { id: 'pending-fees', label: 'Pending Fees', icon: CreditCard, roles: ['SUPER_ADMIN', 'ADMIN', 'ACCOUNTANT'] },
     { id: 'accounting', label: 'Accounting & P&L', icon: Calculator, roles: ['SUPER_ADMIN', 'ADMIN', 'ACCOUNTANT'] },

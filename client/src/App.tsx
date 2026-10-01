@@ -20,6 +20,7 @@ import { Students } from './pages/Students';
 import { Classes } from './pages/Classes';
 import { Attendance } from './pages/Attendance';
 import { Payments } from './pages/Payments';
+import { DailyEarnings } from './pages/DailyEarnings';
 import { PendingFees } from './pages/PendingFees';
 import { Accounting } from './pages/Accounting';
 import { Teachers } from './pages/Teachers';
@@ -187,6 +188,12 @@ export const App: React.FC = () => {
           {currentTab === 'attendance' && (
             <Attendance 
               onOpenStudentProfile={(id) => setActiveProfileStudentId(id)}
+            />
+          )}
+
+          {currentTab === 'daily-earnings' && (
+            <DailyEarnings 
+              onOpenReceipt={(r) => setActiveReceiptNumber(r)}
             />
           )}
 
