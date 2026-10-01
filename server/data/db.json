@@ -940,7 +940,7 @@
       "isActive": true,
       "createdAt": "2026-09-25T09:48:43.755Z",
       "updatedAt": "2026-09-25T09:48:43.755Z",
-      "lastLogin": "2026-09-26T15:24:23.931Z"
+      "lastLogin": "2026-09-29T09:55:33.441Z"
     },
     {
       "id": "usr-admin",
@@ -954,7 +954,7 @@
       "isActive": true,
       "createdAt": "2026-09-25T09:48:43.755Z",
       "updatedAt": "2026-09-25T09:48:43.755Z",
-      "lastLogin": "2026-09-29T06:31:01.439Z"
+      "lastLogin": "2026-09-29T09:45:12.254Z"
     },
     {
       "id": "usr-accountant",
@@ -968,7 +968,7 @@
       "isActive": true,
       "createdAt": "2026-09-25T09:48:43.755Z",
       "updatedAt": "2026-09-25T09:48:43.755Z",
-      "lastLogin": "2026-09-25T11:01:36.016Z"
+      "lastLogin": "2026-09-29T09:54:28.650Z"
     },
     {
       "id": "usr-teacher",
@@ -14441,6 +14441,72 @@
   ],
   "documents": [],
   "auditLogs": [
+    {
+      "id": "658n60h-mumi3irv",
+      "userId": "usr-superadmin",
+      "userName": "Dr. Rohan De Silva (Super Admin)",
+      "userRole": "SUPER_ADMIN",
+      "action": "LOGIN",
+      "details": "User superadmin logged in successfully with role SUPER_ADMIN",
+      "ipAddress": "127.0.0.1",
+      "userAgent": "Unknown Agent",
+      "createdAt": "2026-09-29T09:55:33.451Z"
+    },
+    {
+      "id": "9ixxxrz-mumi24s4",
+      "userId": "usr-accountant",
+      "userName": "Nalaka Wickramaratne (Chief Accountant)",
+      "userRole": "ACCOUNTANT",
+      "action": "LOGIN",
+      "details": "User accountant logged in successfully with role ACCOUNTANT",
+      "ipAddress": "127.0.0.1",
+      "userAgent": "Unknown Agent",
+      "createdAt": "2026-09-29T09:54:28.660Z"
+    },
+    {
+      "id": "ppjhxy9-mumhv8fs",
+      "userId": "usr-superadmin",
+      "userName": "Dr. Rohan De Silva (Super Admin)",
+      "userRole": "SUPER_ADMIN",
+      "action": "LOGIN",
+      "details": "User superadmin logged in successfully with role SUPER_ADMIN",
+      "ipAddress": "127.0.0.1",
+      "userAgent": "Unknown Agent",
+      "createdAt": "2026-09-29T09:49:06.808Z"
+    },
+    {
+      "id": "snmloq7-mumhq7gk",
+      "userId": "usr-admin",
+      "userName": "Sunil Jayawardena (Campus Admin)",
+      "userRole": "ADMIN",
+      "action": "LOGIN",
+      "details": "User admin logged in successfully with role ADMIN",
+      "ipAddress": "127.0.0.1",
+      "userAgent": "Unknown Agent",
+      "createdAt": "2026-09-29T09:45:12.260Z"
+    },
+    {
+      "id": "8s7c0o0-mumhow4y",
+      "userId": "usr-admin",
+      "userName": "Sunil Jayawardena (Campus Admin)",
+      "userRole": "ADMIN",
+      "action": "LOGIN",
+      "details": "User admin logged in successfully with role ADMIN",
+      "ipAddress": "127.0.0.1",
+      "userAgent": "Unknown Agent",
+      "createdAt": "2026-09-29T09:44:10.930Z"
+    },
+    {
+      "id": "8z4io88-mumhj791",
+      "userId": "usr-admin",
+      "userName": "Sunil Jayawardena (Campus Admin)",
+      "userRole": "ADMIN",
+      "action": "LOGIN",
+      "details": "User admin logged in successfully with role ADMIN",
+      "ipAddress": "127.0.0.1",
+      "userAgent": "Unknown Agent",
+      "createdAt": "2026-09-29T09:39:45.397Z"
+    },
     {
       "id": "k7qoa1m-mumasijt",
       "userId": "usr-admin",
