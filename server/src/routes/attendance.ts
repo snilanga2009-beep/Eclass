@@ -154,12 +154,13 @@ router.post('/scan', authenticateToken, async (req: AuthRequest, res: Response) 
       });
     }
 
-    // Find student by RFID tag OR secure token OR student ID (case-insensitive & leading-zero forgiving)
+    // Find student by Barcode / RFID tag / QR token / student ID number
     const cleanToken = rawInput.toLowerCase();
     const strippedToken = cleanToken.replace(/^0+/, '');
+    const digitsOnly = cleanToken.replace(/\D/g, '');
 
     const student = db.data.students.find(s => {
-      // Check RFID tag match (exact or with stripped leading zeros)
+      // 1. Check RFID tag match (exact or with stripped leading zeros)
       if (s.rfidTag) {
         const sTag = s.rfidTag.trim().toLowerCase();
         const sTagStripped = sTag.replace(/^0+/, '');
@@ -168,14 +169,31 @@ router.post('/scan', authenticateToken, async (req: AuthRequest, res: Response) 
         }
       }
 
-      // Check QR code token or student ID
-      return (
-        s.qrCodeToken.toLowerCase() === cleanToken || 
-        s.studentIdNumber.toLowerCase() === cleanToken ||
-        s.id.toLowerCase() === cleanToken ||
-        cleanToken.includes(s.studentIdNumber.toLowerCase()) ||
-        cleanToken.includes(s.qrCodeToken.toLowerCase())
-      );
+      // 2. Check QR code token or student ID number (exact or contained)
+      const stuIdNum = s.studentIdNumber.toLowerCase();
+      const qrTok = s.qrCodeToken.toLowerCase();
+      const sId = s.id.toLowerCase();
+
+      if (
+        qrTok === cleanToken || 
+        stuIdNum === cleanToken || 
+        sId === cleanToken ||
+        cleanToken.includes(stuIdNum) ||
+        cleanToken.includes(qrTok) ||
+        qrTok.includes(cleanToken)
+      ) {
+        return true;
+      }
+
+      // 3. Numeric barcode match (e.g. barcode scanner returns 20260001 or 0001 for STU-2026-0001)
+      if (digitsOnly && digitsOnly.length >= 4) {
+        const sDigits = stuIdNum.replace(/\D/g, '');
+        if (sDigits === digitsOnly || sDigits.endsWith(digitsOnly)) {
+          return true;
+        }
+      }
+
+      return false;
     });
 
     if (!student) {

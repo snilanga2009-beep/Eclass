@@ -26,16 +26,22 @@ interface MobileBottomNavProps {
   onNavigate: (tab: string) => void;
   onOpenQuickScan: () => void;
   onOpenQuickPayment: () => void;
+  onOpenIDCard?: (studentId: string) => void;
 }
 
 export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
   currentTab,
   onNavigate,
   onOpenQuickScan,
-  onOpenQuickPayment
+  onOpenQuickPayment,
+  onOpenIDCard
 }) => {
   const { user, logout, hasRole } = useAuth();
   const [isMoreOpen, setIsMoreOpen] = useState(false);
+
+  const isStudent = user?.role === 'STUDENT';
+  const isParent = user?.role === 'PARENT';
+  const isStudentOrParent = isStudent || isParent;
 
   const handleTabClick = (tab: string) => {
     if (tab === 'attendance') {
@@ -67,68 +73,203 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
         aria-label="Mobile Bottom Navigation"
         className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-[#0c121e]/95 backdrop-blur-lg border-t border-slate-800/90 shadow-2xl px-2 py-1.5 pb-[max(0.375rem,env(safe-area-inset-bottom))] flex items-center justify-around"
       >
-        {/* 1. Home / Dashboard */}
-        <button
-          onClick={() => handleTabClick(user?.role === 'STUDENT' ? 'student-portal' : user?.role === 'PARENT' ? 'parent-portal' : 'dashboard')}
-          className={`flex flex-col items-center justify-center min-w-[56px] min-h-[48px] py-1 px-2 rounded-2xl transition-all ${
-            currentTab === 'dashboard' || currentTab === 'student-portal' || currentTab === 'parent-portal'
-              ? 'text-indigo-400 font-bold'
-              : 'text-slate-400 hover:text-slate-200'
-          }`}
-        >
-          <LayoutDashboard size={20} className={currentTab === 'dashboard' || currentTab === 'student-portal' || currentTab === 'parent-portal' ? 'text-indigo-400' : 'text-slate-400'} />
-          <span className="text-[10px] mt-0.5 tracking-tight">Home</span>
-        </button>
+        {/* STUDENT DEDICATED BOTTOM BAR */}
+        {isStudent && (
+          <>
+            {/* 1. Student Home */}
+            <button
+              onClick={() => onNavigate('student-portal')}
+              className={`flex flex-col items-center justify-center min-w-[56px] min-h-[48px] py-1 px-2 rounded-2xl transition-all ${
+                currentTab === 'student-portal' ? 'text-indigo-400 font-bold' : 'text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              <LayoutDashboard size={20} className={currentTab === 'student-portal' ? 'text-indigo-400' : 'text-slate-400'} />
+              <span className="text-[10px] mt-0.5 tracking-tight">Home</span>
+            </button>
 
-        {/* 2. Students */}
-        <button
-          onClick={() => handleTabClick('students')}
-          className={`flex flex-col items-center justify-center min-w-[56px] min-h-[48px] py-1 px-2 rounded-2xl transition-all ${
-            currentTab === 'students'
-              ? 'text-purple-400 font-bold'
-              : 'text-slate-400 hover:text-slate-200'
-          }`}
-        >
-          <Users size={20} className={currentTab === 'students' ? 'text-purple-400' : 'text-slate-400'} />
-          <span className="text-[10px] mt-0.5 tracking-tight">Students</span>
-        </button>
+            {/* 2. My Fees & Receipts */}
+            <button
+              onClick={() => onNavigate('student-portal')}
+              className={`flex flex-col items-center justify-center min-w-[56px] min-h-[48px] py-1 px-2 rounded-2xl transition-all ${
+                currentTab === 'student-portal' ? 'text-emerald-400 font-bold' : 'text-slate-400 hover:text-slate-200'
+              }`}
+              title="My Fee Records & Receipts"
+            >
+              <CreditCard size={20} className="text-emerald-400" />
+              <span className="text-[10px] mt-0.5 tracking-tight">My Fees</span>
+            </button>
 
-        {/* 3. High-Priority Center Action: Attendance (QR Scanner) */}
-        <button
-          onClick={() => handleTabClick('attendance')}
-          className="flex flex-col items-center justify-center -mt-6 group focus:outline-none"
-        >
-          <div className="w-14 h-14 rounded-full bg-gradient-to-tr from-amber-500 via-orange-500 to-amber-400 p-[2.5px] shadow-lg shadow-orange-500/40 active:scale-95 transition-transform flex items-center justify-center">
-            <div className="w-full h-full rounded-full bg-[#0d1424] flex items-center justify-center text-amber-300">
-              <QrCode size={26} className="animate-pulse" />
-            </div>
-          </div>
-          <span className="text-[10px] font-bold text-amber-400 mt-0.5">Attend</span>
-        </button>
+            {/* 3. Center Action: My Smart ID Pass */}
+            <button
+              onClick={() => {
+                if (onOpenIDCard && user?.studentId) {
+                  onOpenIDCard(user.studentId);
+                } else {
+                  onNavigate('student-portal');
+                }
+              }}
+              className="flex flex-col items-center justify-center -mt-6 group focus:outline-none"
+              title="My Student QR Pass"
+            >
+              <div className="w-14 h-14 rounded-full bg-gradient-to-tr from-sky-500 via-indigo-600 to-purple-600 p-[2.5px] shadow-lg shadow-indigo-500/40 active:scale-95 transition-transform flex items-center justify-center">
+                <div className="w-full h-full rounded-full bg-[#0d1424] flex items-center justify-center text-sky-300">
+                  <QrCode size={26} className="animate-pulse" />
+                </div>
+              </div>
+              <span className="text-[10px] font-bold text-sky-400 mt-0.5">My Pass</span>
+            </button>
 
-        {/* 4. Payments */}
-        <button
-          onClick={() => handleTabClick('payments')}
-          className={`flex flex-col items-center justify-center min-w-[56px] min-h-[48px] py-1 px-2 rounded-2xl transition-all ${
-            currentTab === 'payments'
-              ? 'text-emerald-400 font-bold'
-              : 'text-slate-400 hover:text-slate-200'
-          }`}
-        >
-          <CreditCard size={20} className={currentTab === 'payments' ? 'text-emerald-400' : 'text-slate-400'} />
-          <span className="text-[10px] mt-0.5 tracking-tight">Payments</span>
-        </button>
+            {/* 4. Study Materials */}
+            <button
+              onClick={() => onNavigate('materials')}
+              className={`flex flex-col items-center justify-center min-w-[56px] min-h-[48px] py-1 px-2 rounded-2xl transition-all ${
+                currentTab === 'materials' ? 'text-pink-400 font-bold' : 'text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              <FolderDown size={20} className={currentTab === 'materials' ? 'text-pink-400' : 'text-slate-400'} />
+              <span className="text-[10px] mt-0.5 tracking-tight">Materials</span>
+            </button>
 
-        {/* 5. More Sheet Trigger */}
-        <button
-          onClick={() => setIsMoreOpen(true)}
-          className={`flex flex-col items-center justify-center min-w-[56px] min-h-[48px] py-1 px-2 rounded-2xl transition-all ${
-            isMoreOpen ? 'text-white' : 'text-slate-400 hover:text-slate-200'
-          }`}
-        >
-          <Menu size={20} className={isMoreOpen ? 'text-white' : 'text-slate-400'} />
-          <span className="text-[10px] mt-0.5 tracking-tight">More</span>
-        </button>
+            {/* 5. Logout */}
+            <button
+              onClick={() => logout()}
+              className="flex flex-col items-center justify-center min-w-[56px] min-h-[48px] py-1 px-2 rounded-2xl text-rose-400/80 hover:text-rose-300 transition-all"
+            >
+              <LogOut size={20} />
+              <span className="text-[10px] mt-0.5 tracking-tight">Logout</span>
+            </button>
+          </>
+        )}
+
+        {/* PARENT DEDICATED BOTTOM BAR */}
+        {isParent && (
+          <>
+            {/* 1. Parent Home */}
+            <button
+              onClick={() => onNavigate('parent-portal')}
+              className={`flex flex-col items-center justify-center min-w-[56px] min-h-[48px] py-1 px-2 rounded-2xl transition-all ${
+                currentTab === 'parent-portal' ? 'text-teal-400 font-bold' : 'text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              <LayoutDashboard size={20} className={currentTab === 'parent-portal' ? 'text-teal-400' : 'text-slate-400'} />
+              <span className="text-[10px] mt-0.5 tracking-tight">Home</span>
+            </button>
+
+            {/* 2. Child Fees & Receipts */}
+            <button
+              onClick={() => onNavigate('parent-portal')}
+              className={`flex flex-col items-center justify-center min-w-[56px] min-h-[48px] py-1 px-2 rounded-2xl transition-all ${
+                currentTab === 'parent-portal' ? 'text-emerald-400 font-bold' : 'text-slate-400 hover:text-slate-200'
+              }`}
+              title="Child's Fee Records & Receipts"
+            >
+              <CreditCard size={20} className="text-emerald-400" />
+              <span className="text-[10px] mt-0.5 tracking-tight">Fees & Pay</span>
+            </button>
+
+            {/* 3. Center Action: Child's QR Pass */}
+            <button
+              onClick={() => {
+                if (onOpenIDCard && user?.studentId) {
+                  onOpenIDCard(user.studentId);
+                } else {
+                  onNavigate('parent-portal');
+                }
+              }}
+              className="flex flex-col items-center justify-center -mt-6 group focus:outline-none"
+              title="Child's QR ID Card"
+            >
+              <div className="w-14 h-14 rounded-full bg-gradient-to-tr from-teal-500 via-emerald-600 to-indigo-600 p-[2.5px] shadow-lg shadow-emerald-500/40 active:scale-95 transition-transform flex items-center justify-center">
+                <div className="w-full h-full rounded-full bg-[#0d1424] flex items-center justify-center text-teal-300">
+                  <QrCode size={26} className="animate-pulse" />
+                </div>
+              </div>
+              <span className="text-[10px] font-bold text-teal-400 mt-0.5">ID Pass</span>
+            </button>
+
+            {/* 4. Study Materials */}
+            <button
+              onClick={() => onNavigate('materials')}
+              className={`flex flex-col items-center justify-center min-w-[56px] min-h-[48px] py-1 px-2 rounded-2xl transition-all ${
+                currentTab === 'materials' ? 'text-pink-400 font-bold' : 'text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              <FolderDown size={20} className={currentTab === 'materials' ? 'text-pink-400' : 'text-slate-400'} />
+              <span className="text-[10px] mt-0.5 tracking-tight">Materials</span>
+            </button>
+
+            {/* 5. Logout */}
+            <button
+              onClick={() => logout()}
+              className="flex flex-col items-center justify-center min-w-[56px] min-h-[48px] py-1 px-2 rounded-2xl text-rose-400/80 hover:text-rose-300 transition-all"
+            >
+              <LogOut size={20} />
+              <span className="text-[10px] mt-0.5 tracking-tight">Logout</span>
+            </button>
+          </>
+        )}
+
+        {/* STAFF (SUPER_ADMIN, ADMIN, ACCOUNTANT, TEACHER, RECEPTIONIST) BOTTOM BAR */}
+        {!isStudentOrParent && (
+          <>
+            {/* 1. Home / Dashboard */}
+            <button
+              onClick={() => handleTabClick('dashboard')}
+              className={`flex flex-col items-center justify-center min-w-[56px] min-h-[48px] py-1 px-2 rounded-2xl transition-all ${
+                currentTab === 'dashboard' ? 'text-indigo-400 font-bold' : 'text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              <LayoutDashboard size={20} className={currentTab === 'dashboard' ? 'text-indigo-400' : 'text-slate-400'} />
+              <span className="text-[10px] mt-0.5 tracking-tight">Home</span>
+            </button>
+
+            {/* 2. Students */}
+            <button
+              onClick={() => handleTabClick('students')}
+              className={`flex flex-col items-center justify-center min-w-[56px] min-h-[48px] py-1 px-2 rounded-2xl transition-all ${
+                currentTab === 'students' ? 'text-purple-400 font-bold' : 'text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              <Users size={20} className={currentTab === 'students' ? 'text-purple-400' : 'text-slate-400'} />
+              <span className="text-[10px] mt-0.5 tracking-tight">Students</span>
+            </button>
+
+            {/* 3. High-Priority Center Action: Attendance (QR / Barcode Scanner) */}
+            <button
+              onClick={() => handleTabClick('attendance')}
+              className="flex flex-col items-center justify-center -mt-6 group focus:outline-none"
+            >
+              <div className="w-14 h-14 rounded-full bg-gradient-to-tr from-amber-500 via-orange-500 to-amber-400 p-[2.5px] shadow-lg shadow-orange-500/40 active:scale-95 transition-transform flex items-center justify-center">
+                <div className="w-full h-full rounded-full bg-[#0d1424] flex items-center justify-center text-amber-300">
+                  <QrCode size={26} className="animate-pulse" />
+                </div>
+              </div>
+              <span className="text-[10px] font-bold text-amber-400 mt-0.5">Attend</span>
+            </button>
+
+            {/* 4. Payments */}
+            <button
+              onClick={() => handleTabClick('payments')}
+              className={`flex flex-col items-center justify-center min-w-[56px] min-h-[48px] py-1 px-2 rounded-2xl transition-all ${
+                currentTab === 'payments' ? 'text-emerald-400 font-bold' : 'text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              <CreditCard size={20} className={currentTab === 'payments' ? 'text-emerald-400' : 'text-slate-400'} />
+              <span className="text-[10px] mt-0.5 tracking-tight">Payments</span>
+            </button>
+
+            {/* 5. More Sheet Trigger */}
+            <button
+              onClick={() => setIsMoreOpen(true)}
+              className={`flex flex-col items-center justify-center min-w-[56px] min-h-[48px] py-1 px-2 rounded-2xl transition-all ${
+                isMoreOpen ? 'text-white' : 'text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              <Menu size={20} className={isMoreOpen ? 'text-white' : 'text-slate-400'} />
+              <span className="text-[10px] mt-0.5 tracking-tight">More</span>
+            </button>
+          </>
+        )}
       </nav>
 
       {/* Slide-Up "More" Sheet on Mobile */}

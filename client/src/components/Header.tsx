@@ -98,25 +98,29 @@ export const Header: React.FC<HeaderProps> = ({
 
       {/* Right: Quick actions, Role Switcher, Notifications, PWA */}
       <div className="flex items-center space-x-2 sm:space-x-3">
-        {/* Quick QR Attendance Launcher */}
-        <button
-          onClick={onOpenQuickScan}
-          className="hidden md:flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 text-xs font-semibold transition-all shadow-sm"
-          title="Fast QR Camera Attendance"
-        >
-          <QrCode size={15} />
-          <span>Quick Scan</span>
-        </button>
+        {/* Quick QR Attendance Launcher (Staff only) */}
+        {user?.role !== 'STUDENT' && user?.role !== 'PARENT' && (
+          <>
+            <button
+              onClick={onOpenQuickScan}
+              className="hidden md:flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 text-xs font-semibold transition-all shadow-sm"
+              title="Fast QR Camera Attendance"
+            >
+              <QrCode size={15} />
+              <span>Quick Scan</span>
+            </button>
 
-        {/* Quick Fee Collection Launcher */}
-        <button
-          onClick={onOpenQuickPayment}
-          className="hidden md:flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-brand-50 text-brand-700 hover:bg-brand-100 border border-brand-200 text-xs font-semibold transition-all shadow-sm"
-          title="Collect Fee & Print Receipt"
-        >
-          <CreditCard size={15} />
-          <span>Collect Fee</span>
-        </button>
+            {/* Quick Fee Collection Launcher */}
+            <button
+              onClick={onOpenQuickPayment}
+              className="hidden md:flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-brand-50 text-brand-700 hover:bg-brand-100 border border-brand-200 text-xs font-semibold transition-all shadow-sm"
+              title="Collect Fee & Print Receipt"
+            >
+              <CreditCard size={15} />
+              <span>Collect Fee</span>
+            </button>
+          </>
+        )}
 
         {/* PWA Install Button if available */}
         {deferredPrompt && (

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { X, CreditCard, Check, AlertCircle, DollarSign, Smartphone, CheckCircle2 } from 'lucide-react';
 import { apiRequest, formatLKR } from '../api';
 import confetti from 'canvas-confetti';
+import { useAuth } from '../context/AuthContext';
 
 interface PaymentCollectModalProps {
   isOpen: boolean;
@@ -18,6 +19,9 @@ export const PaymentCollectModal: React.FC<PaymentCollectModalProps> = ({
   preselectedFeeRecordId,
   onPaymentSuccess
 }) => {
+  const { user } = useAuth();
+  const isStudentOrParent = user?.role === 'STUDENT' || user?.role === 'PARENT';
+
   const [students, setStudents] = useState<any[]>([]);
   const [selectedStudentId, setSelectedStudentId] = useState<string>('');
   const [isChangingStudent, setIsChangingStudent] = useState(false);
@@ -33,16 +37,21 @@ export const PaymentCollectModal: React.FC<PaymentCollectModalProps> = ({
   useEffect(() => {
     if (isOpen) {
       setIsChangingStudent(false);
-      apiRequest<any[]>('/students?status=ACTIVE').then(res => {
-        setStudents(res || []);
-        if (preselectedStudentId) {
-          setSelectedStudentId(preselectedStudentId);
-        } else if (res && res.length > 0) {
-          setSelectedStudentId(res[0].id);
-        }
-      });
+      const effectiveStudentId = isStudentOrParent ? (user?.studentId || preselectedStudentId) : preselectedStudentId;
+      if (isStudentOrParent && effectiveStudentId) {
+        setSelectedStudentId(effectiveStudentId);
+      } else {
+        apiRequest<any[]>('/students?status=ACTIVE').then(res => {
+          setStudents(res || []);
+          if (effectiveStudentId) {
+            setSelectedStudentId(effectiveStudentId);
+          } else if (res && res.length > 0) {
+            setSelectedStudentId(res[0].id);
+          }
+        });
+      }
     }
-  }, [isOpen, preselectedStudentId]);
+  }, [isOpen, preselectedStudentId, isStudentOrParent, user?.studentId]);
 
   useEffect(() => {
     if (!selectedStudentId) {
@@ -162,7 +171,7 @@ export const PaymentCollectModal: React.FC<PaymentCollectModalProps> = ({
           )}
 
           {/* Student Selector / Targeted Student View */}
-          {preselectedStudentId && !isChangingStudent && studentDetails ? (
+          {(isStudentOrParent || (preselectedStudentId && !isChangingStudent)) && studentDetails ? (
             <div className="p-3.5 rounded-2xl bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200 flex items-center justify-between shadow-sm">
               <div className="flex items-center space-x-3 min-w-0">
                 {studentDetails.photo ? (
@@ -173,20 +182,24 @@ export const PaymentCollectModal: React.FC<PaymentCollectModalProps> = ({
                   </div>
                 )}
                 <div className="min-w-0">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-700 block">Student Selected</span>
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-700 block">
+                    {isStudentOrParent ? 'My Student Account' : 'Student Selected'}
+                  </span>
                   <h4 className="font-extrabold text-sm text-slate-900 truncate">{studentDetails.fullName}</h4>
                   <p className="text-xs font-mono text-slate-600 truncate">{studentDetails.studentIdNumber} • {studentDetails.grade}</p>
                 </div>
               </div>
-              <button
-                type="button"
-                onClick={() => setIsChangingStudent(true)}
-                className="text-xs font-bold text-slate-600 hover:text-slate-900 bg-white px-2.5 py-1.5 rounded-xl border border-slate-200 shadow-sm transition-all shrink-0 ml-2"
-              >
-                Change
-              </button>
+              {!isStudentOrParent && (
+                <button
+                  type="button"
+                  onClick={() => setIsChangingStudent(true)}
+                  className="text-xs font-bold text-slate-600 hover:text-slate-900 bg-white px-2.5 py-1.5 rounded-xl border border-slate-200 shadow-sm transition-all shrink-0 ml-2"
+                >
+                  Change
+                </button>
+              )}
             </div>
-          ) : (
+          ) : !isStudentOrParent ? (
             <div>
               <div className="flex items-center justify-between mb-1.5">
                 <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">Select Student</label>
@@ -215,7 +228,7 @@ export const PaymentCollectModal: React.FC<PaymentCollectModalProps> = ({
                 ))}
               </select>
             </div>
-          )}
+          ) : null}
 
           {/* Pending Fees Table */}
           {loading ? (

@@ -62,20 +62,28 @@ export const App: React.FC = () => {
     }
   }, [user]);
 
-  // If user role changes to STUDENT or PARENT, automatically switch tab
+  // If user role changes to STUDENT or PARENT, automatically switch tab and restrict routes
   React.useEffect(() => {
     if (user?.role === 'STUDENT') {
-      setCurrentTab('student-portal');
+      if (!['student-portal', 'materials'].includes(currentTab)) {
+        setCurrentTab('student-portal');
+      }
     } else if (user?.role === 'PARENT') {
-      setCurrentTab('parent-portal');
+      if (!['parent-portal', 'materials'].includes(currentTab)) {
+        setCurrentTab('parent-portal');
+      }
     } else if (currentTab === 'student-portal' || currentTab === 'parent-portal') {
       setCurrentTab('dashboard');
     }
-  }, [user?.role]);
+  }, [user?.role, currentTab]);
 
   // Open fee collection prefilled for a student and fee record
-  const handleOpenPayFee = (studentId: string, feeRecordId?: string) => {
-    setPreselectedPayStudentId(studentId);
+  const handleOpenPayFee = (studentId: string = '', feeRecordId?: string) => {
+    let targetStudentId = studentId;
+    if (!targetStudentId && (user?.role === 'STUDENT' || user?.role === 'PARENT') && user.studentId) {
+      targetStudentId = user.studentId;
+    }
+    setPreselectedPayStudentId(targetStudentId);
     setPreselectedPayFeeId(feeRecordId || null);
     setIsPaymentModalOpen(true);
   };
@@ -315,6 +323,7 @@ export const App: React.FC = () => {
         onNavigate={setCurrentTab}
         onOpenQuickScan={handleOpenQuickScan}
         onOpenQuickPayment={() => handleOpenPayFee('')}
+        onOpenIDCard={(id) => setActiveIDCardStudentId(id)}
       />
 
       {/* Global High-Tech Mobile Camera QR Scanner Popup Modal */}

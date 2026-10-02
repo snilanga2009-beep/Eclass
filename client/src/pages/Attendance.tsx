@@ -73,6 +73,15 @@ export const Attendance: React.FC<AttendanceProps> = ({
   const [soundEnabled, setSoundEnabled] = useState(true);
   const html5QrCodeRef = useRef<Html5Qrcode | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const barcodeInputRef = useRef<HTMLInputElement | null>(null);
+  const lastScanAttemptRef = useRef<{ token: string; time: number }>({ token: '', time: 0 });
+
+  // Auto-focus barcode scanner input in PC/laptop mode
+  useEffect(() => {
+    if (mode === 'QR_SCANNER') {
+      setTimeout(() => barcodeInputRef.current?.focus(), 150);
+    }
+  }, [mode, selectedClassId]);
 
   // Offline Attendance Queue
   const [offlineQueue, setOfflineQueue] = useState<any[]>(() => {
@@ -141,10 +150,17 @@ export const Attendance: React.FC<AttendanceProps> = ({
     }
   };
 
-  // Perform QR or RFID scan evaluation
-  const handlePerformScan = async (tokenToScan?: string, scanMethod: string = 'QR_CODE'): Promise<any> => {
-    const token = tokenToScan || qrInput.trim();
+  // Perform Barcode, QR or RFID scan evaluation
+  const handlePerformScan = async (tokenToScan?: string, scanMethod: string = 'BARCODE'): Promise<any> => {
+    const token = (tokenToScan || qrInput).trim();
     if (!token || !selectedClassId) return null;
+
+    // Suppress rapid hardware duplicate keypresses within 1000ms
+    const now = Date.now();
+    if (lastScanAttemptRef.current.token === token && (now - lastScanAttemptRef.current.time) < 1000) {
+      return null;
+    }
+    lastScanAttemptRef.current = { token, time: now };
 
     setScanLoading(true);
 
@@ -170,6 +186,7 @@ export const Attendance: React.FC<AttendanceProps> = ({
       };
       setScanResult(offRes);
       setQrInput('');
+      setTimeout(() => barcodeInputRef.current?.focus(), 150);
       setScanLoading(false);
       return offRes;
     }
@@ -179,6 +196,7 @@ export const Attendance: React.FC<AttendanceProps> = ({
         method: 'POST',
         body: JSON.stringify({
           qrToken: token,
+          token: token,
           rfidTag: scanMethod === 'RFID' ? token : undefined,
           classId: selectedClassId,
           date: selectedDate,
@@ -198,27 +216,29 @@ export const Attendance: React.FC<AttendanceProps> = ({
       }
 
       setQrInput('');
+      setTimeout(() => barcodeInputRef.current?.focus(), 150);
       return res;
     } catch (err: any) {
       playBeep('ERROR');
       const errRes = {
         scanResult: 'ERROR',
         method: scanMethod,
-        message: err.message || 'Verification failed. Student not enrolled or invalid code.'
+        message: err.message || 'Verification failed. Student not enrolled or invalid barcode/QR.'
       };
       setScanResult(errRes);
+      setTimeout(() => barcodeInputRef.current?.focus(), 150);
       return errRes;
     } finally {
       setScanLoading(false);
     }
   };
 
-  // Global USB 125kHz HID & Android USB-C RFID Reader Listener
+  // Global USB Barcode Reader & 125kHz HID RFID Reader Listener (PC/Laptop keyboard wedge)
   const { simulateScan } = useRFIDReader({
     enabled: mode === 'QR_SCANNER' && rfidActive,
-    onScan: (tag) => {
+    onScan: (tag, scanType) => {
       setLastRfidTag(tag);
-      handlePerformScan(tag, 'RFID');
+      handlePerformScan(tag, scanType || 'BARCODE');
     }
   });
 
@@ -496,26 +516,28 @@ export const Attendance: React.FC<AttendanceProps> = ({
         </div>
       </div>
 
-      {/* 125kHz USB HID RFID Reader Live Status & Diagnostic Bar */}
-      <div className="p-4 rounded-2xl bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 border border-slate-800 shadow-md text-white flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+      {/* PC & Laptop Mode: USB Barcode Scanner & 125kHz RFID Reader Live Status Bar */}
+      <div className="p-4 rounded-3xl bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 border border-slate-800 shadow-md text-white flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div className="flex items-center space-x-3.5">
           <div className="w-11 h-11 rounded-2xl bg-brand-500/20 border border-brand-400/40 flex items-center justify-center text-brand-300 shrink-0 shadow-inner">
-            <Radio size={22} className={rfidActive ? 'animate-pulse text-emerald-400' : 'text-slate-400'} />
+            <Zap size={22} className={rfidActive ? 'animate-pulse text-emerald-400' : 'text-slate-400'} />
           </div>
           <div>
             <div className="flex flex-wrap items-center gap-2">
-              <span className="font-extrabold text-xs sm:text-sm text-white tracking-wide">USB 125kHz HID RFID Reader</span>
+              <span className="font-extrabold text-xs sm:text-sm text-white tracking-wide">
+                PC &amp; Laptop Mode: USB Barcode Scanner &amp; 125kHz RFID
+              </span>
               <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black tracking-wider ${
                 rfidActive ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' : 'bg-slate-700 text-slate-300'
               }`}>
-                {rfidActive ? '● LISTENING (WINDOWS & ANDROID USB-C)' : 'MUTED'}
+                {rfidActive ? '● READY FOR BARCODE GUN & RFID TAPS' : 'MUTED'}
               </span>
             </div>
             <p className="text-[11px] text-slate-300 mt-0.5">
               {lastRfidTag ? (
-                <span>Last Scanned UID: <strong className="font-mono text-emerald-400 font-bold">{lastRfidTag}</strong> (Recorded via RFID)</span>
+                <span>Last Scanned Token: <strong className="font-mono text-emerald-400 font-bold">{lastRfidTag}</strong> (Recorded Successfully)</span>
               ) : (
-                'Zero drivers required. Ready for card or keyfob tap on Windows PC/Laptop or Android USB-C OTG.'
+                'Zero-click hands-free scanning: Point any USB barcode reader gun at ID card barcode or tap RFID card. Automatically marks attendance, sounds POS beep & prompts fee collection.'
               )}
             </p>
           </div>
@@ -524,20 +546,20 @@ export const Attendance: React.FC<AttendanceProps> = ({
         <div className="flex flex-wrap items-center gap-2 w-full md:w-auto justify-end">
           {/* Quick Hardware Simulator / Demo Buttons */}
           <div className="flex items-center gap-1.5 bg-white/10 px-2.5 py-1 rounded-xl border border-white/10 text-xs">
-            <span className="text-[10px] text-brand-300 font-bold uppercase hidden sm:inline">Simulate Tap:</span>
+            <span className="text-[10px] text-brand-300 font-bold uppercase hidden sm:inline">Simulate:</span>
+            <button
+              onClick={() => simulateScan('STU-2026-0001')}
+              className="px-2.5 py-1 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-200 font-mono text-[11px] font-bold transition-all border border-emerald-500/30"
+              title="Simulate Barcode Gun Scan for STU-2026-0001"
+            >
+              Barcode STU-0001
+            </button>
             <button
               onClick={() => simulateScan('0004928101')}
-              className="px-2 py-1 rounded-lg bg-white/10 hover:bg-emerald-500/30 text-white font-mono text-[11px] font-bold transition-all"
+              className="px-2 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-white font-mono text-[11px] font-bold transition-all"
               title="Simulate 125kHz Card Tap for Kasun Kalhara"
             >
               Card 101
-            </button>
-            <button
-              onClick={() => simulateScan('0004928102')}
-              className="px-2 py-1 rounded-lg bg-white/10 hover:bg-emerald-500/30 text-white font-mono text-[11px] font-bold transition-all"
-              title="Simulate 125kHz Card Tap for Sithum Dharmapala"
-            >
-              Card 102
             </button>
           </div>
 
@@ -547,7 +569,7 @@ export const Attendance: React.FC<AttendanceProps> = ({
             className="px-3.5 py-2 rounded-xl bg-brand-600 hover:bg-brand-500 text-white text-xs font-bold flex items-center gap-1.5 shadow-md shadow-brand-600/30 transition-all shrink-0"
           >
             <HelpCircle size={15} />
-            <span>Setup &amp; LAN Guide</span>
+            <span>Hardware Guide</span>
           </button>
         </div>
       </div>
@@ -688,6 +710,7 @@ export const Attendance: React.FC<AttendanceProps> = ({
             <div className="space-y-3 pt-2">
               <div className="flex space-x-2">
                 <input
+                  ref={barcodeInputRef}
                   type="text"
                   placeholder="Scan barcode or enter Student ID (e.g. STU-2026-0001)..."
                   value={qrInput}
@@ -758,6 +781,11 @@ export const Attendance: React.FC<AttendanceProps> = ({
                       <span className="px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-800 text-[10px] font-black flex items-center gap-1 border border-indigo-500/30">
                         <Radio size={11} className="text-indigo-600" />
                         <span>125kHz RFID</span>
+                      </span>
+                    ) : scanResult.method === 'BARCODE' ? (
+                      <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-900 text-[10px] font-black flex items-center gap-1 border border-amber-500/30">
+                        <Zap size={11} className="text-amber-600" />
+                        <span>Barcode Reader</span>
                       </span>
                     ) : (
                       <span className="px-2 py-0.5 rounded-full bg-slate-200 text-slate-700 text-[10px] font-bold flex items-center gap-1">

@@ -13,7 +13,15 @@ router.get('/', authenticateToken, async (req: AuthRequest, res: Response) => {
 
     let payments = [...db.data.payments];
 
-    if (studentId) {
+    // Enforce role-based privacy: Students and Parents can ONLY see their own payments
+    if (req.user?.role === 'STUDENT' && req.user.studentId) {
+      payments = payments.filter(p => p.studentId === req.user!.studentId);
+    } else if (req.user?.role === 'PARENT') {
+      const allowedStudentIds = db.data.students
+        .filter(s => s.parentId === req.user!.parentId || (req.user!.phone && s.parentPhone === req.user!.phone) || (req.user!.studentId && s.id === req.user!.studentId))
+        .map(s => s.id);
+      payments = payments.filter(p => allowedStudentIds.includes(p.studentId));
+    } else if (studentId) {
       payments = payments.filter(p => p.studentId === studentId);
     }
 

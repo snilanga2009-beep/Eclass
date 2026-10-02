@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 
 export interface UseRFIDReaderOptions {
-  onScan: (tag: string) => void;
+  onScan: (tag: string, scanType?: 'BARCODE' | 'RFID') => void;
   enabled?: boolean;
   minChars?: number;
   maxIntervalMs?: number;
@@ -10,17 +10,17 @@ export interface UseRFIDReaderOptions {
 }
 
 /**
- * Custom React hook for capturing USB 125kHz HID RFID Card Reader inputs
+ * Custom React hook for capturing USB Barcode Scanners & USB 125kHz HID RFID Card Reader inputs
  * across Windows PC/Laptop and Android USB-C (via OTG).
  *
- * 125kHz HID RFID readers simulate a hardware keyboard, typing out card UIDs
- * at rapid speeds (< 50ms per character) followed by an 'Enter' keypress.
+ * Both 1D/2D USB Barcode scanners and 125kHz RFID readers emulate hardware keyboard input,
+ * typing out barcodes/card UIDs rapidly followed by an 'Enter' keypress.
  */
 export function useRFIDReader({
   onScan,
   enabled = true,
   minChars = 4,
-  maxIntervalMs = 70,
+  maxIntervalMs = 120, // Accommodates both ultra-fast RFID and standard USB Barcode guns
   preventEnterDefault = true,
   normalizeDigits = false
 }: UseRFIDReaderOptions) {
@@ -51,16 +51,19 @@ export function useRFIDReader({
       bufferRef.current = '';
 
       if (tagCandidate.length >= minChars) {
-        // High-confidence RFID hardware scan detected
+        // High-confidence barcode or RFID hardware scan detected
         if (preventEnterDefault) {
           event.preventDefault();
           event.stopPropagation();
         }
 
+        const isBarcode = tagCandidate.toUpperCase().includes('STU') || tagCandidate.toUpperCase().includes('CAMS') || tagCandidate.includes('-');
+        const scanType: 'BARCODE' | 'RFID' = isBarcode ? 'BARCODE' : 'RFID';
+
         const finalTag = normalizeDigits ? tagCandidate.replace(/^0+/, '') : tagCandidate;
         setLastScannedTag(finalTag);
         setLastScanTimestamp(now);
-        onScanRef.current(finalTag);
+        onScanRef.current(finalTag, scanType);
       }
       return;
     }
@@ -103,3 +106,5 @@ export function useRFIDReader({
     simulateScan
   };
 }
+
+export const useBarcodeReader = useRFIDReader;
