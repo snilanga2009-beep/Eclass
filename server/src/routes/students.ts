@@ -601,6 +601,7 @@ router.put('/:id', authenticateToken, requireRoles(['SUPER_ADMIN', 'ADMIN', 'REC
       notes,
       rfidTag,
       photo,
+      enrolledClassIds,
       resendParentPortalLink
     } = req.body;
 
@@ -668,6 +669,71 @@ router.put('/:id', authenticateToken, requireRoles(['SUPER_ADMIN', 'ADMIN', 'REC
       student.parentName = parentName ? parentName.trim() : undefined;
     }
 
+    // Update Class Enrollments if provided (Add new classes or change/unenroll classes)
+    let enrollmentsChanged = false;
+    if (enrolledClassIds !== undefined && Array.isArray(enrolledClassIds)) {
+      const targetClassIds = new Set(enrolledClassIds.map(String));
+      const currentActive = db.data.classStudents.filter(cs => cs.studentId === id && cs.status === 'ACTIVE');
+      const currentClassIds = new Set(currentActive.map(cs => cs.classId));
+
+      const toAdd = Array.from(targetClassIds).filter(cid => !currentClassIds.has(cid));
+      const toRemove = Array.from(currentClassIds).filter(cid => !targetClassIds.has(cid));
+
+      if (toAdd.length > 0 || toRemove.length > 0) {
+        enrollmentsChanged = true;
+      }
+
+      // Add new class enrollments
+      const currentMonth = new Date().toISOString().substring(0, 7);
+      for (const classId of toAdd) {
+        const existingRecord = db.data.classStudents.find(cs => cs.studentId === id && cs.classId === classId);
+        if (existingRecord) {
+          existingRecord.status = 'ACTIVE';
+          existingRecord.enrolledAt = new Date().toISOString();
+        } else {
+          db.data.classStudents.push({
+            id: db.generateId(),
+            classId,
+            studentId: id,
+            enrolledAt: new Date().toISOString(),
+            status: 'ACTIVE'
+          });
+        }
+
+        // Generate fee record for current month if none exists
+        const feeExisting = db.data.feeRecords.find(f => f.classId === classId && f.studentId === id && f.month === currentMonth);
+        if (!feeExisting) {
+          const cls = db.data.classes.find(c => c.id === classId);
+          if (cls) {
+            db.data.feeRecords.push({
+              id: db.generateId(),
+              studentId: id,
+              classId: cls.id,
+              month: currentMonth,
+              baseFee: cls.monthlyFee,
+              discount: 0,
+              previousBalance: 0,
+              totalDue: cls.monthlyFee,
+              paidAmount: 0,
+              remainingBalance: cls.monthlyFee,
+              status: 'PENDING',
+              dueDate: `${currentMonth}-10`,
+              createdAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString()
+            });
+          }
+        }
+      }
+
+      // Remove unenrolled classes
+      for (const classId of toRemove) {
+        const csIndex = db.data.classStudents.findIndex(cs => cs.studentId === id && cs.classId === classId);
+        if (csIndex !== -1) {
+          db.data.classStudents.splice(csIndex, 1);
+        }
+      }
+    }
+
     student.updatedAt = new Date().toISOString();
 
     // Optionally re-send Parent Portal SMS link if requested
@@ -705,8 +771,29 @@ router.put('/:id', authenticateToken, requireRoles(['SUPER_ADMIN', 'ADMIN', 'REC
       `Updated student ${student.fullName} (${student.studentIdNumber}) - Guardian Phone: ${student.parentPhone || 'N/A'}`
     );
 
+    if (enrollmentsChanged && Array.isArray(enrolledClassIds)) {
+      await logAuditAction(
+        req,
+        'STUDENT_ENROLLMENT_UPDATE',
+        `Updated class enrollments for ${student.fullName} (${student.studentIdNumber}) - Now enrolled in ${enrolledClassIds.length} classes`
+      );
+    }
+
+    const updatedEnrollments = db.data.classStudents
+      .filter(cs => cs.studentId === student.id && cs.status === 'ACTIVE')
+      .map(cs => {
+        const cls = db.data.classes.find(c => c.id === cs.classId);
+        const teacher = cls ? db.data.teachers.find(t => t.id === cls.teacherId) : null;
+        const subject = cls ? db.data.subjects.find(sub => sub.id === cls.subjectId) : null;
+        return {
+          ...cs,
+          class: cls ? { ...cls, teacher, subject } : null
+        };
+      });
+
     return res.json({
       ...student,
+      enrollments: updatedEnrollments,
       portalLinkResult
     });
   } catch (error) {

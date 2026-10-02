@@ -12,10 +12,13 @@ import {
   Smartphone,
   Check,
   Camera,
-  Image as ImageIcon
+  Image as ImageIcon,
+  BookOpen,
+  Search,
+  RefreshCw
 } from 'lucide-react';
 import { useRFIDReader } from '../utils/useRFIDReader';
-import { apiRequest } from '../api';
+import { apiRequest, formatLKR } from '../api';
 import { Student } from '../types';
 import { 
   MALE_STUDENT_AVATAR, 
@@ -64,16 +67,48 @@ export const EditStudentModal: React.FC<EditStudentModalProps> = ({
     notes: '',
     rfidTag: '',
     photo: '',
+    enrolledClassIds: [] as string[],
     resendParentPortalLink: false
   });
+
+  const [classes, setClasses] = useState<any[]>([]);
+  const [classesLoading, setClassesLoading] = useState(false);
+  const [classSearch, setClassSearch] = useState('');
+  const [classGradeFilter, setClassGradeFilter] = useState<'ALL' | 'MATCH_STUDENT' | 'ENROLLED'>('ALL');
 
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successNotice, setSuccessNotice] = useState<string | null>(null);
 
+  const fetchClasses = async () => {
+    try {
+      setClassesLoading(true);
+      const res = await apiRequest<any[]>('/classes');
+      setClasses(Array.isArray(res) ? res : []);
+    } catch (err) {
+      console.error('Failed to load classes directory:', err);
+    } finally {
+      setClassesLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (isOpen) {
+      fetchClasses();
+    }
+  }, [isOpen]);
+
   // Sync form when student prop changes
   useEffect(() => {
-    if (student) {
+    if (student && isOpen) {
+      let initialClassIds: string[] = [];
+      if (Array.isArray((student as any).enrollments)) {
+        initialClassIds = (student as any).enrollments
+          .filter((e: any) => e.status !== 'INACTIVE')
+          .map((e: any) => e.classId || e.class?.id)
+          .filter(Boolean);
+      }
+
       setFormData({
         fullName: student.fullName || '',
         grade: student.grade || 'Grade 12',
@@ -92,10 +127,24 @@ export const EditStudentModal: React.FC<EditStudentModalProps> = ({
         notes: student.notes || '',
         rfidTag: student.rfidTag || '',
         photo: student.photo || '',
+        enrolledClassIds: initialClassIds,
         resendParentPortalLink: false
       });
       setError(null);
       setSuccessNotice(null);
+
+      // Refresh student details from server to ensure complete enrollments list
+      apiRequest<any>(`/students/${student.id}`)
+        .then(fresh => {
+          if (fresh && Array.isArray(fresh.enrollments)) {
+            const freshIds = fresh.enrollments
+              .filter((e: any) => e.status !== 'INACTIVE')
+              .map((e: any) => e.classId || e.class?.id)
+              .filter(Boolean);
+            setFormData(prev => ({ ...prev, enrolledClassIds: freshIds }));
+          }
+        })
+        .catch(err => console.warn('Could not refresh student enrollments:', err));
     }
   }, [student, isOpen]);
 
@@ -122,6 +171,29 @@ export const EditStudentModal: React.FC<EditStudentModalProps> = ({
       setFormData(prev => ({ ...prev, rfidTag: scannedTag }));
     }
   });
+
+  const filteredClasses = classes.filter(c => {
+    if (classGradeFilter === 'MATCH_STUDENT' && c.grade !== formData.grade) {
+      return false;
+    }
+    if (classGradeFilter === 'ENROLLED' && !formData.enrolledClassIds.includes(c.id)) {
+      return false;
+    }
+    if (classSearch.trim()) {
+      const q = classSearch.toLowerCase();
+      const matchName = c.name?.toLowerCase().includes(q);
+      const matchSubject = c.subject?.name?.toLowerCase().includes(q);
+      const matchTeacher = c.teacher?.name?.toLowerCase().includes(q);
+      const matchGrade = c.grade?.toLowerCase().includes(q);
+      return matchName || matchSubject || matchTeacher || matchGrade;
+    }
+    return true;
+  });
+
+  const matchingGradeCount = classes.filter(c => c.grade === formData.grade).length;
+  const totalSelectedFees = classes
+    .filter(c => formData.enrolledClassIds.includes(c.id))
+    .reduce((sum, c) => sum + (c.monthlyFee || 0), 0);
 
   if (!isOpen || !student) return null;
 
@@ -172,7 +244,7 @@ export const EditStudentModal: React.FC<EditStudentModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="w-full max-w-2xl bg-white rounded-3xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[92vh]">
+      <div className="w-full max-w-3xl bg-white rounded-3xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[92vh]">
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 bg-slate-50">
           <div className="flex items-center space-x-2.5">
@@ -551,7 +623,205 @@ export const EditStudentModal: React.FC<EditStudentModalProps> = ({
             </div>
           </div>
 
-          {/* Section 4: 125kHz HID RFID Card */}
+          {/* Section 4: Class Enrollments (Add or Change Classes) */}
+          <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/90 space-y-3">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <div>
+                <div className="flex items-center gap-2">
+                  <BookOpen size={16} className="text-brand-600" />
+                  <label className="text-xs font-bold text-slate-800 uppercase tracking-wider">
+                    Class Enrollments (Add / Change Classes)
+                  </label>
+                </div>
+                <p className="text-[11px] text-slate-500 mt-0.5">
+                  Update tuition batch enrollments for {formData.fullName || 'this student'}. Add new classes or change batches anytime.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2 shrink-0">
+                <span className="px-2.5 py-1 rounded-xl bg-indigo-50 border border-indigo-200/80 text-indigo-700 font-bold text-[11px]">
+                  {formData.enrolledClassIds.length} Enrolled &bull; {formatLKR(totalSelectedFees)}/mo
+                </span>
+                <button
+                  type="button"
+                  onClick={fetchClasses}
+                  disabled={classesLoading}
+                  title="Reload Classes List"
+                  className="p-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-100 text-slate-600 text-xs transition-colors flex items-center gap-1"
+                >
+                  <RefreshCw size={13} className={classesLoading ? 'animate-spin text-brand-600' : ''} />
+                  <span className="text-[10px] hidden sm:inline">Refresh</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Search and Filter Bar */}
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 bg-white p-2 rounded-xl border border-slate-200 shadow-xs">
+              <div className="relative flex-1">
+                <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                <input
+                  type="text"
+                  placeholder="Search classes by name, subject, or teacher..."
+                  value={classSearch}
+                  onChange={(e) => setClassSearch(e.target.value)}
+                  className="w-full pl-8 pr-7 py-1.5 rounded-lg border border-slate-200 bg-slate-50 text-xs focus:ring-2 focus:ring-brand-500"
+                />
+                {classSearch && (
+                  <button
+                    type="button"
+                    onClick={() => setClassSearch('')}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                  >
+                    <X size={12} />
+                  </button>
+                )}
+              </div>
+
+              <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setClassGradeFilter('ALL')}
+                  className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all ${
+                    classGradeFilter === 'ALL'
+                      ? 'bg-brand-600 text-white shadow-xs'
+                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                  }`}
+                >
+                  All ({classes.length})
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setClassGradeFilter('ENROLLED')}
+                  className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all ${
+                    classGradeFilter === 'ENROLLED'
+                      ? 'bg-brand-600 text-white shadow-xs'
+                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                  }`}
+                >
+                  Enrolled ({formData.enrolledClassIds.length})
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setClassGradeFilter('MATCH_STUDENT')}
+                  className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all ${
+                    classGradeFilter === 'MATCH_STUDENT'
+                      ? 'bg-brand-600 text-white shadow-xs'
+                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                  }`}
+                >
+                  Grade {formData.grade} ({matchingGradeCount})
+                </button>
+
+                {filteredClasses.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const filteredIds = filteredClasses.map(c => c.id);
+                      const allSelected = filteredIds.every(id => formData.enrolledClassIds.includes(id));
+                      if (allSelected) {
+                        setFormData({
+                          ...formData,
+                          enrolledClassIds: formData.enrolledClassIds.filter(id => !filteredIds.includes(id))
+                        });
+                      } else {
+                        const combined = Array.from(new Set([...formData.enrolledClassIds, ...filteredIds]));
+                        setFormData({ ...formData, enrolledClassIds: combined });
+                      }
+                    }}
+                    className="px-2 py-1 rounded-lg text-[10px] font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700"
+                  >
+                    {filteredClasses.every(c => formData.enrolledClassIds.includes(c.id)) ? 'Deselect All' : 'Select All'}
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Classes Grid */}
+            <div className="max-h-56 sm:max-h-64 overflow-y-auto p-1 space-y-2">
+              {classesLoading ? (
+                <div className="py-6 text-center text-xs text-slate-500 flex flex-col items-center justify-center gap-1.5">
+                  <RefreshCw size={18} className="animate-spin text-brand-600" />
+                  <span>Loading class directory...</span>
+                </div>
+              ) : filteredClasses.length === 0 ? (
+                <div className="py-6 text-center px-4">
+                  <p className="text-xs font-semibold text-slate-600">No classes match current filter</p>
+                  <p className="text-[11px] text-slate-400 mt-0.5">
+                    Click "All ({classes.length})" to view the complete class schedule.
+                  </p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {filteredClasses.map(c => {
+                    const isSelected = formData.enrolledClassIds.includes(c.id);
+                    return (
+                      <div
+                        key={c.id}
+                        onClick={() => {
+                          if (isSelected) {
+                            setFormData({
+                              ...formData,
+                              enrolledClassIds: formData.enrolledClassIds.filter(id => id !== c.id)
+                            });
+                          } else {
+                            setFormData({
+                              ...formData,
+                              enrolledClassIds: [...formData.enrolledClassIds, c.id]
+                            });
+                          }
+                        }}
+                        className={`p-3 rounded-xl border transition-all cursor-pointer flex flex-col justify-between gap-1.5 ${
+                          isSelected
+                            ? 'bg-brand-50/80 border-brand-500 shadow-sm ring-1 ring-brand-400/40'
+                            : 'bg-white border-slate-200 hover:border-slate-300 hover:bg-slate-50/50'
+                        }`}
+                      >
+                        <div className="flex items-start gap-2">
+                          <input
+                            type="checkbox"
+                            checked={isSelected}
+                            onChange={() => {}}
+                            className="mt-0.5 rounded text-brand-600 focus:ring-brand-500 h-4 w-4 shrink-0 pointer-events-none"
+                          />
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center justify-between gap-1 mb-0.5">
+                              <span className="px-1.5 py-0.5 rounded bg-indigo-50 text-indigo-700 text-[9px] font-bold border border-indigo-200/60 shrink-0">
+                                {c.grade}
+                              </span>
+                              <span className="font-extrabold text-[11px] text-brand-700 font-mono">
+                                {formatLKR(c.monthlyFee)}
+                              </span>
+                            </div>
+                            <h5 className="font-bold text-xs text-slate-900 leading-snug line-clamp-1">
+                              {c.name}
+                            </h5>
+                            {c.subject?.name && (
+                              <p className="text-[10px] text-slate-500 truncate">
+                                {c.subject.name}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="flex items-center justify-between text-[10px] text-slate-400 pt-1 border-t border-slate-100">
+                          <span className="truncate max-w-[120px] font-medium text-slate-600">
+                            {c.teacher?.name || 'Assigned Faculty'}
+                          </span>
+                          <span className="font-mono text-slate-500 shrink-0">
+                            {c.dayOfWeek ? `${c.dayOfWeek.substring(0, 3)} ${c.startTime || ''}` : ''}
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Section 5: 125kHz HID RFID Card */}
           <div className="p-3.5 rounded-2xl bg-indigo-50/70 border border-indigo-200/80 space-y-2">
             <div className="flex items-center justify-between">
               <label className="text-[11px] font-bold text-indigo-950 flex items-center gap-1.5">

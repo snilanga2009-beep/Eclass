@@ -23,7 +23,9 @@ import {
   Check,
   ExternalLink,
   Edit3,
-  Camera
+  Camera,
+  Plus,
+  Trash2
 } from 'lucide-react';
 import { apiRequest, formatLKR, formatDate } from '../api';
 import { AssignRFIDModal } from './AssignRFIDModal';
@@ -91,6 +93,32 @@ export const StudentProfileModal: React.FC<StudentProfileModalProps> = ({
       }
     };
     reader.readAsDataURL(file);
+  };
+
+  const handleUnenrollClass = async (classId: string, className?: string) => {
+    if (!classId || !student?.id) return;
+    if (!confirm(`Are you sure you want to unenroll ${student.fullName} from ${className || 'this class'}?`)) {
+      return;
+    }
+
+    try {
+      const activeIds = (student.enrollments || [])
+        .filter((en: any) => en.status !== 'INACTIVE')
+        .map((en: any) => en.classId || en.class?.id)
+        .filter((cid: string) => cid && cid !== classId);
+
+      const updated = await apiRequest<any>(`/students/${student.id}`, {
+        method: 'PUT',
+        body: JSON.stringify({ enrolledClassIds: activeIds })
+      });
+
+      setStudent((prev: any) => ({
+        ...prev,
+        enrollments: updated.enrollments || prev.enrollments.filter((en: any) => (en.classId || en.class?.id) !== classId)
+      }));
+    } catch (err: any) {
+      alert(err.message || 'Failed to unenroll student from class');
+    }
   };
 
   const handleSendParentLink = async () => {
@@ -231,6 +259,14 @@ export const StudentProfileModal: React.FC<StudentProfileModalProps> = ({
 
               {/* Quick Actions */}
               <div className="flex items-center space-x-2 shrink-0">
+                <button
+                  onClick={() => setIsEditModalOpen(true)}
+                  className="px-3 py-2 rounded-xl bg-brand-500/30 hover:bg-brand-500/40 text-brand-200 hover:text-white text-xs font-semibold flex items-center gap-1.5 transition-all border border-brand-400/30 shadow-sm"
+                  title="Add or Change Enrolled Classes"
+                >
+                  <BookOpen size={14} />
+                  <span>Classes ({student.enrollments?.length || 0})</span>
+                </button>
                 <button
                   onClick={() => setIsEditModalOpen(true)}
                   className="px-3 py-2 rounded-xl bg-amber-500/30 hover:bg-amber-500/40 text-amber-200 hover:text-white text-xs font-semibold flex items-center gap-1.5 transition-all border border-amber-400/30 shadow-sm"
@@ -428,27 +464,84 @@ export const StudentProfileModal: React.FC<StudentProfileModalProps> = ({
 
               {/* TAB 2: ENROLLED CLASSES */}
               {activeTab === 'classes' && (
-                <div className="space-y-3">
-                  <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Currently Enrolled Classes</h4>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    {student.enrollments?.map((en: any) => (
-                      <div key={en.id} className="p-4 rounded-2xl border border-slate-200 hover:border-brand-300 transition-all bg-white shadow-sm space-y-2">
-                        <div className="flex items-center justify-between">
-                          <span className="px-2 py-0.5 rounded-md bg-brand-50 text-brand-700 font-mono text-[10px] font-bold">
-                            {en.class?.classCode}
-                          </span>
-                          <span className="text-[10px] text-slate-400 font-medium">Fee: {formatLKR(en.class?.monthlyFee)}/mo</span>
-                        </div>
-                        <h5 className="font-bold text-sm text-slate-900">{en.class?.name}</h5>
-                        <p className="text-xs text-slate-500">
-                          Teacher: <span className="font-semibold text-slate-700">{en.class?.teacher?.name}</span>
-                        </p>
-                        <p className="text-xs text-slate-500">
-                          Schedule: <span className="font-medium text-slate-700">{en.class?.dayOfWeek} ({en.class?.startTime} - {en.class?.endTime})</span>
+                <div className="space-y-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 bg-slate-50 p-3.5 rounded-2xl border border-slate-200">
+                    <div>
+                      <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
+                        <BookOpen size={15} className="text-brand-600" />
+                        <span>Enrolled Classes ({student.enrollments?.length || 0})</span>
+                      </h4>
+                      <p className="text-[11px] text-slate-500 mt-0.5">
+                        Total Monthly Tuition: <span className="font-bold text-slate-800 font-mono">{formatLKR((student.enrollments || []).reduce((acc: number, en: any) => acc + (en.class?.monthlyFee || 0), 0))}/mo</span>
+                      </p>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => setIsEditModalOpen(true)}
+                      className="px-3.5 py-1.5 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-bold text-xs flex items-center gap-1.5 shadow-sm shadow-brand-600/30 transition-all self-start sm:self-auto"
+                    >
+                      <Plus size={14} />
+                      <span>Add or Change Classes</span>
+                    </button>
+                  </div>
+
+                  {(!student.enrollments || student.enrollments.length === 0) ? (
+                    <div className="p-8 text-center border-2 border-dashed border-slate-200 rounded-3xl bg-slate-50/50 space-y-3">
+                      <div className="w-12 h-12 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center mx-auto">
+                        <BookOpen size={24} />
+                      </div>
+                      <div>
+                        <h5 className="font-bold text-sm text-slate-800">No Classes Enrolled Yet</h5>
+                        <p className="text-xs text-slate-500 mt-1 max-w-sm mx-auto">
+                          Enroll {student.fullName} into tuition batches to start tracking attendance, timetable schedules, and fee records.
                         </p>
                       </div>
-                    ))}
-                  </div>
+                      <button
+                        type="button"
+                        onClick={() => setIsEditModalOpen(true)}
+                        className="px-4 py-2 rounded-xl bg-brand-600 text-white font-bold text-xs shadow-md shadow-brand-600/30 hover:bg-brand-500 transition-all inline-flex items-center gap-1.5"
+                      >
+                        <Plus size={14} />
+                        <span>Enroll into Classes Now</span>
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      {student.enrollments.map((en: any) => (
+                        <div key={en.id} className="p-4 rounded-2xl border border-slate-200 hover:border-brand-300 transition-all bg-white shadow-xs space-y-2 relative group">
+                          <div className="flex items-center justify-between">
+                            <span className="px-2 py-0.5 rounded-md bg-brand-50 text-brand-700 font-mono text-[10px] font-bold">
+                              {en.class?.classCode || en.class?.grade || 'Class'}
+                            </span>
+                            <div className="flex items-center gap-2">
+                              <span className="text-[11px] text-brand-700 font-mono font-bold">{formatLKR(en.class?.monthlyFee)}/mo</span>
+                              <button
+                                type="button"
+                                onClick={() => handleUnenrollClass(en.classId || en.class?.id, en.class?.name)}
+                                title="Unenroll from this class"
+                                className="p-1 rounded-lg text-slate-300 hover:text-rose-600 hover:bg-rose-50 transition-colors"
+                              >
+                                <Trash2 size={13} />
+                              </button>
+                            </div>
+                          </div>
+                          <h5 className="font-bold text-sm text-slate-900 leading-snug">{en.class?.name}</h5>
+                          {en.class?.subject?.name && (
+                            <p className="text-xs text-slate-600 font-medium">
+                              Subject: <span className="text-slate-800">{en.class.subject.name}</span>
+                            </p>
+                          )}
+                          <p className="text-xs text-slate-500">
+                            Teacher: <span className="font-semibold text-slate-700">{en.class?.teacher?.name || 'Assigned Faculty'}</span>
+                          </p>
+                          <p className="text-xs text-slate-500">
+                            Schedule: <span className="font-medium text-slate-700">{en.class?.dayOfWeek} ({en.class?.startTime} - {en.class?.endTime})</span>
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               )}
 

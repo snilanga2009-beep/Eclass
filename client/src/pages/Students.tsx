@@ -478,9 +478,15 @@ export const Students: React.FC<StudentsProps> = ({ onOpenProfile, onOpenIDCard 
                     </td>
 
                     <td className="py-3 px-4">
-                      <span className="px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 font-bold text-[10px]">
-                        {s.enrollments?.length || 0} Classes
-                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setEditingStudent(s)}
+                        className="px-2.5 py-1 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold text-[11px] border border-indigo-200/80 transition-colors flex items-center gap-1.5"
+                        title="Click to add or change class enrollments"
+                      >
+                        <BookOpen size={12} className="text-indigo-600" />
+                        <span>{s.enrollments?.length || 0} Classes</span>
+                      </button>
                     </td>
 
                     <td className="py-3 px-4">
@@ -493,6 +499,13 @@ export const Students: React.FC<StudentsProps> = ({ onOpenProfile, onOpenIDCard 
 
                     <td className="py-3 px-4 text-right">
                       <div className="flex items-center justify-end space-x-1.5">
+                        <button
+                          onClick={() => setEditingStudent(s)}
+                          className="p-1.5 rounded-lg text-slate-500 hover:text-brand-600 hover:bg-brand-50 transition-colors"
+                          title="Add or Change Class Enrollments"
+                        >
+                          <BookOpen size={15} />
+                        </button>
                         <button
                           onClick={() => setEditingStudent(s)}
                           className="p-1.5 rounded-lg text-slate-500 hover:text-amber-600 hover:bg-amber-50 transition-colors"
@@ -628,21 +641,30 @@ export const Students: React.FC<StudentsProps> = ({ onOpenProfile, onOpenIDCard 
                 )}
 
                 {/* Bottom Touch Actions */}
-                <div className="grid grid-cols-3 gap-1.5 pt-1 border-t border-slate-100">
+                <div className="grid grid-cols-4 gap-1 pt-1 border-t border-slate-100">
                   <button
                     onClick={() => setEditingStudent(s)}
-                    className="py-2 px-2 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-800 text-[11px] font-bold flex items-center justify-center gap-1 transition-colors"
+                    className="py-2 px-1 rounded-xl bg-brand-50 hover:bg-brand-100 text-brand-800 text-[10px] font-bold flex items-center justify-center gap-1 transition-colors"
+                    title="Add or Change Class Enrollments"
+                  >
+                    <BookOpen size={12} />
+                    <span>Classes</span>
+                  </button>
+
+                  <button
+                    onClick={() => setEditingStudent(s)}
+                    className="py-2 px-1 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-800 text-[10px] font-bold flex items-center justify-center gap-1 transition-colors"
                     title="Edit Student Profile & Parent Phone"
                   >
-                    <Edit3 size={13} />
+                    <Edit3 size={12} />
                     <span>Edit</span>
                   </button>
 
                   <button
                     onClick={() => onOpenProfile(s.id)}
-                    className="py-2 px-2 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-[11px] font-bold flex items-center justify-center gap-1 transition-colors"
+                    className="py-2 px-1 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-[10px] font-bold flex items-center justify-center gap-1 transition-colors"
                   >
-                    <Eye size={13} />
+                    <Eye size={12} />
                     <span>Profile</span>
                   </button>
 
