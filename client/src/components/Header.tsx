@@ -11,12 +11,14 @@ import {
   Clock,
   ChevronDown,
   LogOut,
-  ShieldCheck
+  ShieldCheck,
+  Key
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { UserRole } from '../types';
 import { apiRequest } from '../api';
 import { RolePermissionsModal } from './RolePermissionsModal';
+import { ChangePasswordModal } from './ChangePasswordModal';
 
 interface HeaderProps {
   onOpenMobileMenu: () => void;
@@ -35,6 +37,7 @@ export const Header: React.FC<HeaderProps> = ({
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [roleMenuOpen, setRoleMenuOpen] = useState(false);
   const [isRoleGuideOpen, setIsRoleGuideOpen] = useState(false);
+  const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
 
   const availableRoles: { role: UserRole; label: string; desc: string; color: string }[] = [
@@ -192,6 +195,17 @@ export const Header: React.FC<HeaderProps> = ({
                   <button
                     onClick={() => {
                       setRoleMenuOpen(false);
+                      setIsChangePasswordOpen(true);
+                    }}
+                    className="w-full text-left px-3 py-2 rounded-xl flex items-center space-x-2.5 text-purple-700 bg-purple-50/70 hover:bg-purple-100 transition-colors font-semibold text-xs"
+                  >
+                    <Key size={14} className="shrink-0 text-purple-600" />
+                    <span>Change My Password</span>
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      setRoleMenuOpen(false);
                       logout();
                     }}
                     className="w-full text-left px-3 py-2 rounded-xl flex items-center space-x-2.5 text-rose-600 hover:bg-rose-50 transition-colors font-semibold text-xs"
@@ -252,6 +266,13 @@ export const Header: React.FC<HeaderProps> = ({
         isOpen={isRoleGuideOpen}
         onClose={() => setIsRoleGuideOpen(false)}
         currentRole={user?.role}
+      />
+
+      {/* Change Password Modal for logged-in user */}
+      <ChangePasswordModal
+        isOpen={isChangePasswordOpen}
+        onClose={() => setIsChangePasswordOpen(false)}
+        username={user?.username}
       />
     </header>
   );

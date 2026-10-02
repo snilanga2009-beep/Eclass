@@ -29,6 +29,7 @@ import { Materials } from './pages/Materials';
 import { Messaging } from './pages/Messaging';
 import { Reports } from './pages/Reports';
 import { Settings } from './pages/Settings';
+import { Users } from './pages/Users';
 import { AuditLogs } from './pages/AuditLogs';
 import { ParentPortal } from './pages/ParentPortal';
 import { StudentPortal } from './pages/StudentPortal';
@@ -255,6 +256,10 @@ export const App: React.FC = () => {
 
           {currentTab === 'audit' && (
             <AuditLogs />
+          )}
+
+          {currentTab === 'users' && (
+            <Users />
           )}
 
           {currentTab === 'settings' && (

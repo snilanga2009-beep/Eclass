@@ -19,7 +19,8 @@ import {
   LogOut,
   Sparkles,
   Radio,
-  Coins
+  Coins,
+  UserCog
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useSettings } from '../context/SettingsContext';
@@ -212,6 +213,17 @@ export const Sidebar: React.FC<SidebarProps> = ({
       category: 'SYSTEM',
       gradient: 'from-slate-400 to-zinc-600',
       glow: 'shadow-slate-500/25'
+    },
+    { 
+      id: 'users', 
+      label: 'User Accounts & Roles', 
+      icon: UserCog, 
+      roles: ['SUPER_ADMIN', 'ADMIN'], 
+      category: 'SYSTEM',
+      gradient: 'from-blue-600 to-indigo-700',
+      glow: 'shadow-blue-500/25',
+      badge: 'Admin',
+      badgeColor: 'bg-indigo-500/20 text-indigo-300 border-indigo-500/30'
     },
     { 
       id: 'settings', 

@@ -1,7 +1,7 @@
 import { Router, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import db from '../db';
+import db, { User, Role } from '../db';
 import { AuthRequest, authenticateToken, requireRoles } from '../middleware/auth';
 import { logAuditAction } from '../middleware/audit';
 
@@ -22,6 +22,11 @@ const populateUser = (u: any) => {
     phone: u.phone,
     avatar: u.avatar,
     role: role?.name || 'STUDENT',
+    roleId: u.roleId,
+    isActive: u.isActive !== false,
+    lastLogin: u.lastLogin,
+    createdAt: u.createdAt,
+    updatedAt: u.updatedAt,
     teacherId: u.teacherId,
     studentId: u.studentId,
     parentId: u.parentId,
@@ -310,13 +315,322 @@ router.get('/parent-children', authenticateToken, async (req: AuthRequest, res: 
   }
 });
 
-// GET /api/auth/users
+// ==========================================
+// USER & ROLE MANAGEMENT (Admin & Self-Service)
+// ==========================================
+
+// GET /api/auth/users - List all users
 router.get('/users', authenticateToken, requireRoles(['SUPER_ADMIN', 'ADMIN']), async (req: AuthRequest, res: Response) => {
   try {
-    const users = db.data.users.map(u => populateUser(u));
+    const users = db.data.users
+      .slice()
+      .reverse()
+      .map(u => populateUser(u));
     return res.json(users);
   } catch (error) {
     return res.status(500).json({ error: 'Failed to fetch users' });
+  }
+});
+
+// POST /api/auth/users - Create new login user
+router.post('/users', authenticateToken, requireRoles(['SUPER_ADMIN', 'ADMIN']), async (req: AuthRequest, res: Response) => {
+  try {
+    const { username, password, name, email, phone, roleId, roleName, teacherId, studentId, isActive } = req.body;
+    
+    if (!username || !password || !name) {
+      return res.status(400).json({ error: 'Username, Full Name, and Password are required.' });
+    }
+    if (String(password).length < 4) {
+      return res.status(400).json({ error: 'Password must be at least 4 characters long.' });
+    }
+
+    const cleanUsername = String(username).trim().toLowerCase();
+    const existing = db.data.users.find(u => u.username.toLowerCase() === cleanUsername);
+    if (existing) {
+      return res.status(400).json({ error: `Username "${username}" is already taken.` });
+    }
+
+    if (email && String(email).trim()) {
+      const cleanEmail = String(email).trim().toLowerCase();
+      const existingEmail = db.data.users.find(u => u.email && u.email.toLowerCase() === cleanEmail);
+      if (existingEmail) {
+        return res.status(400).json({ error: `Email "${email}" is already registered to another user.` });
+      }
+    }
+
+    // Resolve Role ID
+    let resolvedRoleId = roleId;
+    if (!resolvedRoleId && roleName) {
+      const foundRole = db.data.roles.find(r => r.name === roleName);
+      if (foundRole) resolvedRoleId = foundRole.id;
+    }
+    if (!resolvedRoleId) {
+      const defaultRole = db.data.roles.find(r => r.name === 'RECEPTIONIST') || db.data.roles[0];
+      resolvedRoleId = defaultRole?.id || 'role-receptionist';
+    }
+
+    const passwordHash = await bcrypt.hash(String(password), 10);
+    const newUser: User = {
+      id: db.generateId(),
+      username: String(username).trim(),
+      name: String(name).trim(),
+      email: email ? String(email).trim() : undefined,
+      phone: phone ? String(phone).trim() : undefined,
+      passwordHash,
+      roleId: resolvedRoleId,
+      isActive: isActive !== false,
+      teacherId: teacherId || null,
+      studentId: studentId || null,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+
+    db.data.users.unshift(newUser);
+    db.save();
+
+    const populated = populateUser(newUser);
+    await logAuditAction(req, 'USER_CREATE', `Created new user account "${newUser.username}" with role ${populated.role}`);
+    return res.status(201).json(populated);
+  } catch (err: any) {
+    console.error('Error creating user:', err);
+    return res.status(500).json({ error: err.message || 'Failed to create user' });
+  }
+});
+
+// PUT /api/auth/users/:id - Update user profile, role, status
+router.put('/users/:id', authenticateToken, requireRoles(['SUPER_ADMIN', 'ADMIN']), async (req: AuthRequest, res: Response) => {
+  try {
+    const user = db.data.users.find(u => u.id === req.params.id);
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    const { name, email, phone, roleId, roleName, isActive, teacherId, studentId } = req.body;
+
+    if (name) user.name = String(name).trim();
+    if (email !== undefined) user.email = email ? String(email).trim() : undefined;
+    if (phone !== undefined) user.phone = phone ? String(phone).trim() : undefined;
+
+    if (isActive !== undefined) {
+      // Prevent deactivating own logged-in account
+      if (user.id === req.user?.id && !isActive) {
+        return res.status(400).json({ error: 'You cannot deactivate your own account while logged in.' });
+      }
+      user.isActive = Boolean(isActive);
+    }
+
+    // Role change
+    if (roleId) {
+      const targetRole = db.data.roles.find(r => r.id === roleId);
+      if (targetRole) user.roleId = targetRole.id;
+    } else if (roleName) {
+      const targetRole = db.data.roles.find(r => r.name === roleName);
+      if (targetRole) user.roleId = targetRole.id;
+    }
+
+    if (teacherId !== undefined) user.teacherId = teacherId || null;
+    if (studentId !== undefined) user.studentId = studentId || null;
+
+    user.updatedAt = new Date().toISOString();
+    db.save();
+
+    const populated = populateUser(user);
+    await logAuditAction(req, 'USER_UPDATE', `Updated user account "${user.username}" (Role: ${populated.role}, Active: ${user.isActive})`);
+    return res.json(populated);
+  } catch (err: any) {
+    return res.status(500).json({ error: err.message || 'Failed to update user' });
+  }
+});
+
+// PUT /api/auth/users/:id/password - Admin sets / resets user password
+router.put('/users/:id/password', authenticateToken, requireRoles(['SUPER_ADMIN', 'ADMIN']), async (req: AuthRequest, res: Response) => {
+  try {
+    const user = db.data.users.find(u => u.id === req.params.id);
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    const { newPassword } = req.body;
+    if (!newPassword || String(newPassword).length < 4) {
+      return res.status(400).json({ error: 'New password must be at least 4 characters long.' });
+    }
+
+    user.passwordHash = await bcrypt.hash(String(newPassword), 10);
+    user.updatedAt = new Date().toISOString();
+    db.save();
+
+    await logAuditAction(req, 'PASSWORD_RESET', `Admin reset password for user "${user.username}"`);
+    return res.json({ message: `Password for "${user.username}" was updated successfully.` });
+  } catch (err: any) {
+    return res.status(500).json({ error: err.message || 'Failed to reset password' });
+  }
+});
+
+// POST /api/auth/change-my-password - Any logged-in user changes their own password
+router.post('/change-my-password', authenticateToken, async (req: AuthRequest, res: Response) => {
+  try {
+    const user = db.data.users.find(u => u.id === req.user?.id);
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    const { currentPassword, newPassword } = req.body;
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ error: 'Both current password and new password are required.' });
+    }
+    if (String(newPassword).length < 4) {
+      return res.status(400).json({ error: 'New password must be at least 4 characters long.' });
+    }
+
+    const isMatch = await bcrypt.compare(String(currentPassword), user.passwordHash);
+    if (!isMatch) {
+      return res.status(400).json({ error: 'Current password does not match.' });
+    }
+
+    user.passwordHash = await bcrypt.hash(String(newPassword), 10);
+    user.updatedAt = new Date().toISOString();
+    db.save();
+
+    await logAuditAction(req, 'PASSWORD_CHANGE', `User "${user.username}" successfully changed their own password.`);
+    return res.json({ message: 'Your password was changed successfully.' });
+  } catch (err: any) {
+    return res.status(500).json({ error: err.message || 'Failed to change password' });
+  }
+});
+
+// DELETE /api/auth/users/:id - Delete a user account
+router.delete('/users/:id', authenticateToken, requireRoles(['SUPER_ADMIN', 'ADMIN']), async (req: AuthRequest, res: Response) => {
+  try {
+    const userIndex = db.data.users.findIndex(u => u.id === req.params.id);
+    if (userIndex === -1) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    const userToDelete = db.data.users[userIndex];
+    if (userToDelete.id === req.user?.id) {
+      return res.status(400).json({ error: 'You cannot delete your own active account while logged in.' });
+    }
+
+    // Safety: Protect last Super Admin
+    const superRole = db.data.roles.find(r => r.name === 'SUPER_ADMIN');
+    if (userToDelete.roleId === superRole?.id) {
+      const remainingSuperAdmins = db.data.users.filter(u => u.id !== userToDelete.id && u.roleId === superRole?.id && u.isActive);
+      if (remainingSuperAdmins.length === 0) {
+        return res.status(400).json({ error: 'Cannot delete the only remaining Super Administrator account.' });
+      }
+    }
+
+    const deletedUsername = userToDelete.username;
+    db.data.users.splice(userIndex, 1);
+    db.save();
+
+    await logAuditAction(req, 'USER_DELETE', `Deleted user account "${deletedUsername}"`);
+    return res.json({ message: `User "${deletedUsername}" was deleted successfully.` });
+  } catch (err: any) {
+    return res.status(500).json({ error: err.message || 'Failed to delete user' });
+  }
+});
+
+// GET /api/auth/roles - List all roles with user counts
+router.get('/roles', authenticateToken, async (req: AuthRequest, res: Response) => {
+  try {
+    const rolesWithCounts = db.data.roles.map(r => {
+      const userCount = db.data.users.filter(u => u.roleId === r.id).length;
+      return {
+        id: r.id,
+        name: r.name,
+        description: r.description || `Role for ${r.name}`,
+        createdAt: r.createdAt,
+        userCount
+      };
+    });
+    return res.json(rolesWithCounts);
+  } catch (err: any) {
+    return res.status(500).json({ error: 'Failed to fetch roles' });
+  }
+});
+
+// POST /api/auth/roles - Add new system role ("roll add")
+router.post('/roles', authenticateToken, requireRoles(['SUPER_ADMIN', 'ADMIN']), async (req: AuthRequest, res: Response) => {
+  try {
+    const { name, description } = req.body;
+    if (!name || !String(name).trim()) {
+      return res.status(400).json({ error: 'Role name is required.' });
+    }
+
+    // Format clean role name: uppercase with underscores, e.g. "BRANCH_MANAGER"
+    const cleanRoleName = String(name).trim().toUpperCase().replace(/[^A-Z0-9_]/g, '_');
+    const existing = db.data.roles.find(r => r.name === cleanRoleName);
+    if (existing) {
+      return res.status(400).json({ error: `Role "${cleanRoleName}" already exists.` });
+    }
+
+    const newRoleId = 'role-' + cleanRoleName.toLowerCase();
+    const newRole: Role = {
+      id: newRoleId,
+      name: cleanRoleName,
+      description: description ? String(description).trim() : `Custom role: ${cleanRoleName}`,
+      createdAt: new Date().toISOString()
+    };
+
+    db.data.roles.push(newRole);
+
+    // Seed default read permissions for custom role
+    const defaultModules = ['students', 'classes', 'attendance', 'payments', 'materials'];
+    defaultModules.forEach(mod => {
+      db.data.permissions.push({
+        id: db.generateId(),
+        roleId: newRoleId,
+        module: mod,
+        canRead: true,
+        canWrite: false,
+        canDelete: false,
+        createdAt: new Date().toISOString()
+      });
+    });
+
+    db.save();
+
+    await logAuditAction(req, 'ROLE_CREATE', `Created new system role "${cleanRoleName}"`);
+    return res.status(201).json({
+      message: `Role "${cleanRoleName}" created successfully`,
+      role: { ...newRole, userCount: 0 }
+    });
+  } catch (err: any) {
+    return res.status(500).json({ error: err.message || 'Failed to create role' });
+  }
+});
+
+// DELETE /api/auth/roles/:id - Delete a custom role
+router.delete('/roles/:id', authenticateToken, requireRoles(['SUPER_ADMIN', 'ADMIN']), async (req: AuthRequest, res: Response) => {
+  try {
+    const roleIndex = db.data.roles.findIndex(r => r.id === req.params.id);
+    if (roleIndex === -1) {
+      return res.status(404).json({ error: 'Role not found' });
+    }
+
+    const roleToDelete = db.data.roles[roleIndex];
+    const BUILT_IN_ROLES = ['SUPER_ADMIN', 'ADMIN', 'ACCOUNTANT', 'TEACHER', 'RECEPTIONIST', 'PARENT', 'STUDENT'];
+    if (BUILT_IN_ROLES.includes(roleToDelete.name)) {
+      return res.status(400).json({ error: `Built-in role "${roleToDelete.name}" cannot be deleted.` });
+    }
+
+    const assignedUsers = db.data.users.filter(u => u.roleId === roleToDelete.id);
+    if (assignedUsers.length > 0) {
+      return res.status(400).json({
+        error: `Cannot delete role "${roleToDelete.name}" because ${assignedUsers.length} user(s) are currently assigned to it. Please reassign them first.`
+      });
+    }
+
+    const roleName = roleToDelete.name;
+    db.data.roles.splice(roleIndex, 1);
+    db.data.permissions = db.data.permissions.filter(p => p.roleId !== req.params.id);
+    db.save();
+
+    await logAuditAction(req, 'ROLE_DELETE', `Deleted custom role "${roleName}"`);
+    return res.json({ message: `Role "${roleName}" was deleted successfully.` });
+  } catch (err: any) {
+    return res.status(500).json({ error: err.message || 'Failed to delete role' });
   }
 });
 
