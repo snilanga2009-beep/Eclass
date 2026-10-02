@@ -38,6 +38,7 @@ import { QRScannerModal } from '../components/QRScannerModal';
 import { decodeQRFromFile } from '../utils/qrScanner';
 import { useRFIDReader } from '../utils/useRFIDReader';
 import { RFIDGuideModal } from '../components/RFIDGuideModal';
+import { getStudentAvatar } from '../utils/studentAvatars';
 
 const CLASS_THEMES = [
   {
@@ -996,11 +997,11 @@ export const Attendance: React.FC<AttendanceProps> = ({
                 </div>
 
                 <div className="py-4 flex items-center space-x-4">
-                  {scanResult.student?.photo && (
+                  {scanResult.student && (
                     <img 
-                      src={scanResult.student.photo} 
+                      src={getStudentAvatar(scanResult.student)} 
                       alt="" 
-                      className="w-16 h-16 rounded-2xl object-cover ring-2 ring-white shadow-md shrink-0" 
+                      className="w-16 h-16 rounded-2xl object-cover ring-2 ring-white shadow-md shrink-0 bg-slate-100" 
                     />
                   )}
                   <div>
@@ -1796,7 +1797,7 @@ export const Attendance: React.FC<AttendanceProps> = ({
                   <tr key={item.student.id} className="hover:bg-slate-50/60 transition-colors">
                     <td className="py-2.5 px-3">
                       <div className="flex items-center space-x-2.5">
-                        <img src={item.student.photo || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=80"} alt="" className="w-7 h-7 rounded-full object-cover" />
+                        <img src={getStudentAvatar(item.student)} alt="" className="w-7 h-7 rounded-full object-cover bg-slate-100" />
                         <div>
                           <p 
                             onClick={() => onOpenStudentProfile(item.student.id)}

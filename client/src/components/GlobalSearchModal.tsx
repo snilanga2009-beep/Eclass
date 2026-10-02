@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Search, X, Users, BookOpen, GraduationCap, CreditCard, ChevronRight } from 'lucide-react';
 import { apiRequest } from '../api';
+import { getStudentAvatar } from '../utils/studentAvatars';
 
 interface GlobalSearchModalProps {
   isOpen: boolean;
@@ -125,7 +126,7 @@ export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({
                     className="flex items-center justify-between p-2.5 rounded-xl hover:bg-brand-50 cursor-pointer group transition-colors"
                   >
                     <div className="flex items-center space-x-3">
-                      <img src={s.photo || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=80"} alt="" className="w-8 h-8 rounded-full object-cover" />
+                      <img src={getStudentAvatar(s)} alt="" className="w-8 h-8 rounded-full object-cover bg-slate-100" />
                       <div>
                         <p className="text-xs font-semibold text-slate-900 group-hover:text-brand-700">{s.fullName}</p>
                         <p className="text-[10px] text-slate-500">{s.studentIdNumber} • {s.grade} • Phone: {s.phone || s.parentPhone || 'N/A'}</p>

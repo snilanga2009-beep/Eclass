@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   X, 
   User as UserIcon, 
@@ -22,11 +22,17 @@ import {
   Copy,
   Check,
   ExternalLink,
-  Edit3
+  Edit3,
+  Camera
 } from 'lucide-react';
 import { apiRequest, formatLKR, formatDate } from '../api';
 import { AssignRFIDModal } from './AssignRFIDModal';
 import { EditStudentModal } from './EditStudentModal';
+import { 
+  MALE_STUDENT_AVATAR, 
+  FEMALE_STUDENT_AVATAR, 
+  getStudentAvatar 
+} from '../utils/studentAvatars';
 
 interface StudentProfileModalProps {
   studentId: string | null;
@@ -50,6 +56,42 @@ export const StudentProfileModal: React.FC<StudentProfileModalProps> = ({
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [sendingParentLink, setSendingParentLink] = useState(false);
   const [parentLinkSuccess, setParentLinkSuccess] = useState<{ url: string; msg: string } | null>(null);
+  const [updatingAvatar, setUpdatingAvatar] = useState(false);
+  const profileFileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleUpdateProfileAvatar = async (newPhoto: string) => {
+    if (!student?.id) return;
+    setUpdatingAvatar(true);
+    try {
+      await apiRequest(`/students/${student.id}`, {
+        method: 'PUT',
+        body: JSON.stringify({ photo: newPhoto })
+      });
+      setStudent((prev: any) => ({ ...prev, photo: newPhoto }));
+    } catch (err: any) {
+      alert(err.message || 'Failed to update avatar');
+    } finally {
+      setUpdatingAvatar(false);
+    }
+  };
+
+  const handleProfileImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 2 * 1024 * 1024) {
+      alert('Photo must be smaller than 2MB');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === 'string') {
+        handleUpdateProfileAvatar(reader.result);
+      }
+    };
+    reader.readAsDataURL(file);
+  };
 
   const handleSendParentLink = async () => {
     if (!student?.id) return;
@@ -108,12 +150,35 @@ export const StudentProfileModal: React.FC<StudentProfileModalProps> = ({
             <div className="py-6 text-xs text-slate-400">Loading student details...</div>
           ) : student ? (
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-              <div className="flex items-center space-x-4">
-                <img 
-                  src={student.photo || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150"} 
-                  alt="" 
-                  className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl object-cover ring-4 ring-white/20 shrink-0 shadow-lg"
-                />
+              <div className="flex items-start sm:items-center space-x-4">
+                {/* Profile Image & Quick Avatar Controls */}
+                <div className="relative group shrink-0">
+                  <img 
+                    src={getStudentAvatar(student)} 
+                    alt={student.fullName} 
+                    className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl object-cover ring-4 ring-white/20 shrink-0 shadow-xl bg-slate-800"
+                  />
+                  {updatingAvatar && (
+                    <div className="absolute inset-0 bg-slate-900/70 rounded-2xl flex items-center justify-center">
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    </div>
+                  )}
+                  <button
+                    onClick={() => profileFileInputRef.current?.click()}
+                    title="Upload Custom Student Photo"
+                    className="absolute -bottom-1 -right-1 p-1.5 rounded-lg bg-brand-600 hover:bg-brand-500 text-white shadow-md border-2 border-slate-900 transition-transform active:scale-95"
+                  >
+                    <Camera size={12} />
+                  </button>
+                  <input
+                    type="file"
+                    ref={profileFileInputRef}
+                    onChange={handleProfileImageUpload}
+                    accept="image/*"
+                    className="hidden"
+                  />
+                </div>
+
                 <div>
                   <div className="flex items-center space-x-2">
                     <h2 className="text-lg sm:text-xl font-bold text-white tracking-tight">{student.fullName}</h2>
@@ -128,6 +193,39 @@ export const StudentProfileModal: React.FC<StudentProfileModalProps> = ({
                     {student.phone && <span className="flex items-center gap-1"><Phone size={12} /> {student.phone}</span>}
                     {student.parentPhone && <span className="flex items-center gap-1">Guardian: {student.parentPhone}</span>}
                   </p>
+
+                  {/* 2 Selectable Avatar Icon Quick Toggle (Male / Female) */}
+                  <div className="flex items-center gap-1.5 mt-2">
+                    <span className="text-[10px] text-slate-400 font-semibold">Avatar Icon:</span>
+                    <button
+                      type="button"
+                      onClick={() => handleUpdateProfileAvatar(MALE_STUDENT_AVATAR)}
+                      disabled={updatingAvatar}
+                      className={`px-2 py-0.5 rounded-md text-[11px] font-medium flex items-center gap-1 transition-all ${
+                        student.photo === MALE_STUDENT_AVATAR || (!student.photo && student.gender === 'Male')
+                          ? 'bg-blue-600 text-white shadow-sm ring-1 ring-blue-300 font-bold'
+                          : 'bg-white/10 hover:bg-white/20 text-slate-300'
+                      }`}
+                      title="Set Male Student Avatar Icon"
+                    >
+                      <span>👦</span>
+                      <span>Male Icon</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleUpdateProfileAvatar(FEMALE_STUDENT_AVATAR)}
+                      disabled={updatingAvatar}
+                      className={`px-2 py-0.5 rounded-md text-[11px] font-medium flex items-center gap-1 transition-all ${
+                        student.photo === FEMALE_STUDENT_AVATAR || (!student.photo && student.gender === 'Female')
+                          ? 'bg-pink-600 text-white shadow-sm ring-1 ring-pink-300 font-bold'
+                          : 'bg-white/10 hover:bg-white/20 text-slate-300'
+                      }`}
+                      title="Set Female Student Avatar Icon"
+                    >
+                      <span>👧</span>
+                      <span>Female Icon</span>
+                    </button>
+                  </div>
                 </div>
               </div>
 

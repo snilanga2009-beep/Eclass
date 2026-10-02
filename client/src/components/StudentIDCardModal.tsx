@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, Printer, Download, QrCode as QrIcon, Sparkles, Radio } from 'lucide-react';
 import { apiRequest } from '../api';
+import { getStudentAvatar } from '../utils/studentAvatars';
 
 interface StudentIDCardModalProps {
   studentId: string | null;
@@ -103,7 +104,7 @@ export const StudentIDCardModal: React.FC<StudentIDCardModalProps> = ({ studentI
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center space-x-3 mb-3">
                     <img 
-                      src={student.photo || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150"} 
+                      src={getStudentAvatar(student)} 
                       alt="" 
                       className="w-16 h-20 rounded-xl object-cover ring-2 ring-white/20 shadow-md shrink-0 bg-slate-800"
                     />

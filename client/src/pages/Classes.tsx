@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import { apiRequest, formatLKR } from '../api';
 import { Class } from '../types';
+import { getStudentAvatar } from '../utils/studentAvatars';
 
 export const ALL_GRADES = [
   { value: 'Grade 1', label: 'Grade 1', group: 'Primary (Grades 1-5)' },
@@ -537,7 +538,7 @@ export const Classes: React.FC<ClassesProps> = ({ onOpenQuickScan, onOpenStudent
                       {classDetails.students?.map((item: any) => (
                         <div key={item.enrollmentId} className="flex items-center justify-between p-3 rounded-2xl border border-slate-200 bg-white hover:border-slate-300 transition-colors">
                           <div className="flex items-center space-x-3">
-                            <img src={item.student?.photo || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=80"} alt="" className="w-8 h-8 rounded-full object-cover" />
+                            <img src={getStudentAvatar(item.student)} alt="" className="w-8 h-8 rounded-full object-cover bg-slate-100" />
                             <div>
                               <p 
                                 onClick={() => onOpenStudentProfile(item.student?.id)}

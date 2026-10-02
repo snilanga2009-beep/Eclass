@@ -3,6 +3,7 @@ import { X, CreditCard, Check, AlertCircle, DollarSign, Smartphone, CheckCircle2
 import { apiRequest, formatLKR } from '../api';
 import confetti from 'canvas-confetti';
 import { useAuth } from '../context/AuthContext';
+import { getStudentAvatar } from '../utils/studentAvatars';
 
 interface PaymentCollectModalProps {
   isOpen: boolean;
@@ -174,13 +175,11 @@ export const PaymentCollectModal: React.FC<PaymentCollectModalProps> = ({
           {(isStudentOrParent || (preselectedStudentId && !isChangingStudent)) && studentDetails ? (
             <div className="p-3.5 rounded-2xl bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200 flex items-center justify-between shadow-sm">
               <div className="flex items-center space-x-3 min-w-0">
-                {studentDetails.photo ? (
-                  <img src={studentDetails.photo} alt="" className="w-11 h-11 rounded-2xl object-cover ring-2 ring-emerald-500/30 shrink-0" />
-                ) : (
-                  <div className="w-11 h-11 rounded-2xl bg-emerald-600 text-white font-bold flex items-center justify-center text-sm shrink-0">
-                    {studentDetails.fullName?.charAt(0) || 'S'}
-                  </div>
-                )}
+                <img 
+                  src={getStudentAvatar(studentDetails)} 
+                  alt="" 
+                  className="w-11 h-11 rounded-2xl object-cover ring-2 ring-emerald-500/30 shrink-0 bg-slate-100" 
+                />
                 <div className="min-w-0">
                   <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-700 block">
                     {isStudentOrParent ? 'My Student Account' : 'Student Selected'}

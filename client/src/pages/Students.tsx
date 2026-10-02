@@ -24,13 +24,22 @@ import {
   Check,
   BookOpen,
   Clock,
-  RefreshCw
+  RefreshCw,
+  Camera,
+  Image as ImageIcon
 } from 'lucide-react';
 import { apiRequest, formatLKR, formatDate } from '../api';
 import { Student } from '../types';
 import { AssignRFIDModal } from '../components/AssignRFIDModal';
 import { EditStudentModal } from '../components/EditStudentModal';
 import { useRFIDReader } from '../utils/useRFIDReader';
+import { 
+  MALE_STUDENT_AVATAR, 
+  FEMALE_STUDENT_AVATAR, 
+  MALE_STUDENT_PHOTO, 
+  FEMALE_STUDENT_PHOTO,
+  getStudentAvatar 
+} from '../utils/studentAvatars';
 
 interface StudentsProps {
   onOpenProfile: (studentId: string) => void;
@@ -70,6 +79,7 @@ export const Students: React.FC<StudentsProps> = ({ onOpenProfile, onOpenIDCard 
     emergencyContact: '',
     notes: '',
     rfidTag: '',
+    photo: MALE_STUDENT_AVATAR,
     enrolledClassIds: [] as string[]
   });
   const [submitting, setSubmitting] = useState(false);
@@ -168,6 +178,22 @@ export const Students: React.FC<StudentsProps> = ({ onOpenProfile, onOpenIDCard 
     }
   }, [isAddModalOpen]);
 
+  const handleImageFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 4 * 1024 * 1024) {
+      setModalError('Image file is too large (maximum size 4MB)');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === 'string') {
+        setFormData(prev => ({ ...prev, photo: reader.result as string }));
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     fetchStudents();
@@ -204,6 +230,7 @@ export const Students: React.FC<StudentsProps> = ({ onOpenProfile, onOpenIDCard 
         emergencyContact: '',
         notes: '',
         rfidTag: '',
+        photo: MALE_STUDENT_AVATAR,
         enrolledClassIds: []
       });
       fetchStudents();
@@ -400,7 +427,7 @@ export const Students: React.FC<StudentsProps> = ({ onOpenProfile, onOpenIDCard 
                     <td className="py-3 px-4">
                       <div className="flex items-center space-x-3">
                         <img 
-                          src={s.photo || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=80"} 
+                          src={getStudentAvatar(s)} 
                           alt="" 
                           className="w-9 h-9 rounded-full object-cover ring-2 ring-slate-100 shrink-0"
                         />
@@ -535,7 +562,7 @@ export const Students: React.FC<StudentsProps> = ({ onOpenProfile, onOpenIDCard 
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex items-center space-x-3 min-w-0">
                     <img 
-                      src={s.photo || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=80"} 
+                      src={getStudentAvatar(s)} 
                       alt="" 
                       className="w-12 h-12 rounded-2xl object-cover ring-2 ring-slate-100 shrink-0"
                     />
@@ -655,6 +682,127 @@ export const Students: React.FC<StudentsProps> = ({ onOpenProfile, onOpenIDCard 
                 </div>
               )}
 
+              {/* Profile Image & Avatar Icon Selector */}
+              <div className="p-4 rounded-2xl bg-gradient-to-r from-slate-50 via-indigo-50/40 to-slate-50 border border-slate-200/80 space-y-3">
+                <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wider">
+                  Student Profile Image &amp; Avatar Icon
+                </label>
+
+                <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4">
+                  {/* Current Preview */}
+                  <div className="relative shrink-0">
+                    <div className="w-20 h-20 rounded-2xl overflow-hidden ring-4 ring-white shadow-md bg-white border border-slate-200 flex items-center justify-center">
+                      <img
+                        src={formData.photo || (formData.gender === 'Female' ? FEMALE_STUDENT_AVATAR : MALE_STUDENT_AVATAR)}
+                        alt="Preview"
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                    <span className="absolute -bottom-1 -right-1 px-1.5 py-0.5 rounded-full bg-emerald-600 text-white text-[9px] font-bold shadow">
+                      Selected
+                    </span>
+                  </div>
+
+                  {/* 2 Type Image Icon Selectors & Upload */}
+                  <div className="flex-1 space-y-2.5 w-full">
+                    <div className="flex items-center gap-2">
+                      <span className="text-[11px] font-bold text-slate-500">Choose Profile Icon:</span>
+                    </div>
+
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                      {/* 1. Male Student Icon */}
+                      <button
+                        type="button"
+                        onClick={() => setFormData({ ...formData, photo: MALE_STUDENT_AVATAR, gender: 'Male' })}
+                        className={`p-2 rounded-xl border flex items-center space-x-2 transition-all ${
+                          formData.photo === MALE_STUDENT_AVATAR || (!formData.photo && formData.gender === 'Male')
+                            ? 'bg-blue-50 border-blue-500 text-blue-900 ring-2 ring-blue-400 font-bold shadow-sm'
+                            : 'bg-white hover:bg-slate-50 border-slate-200 text-slate-700'
+                        }`}
+                      >
+                        <img src={MALE_STUDENT_AVATAR} alt="" className="w-7 h-7 rounded-lg object-cover shrink-0" />
+                        <div className="text-left min-w-0">
+                          <p className="text-[11px] leading-tight truncate">Male Icon</p>
+                          <p className="text-[9px] text-blue-600 font-bold">Boy Student</p>
+                        </div>
+                      </button>
+
+                      {/* 2. Female Student Icon */}
+                      <button
+                        type="button"
+                        onClick={() => setFormData({ ...formData, photo: FEMALE_STUDENT_AVATAR, gender: 'Female' })}
+                        className={`p-2 rounded-xl border flex items-center space-x-2 transition-all ${
+                          formData.photo === FEMALE_STUDENT_AVATAR || (!formData.photo && formData.gender === 'Female')
+                            ? 'bg-pink-50 border-pink-500 text-pink-900 ring-2 ring-pink-400 font-bold shadow-sm'
+                            : 'bg-white hover:bg-slate-50 border-slate-200 text-slate-700'
+                        }`}
+                      >
+                        <img src={FEMALE_STUDENT_AVATAR} alt="" className="w-7 h-7 rounded-lg object-cover shrink-0" />
+                        <div className="text-left min-w-0">
+                          <p className="text-[11px] leading-tight truncate">Female Icon</p>
+                          <p className="text-[9px] text-pink-600 font-bold">Girl Student</p>
+                        </div>
+                      </button>
+
+                      {/* 3. Male Photo */}
+                      <button
+                        type="button"
+                        onClick={() => setFormData({ ...formData, photo: MALE_STUDENT_PHOTO, gender: 'Male' })}
+                        className={`p-2 rounded-xl border flex items-center space-x-2 transition-all ${
+                          formData.photo === MALE_STUDENT_PHOTO
+                            ? 'bg-indigo-50 border-indigo-500 text-indigo-900 ring-2 ring-indigo-400 font-bold shadow-sm'
+                            : 'bg-white hover:bg-slate-50 border-slate-200 text-slate-700'
+                        }`}
+                      >
+                        <img src={MALE_STUDENT_PHOTO} alt="" className="w-7 h-7 rounded-lg object-cover shrink-0" />
+                        <div className="text-left min-w-0">
+                          <p className="text-[11px] leading-tight truncate">Male Photo</p>
+                          <p className="text-[9px] text-slate-500">Boy Portrait</p>
+                        </div>
+                      </button>
+
+                      {/* 4. Female Photo */}
+                      <button
+                        type="button"
+                        onClick={() => setFormData({ ...formData, photo: FEMALE_STUDENT_PHOTO, gender: 'Female' })}
+                        className={`p-2 rounded-xl border flex items-center space-x-2 transition-all ${
+                          formData.photo === FEMALE_STUDENT_PHOTO
+                            ? 'bg-purple-50 border-purple-500 text-purple-900 ring-2 ring-purple-400 font-bold shadow-sm'
+                            : 'bg-white hover:bg-slate-50 border-slate-200 text-slate-700'
+                        }`}
+                      >
+                        <img src={FEMALE_STUDENT_PHOTO} alt="" className="w-7 h-7 rounded-lg object-cover shrink-0" />
+                        <div className="text-left min-w-0">
+                          <p className="text-[11px] leading-tight truncate">Female Photo</p>
+                          <p className="text-[9px] text-slate-500">Girl Portrait</p>
+                        </div>
+                      </button>
+                    </div>
+
+                    {/* Upload or Custom URL */}
+                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 pt-1">
+                      <label className="px-3 py-1.5 rounded-xl bg-white hover:bg-slate-50 border border-slate-300 text-slate-700 text-xs font-semibold flex items-center justify-center gap-1.5 cursor-pointer shadow-sm">
+                        <Camera size={13} className="text-brand-600" />
+                        <span>Upload Custom Photo</span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={handleImageFileUpload}
+                          className="hidden"
+                        />
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="Or paste external photo URL..."
+                        value={formData.photo}
+                        onChange={(e) => setFormData({ ...formData, photo: e.target.value })}
+                        className="flex-1 px-3 py-1.5 rounded-xl border border-slate-300 text-[11px] bg-white font-mono"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="sm:col-span-2">
                   <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Full Name *</label>
@@ -703,7 +851,14 @@ export const Students: React.FC<StudentsProps> = ({ onOpenProfile, onOpenIDCard 
                   <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Gender</label>
                   <select
                     value={formData.gender}
-                    onChange={(e) => setFormData({ ...formData, gender: e.target.value })}
+                    onChange={(e) => {
+                      const newGender = e.target.value;
+                      let newPhoto = formData.photo;
+                      if (!newPhoto || newPhoto === MALE_STUDENT_AVATAR || newPhoto === FEMALE_STUDENT_AVATAR) {
+                        newPhoto = newGender === 'Female' ? FEMALE_STUDENT_AVATAR : MALE_STUDENT_AVATAR;
+                      }
+                      setFormData({ ...formData, gender: newGender, photo: newPhoto });
+                    }}
                     className="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-xs bg-white"
                   >
                     <option value="Male">Male</option>

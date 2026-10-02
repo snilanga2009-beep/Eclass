@@ -27,6 +27,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { apiRequest, formatLKR, formatDate } from '../api';
+import { getStudentAvatar } from '../utils/studentAvatars';
 
 interface ParentPortalProps {
   onOpenReceipt: (receiptNo: string) => void;
@@ -677,9 +678,9 @@ export const ParentPortal: React.FC<ParentPortalProps> = ({ onOpenReceipt, onOpe
               <div className="max-w-md mx-auto p-6 rounded-3xl bg-white border border-slate-200 shadow-xl text-center space-y-4">
                 <div className="w-16 h-16 rounded-full bg-gradient-to-tr from-teal-500 to-indigo-600 p-[2px] mx-auto shadow-md shadow-teal-500/20">
                   <img
-                    src={childData.photo || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150'}
+                    src={getStudentAvatar(childData)}
                     alt={childData.fullName}
-                    className="w-full h-full object-cover rounded-full"
+                    className="w-full h-full object-cover rounded-full bg-slate-100"
                   />
                 </div>
 

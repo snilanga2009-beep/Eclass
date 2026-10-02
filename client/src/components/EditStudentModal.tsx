@@ -10,11 +10,20 @@ import {
   Radio, 
   Shield, 
   Smartphone,
-  Check
+  Check,
+  Camera,
+  Image as ImageIcon
 } from 'lucide-react';
 import { useRFIDReader } from '../utils/useRFIDReader';
 import { apiRequest } from '../api';
 import { Student } from '../types';
+import { 
+  MALE_STUDENT_AVATAR, 
+  FEMALE_STUDENT_AVATAR, 
+  MALE_STUDENT_PHOTO, 
+  FEMALE_STUDENT_PHOTO,
+  getStudentAvatar 
+} from '../utils/studentAvatars';
 
 interface EditStudentModalProps {
   student: Student | null;
@@ -54,6 +63,7 @@ export const EditStudentModal: React.FC<EditStudentModalProps> = ({
     status: 'ACTIVE' as 'ACTIVE' | 'INACTIVE' | 'SUSPENDED' | 'ALUMNI',
     notes: '',
     rfidTag: '',
+    photo: '',
     resendParentPortalLink: false
   });
 
@@ -81,12 +91,29 @@ export const EditStudentModal: React.FC<EditStudentModalProps> = ({
         status: (student.status || 'ACTIVE') as any,
         notes: student.notes || '',
         rfidTag: student.rfidTag || '',
+        photo: student.photo || '',
         resendParentPortalLink: false
       });
       setError(null);
       setSuccessNotice(null);
     }
   }, [student, isOpen]);
+
+  const handleImageFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 4 * 1024 * 1024) {
+      setError('Image file is too large (maximum size 4MB)');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === 'string') {
+        setFormData(prev => ({ ...prev, photo: reader.result as string }));
+      }
+    };
+    reader.readAsDataURL(file);
+  };
 
   // Live RFID reader support: if staff taps an RFID card while this modal is open
   useRFIDReader({
@@ -183,6 +210,127 @@ export const EditStudentModal: React.FC<EditStudentModalProps> = ({
               <span>{successNotice}</span>
             </div>
           )}
+
+          {/* Profile Photo / Avatar Selector */}
+          <div className="p-4 rounded-2xl bg-gradient-to-r from-slate-50 via-indigo-50/40 to-slate-50 border border-slate-200/80 space-y-3">
+            <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wider">
+              Student Profile Image &amp; Avatar Icon
+            </label>
+
+            <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4">
+              {/* Current Preview */}
+              <div className="relative shrink-0">
+                <div className="w-20 h-20 rounded-2xl overflow-hidden ring-4 ring-white shadow-md bg-white border border-slate-200 flex items-center justify-center">
+                  <img
+                    src={formData.photo || (formData.gender === 'Female' ? FEMALE_STUDENT_AVATAR : MALE_STUDENT_AVATAR)}
+                    alt="Preview"
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+                <span className="absolute -bottom-1 -right-1 px-1.5 py-0.5 rounded-full bg-emerald-600 text-white text-[9px] font-bold shadow">
+                  Active
+                </span>
+              </div>
+
+              {/* 2 Type Image Icon Selectors & Upload */}
+              <div className="flex-1 space-y-2.5 w-full">
+                <div className="flex items-center gap-2">
+                  <span className="text-[11px] font-bold text-slate-500">Preset Avatar Icons:</span>
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  {/* 1. Male Student Icon */}
+                  <button
+                    type="button"
+                    onClick={() => setFormData({ ...formData, photo: MALE_STUDENT_AVATAR, gender: 'Male' })}
+                    className={`p-2 rounded-xl border flex items-center space-x-2 transition-all ${
+                      formData.photo === MALE_STUDENT_AVATAR || (!formData.photo && formData.gender === 'Male')
+                        ? 'bg-blue-50 border-blue-500 text-blue-900 ring-2 ring-blue-400 font-bold shadow-sm'
+                        : 'bg-white hover:bg-slate-50 border-slate-200 text-slate-700'
+                    }`}
+                  >
+                    <img src={MALE_STUDENT_AVATAR} alt="" className="w-7 h-7 rounded-lg object-cover shrink-0" />
+                    <div className="text-left min-w-0">
+                      <p className="text-[11px] leading-tight truncate">Male Icon</p>
+                      <p className="text-[9px] text-blue-600 font-bold">Boy Student</p>
+                    </div>
+                  </button>
+
+                  {/* 2. Female Student Icon */}
+                  <button
+                    type="button"
+                    onClick={() => setFormData({ ...formData, photo: FEMALE_STUDENT_AVATAR, gender: 'Female' })}
+                    className={`p-2 rounded-xl border flex items-center space-x-2 transition-all ${
+                      formData.photo === FEMALE_STUDENT_AVATAR || (!formData.photo && formData.gender === 'Female')
+                        ? 'bg-pink-50 border-pink-500 text-pink-900 ring-2 ring-pink-400 font-bold shadow-sm'
+                        : 'bg-white hover:bg-slate-50 border-slate-200 text-slate-700'
+                    }`}
+                  >
+                    <img src={FEMALE_STUDENT_AVATAR} alt="" className="w-7 h-7 rounded-lg object-cover shrink-0" />
+                    <div className="text-left min-w-0">
+                      <p className="text-[11px] leading-tight truncate">Female Icon</p>
+                      <p className="text-[9px] text-pink-600 font-bold">Girl Student</p>
+                    </div>
+                  </button>
+
+                  {/* 3. Male Photo */}
+                  <button
+                    type="button"
+                    onClick={() => setFormData({ ...formData, photo: MALE_STUDENT_PHOTO, gender: 'Male' })}
+                    className={`p-2 rounded-xl border flex items-center space-x-2 transition-all ${
+                      formData.photo === MALE_STUDENT_PHOTO
+                        ? 'bg-indigo-50 border-indigo-500 text-indigo-900 ring-2 ring-indigo-400 font-bold shadow-sm'
+                        : 'bg-white hover:bg-slate-50 border-slate-200 text-slate-700'
+                    }`}
+                  >
+                    <img src={MALE_STUDENT_PHOTO} alt="" className="w-7 h-7 rounded-lg object-cover shrink-0" />
+                    <div className="text-left min-w-0">
+                      <p className="text-[11px] leading-tight truncate">Male Photo</p>
+                      <p className="text-[9px] text-slate-500">Boy Portrait</p>
+                    </div>
+                  </button>
+
+                  {/* 4. Female Photo */}
+                  <button
+                    type="button"
+                    onClick={() => setFormData({ ...formData, photo: FEMALE_STUDENT_PHOTO, gender: 'Female' })}
+                    className={`p-2 rounded-xl border flex items-center space-x-2 transition-all ${
+                      formData.photo === FEMALE_STUDENT_PHOTO
+                        ? 'bg-purple-50 border-purple-500 text-purple-900 ring-2 ring-purple-400 font-bold shadow-sm'
+                        : 'bg-white hover:bg-slate-50 border-slate-200 text-slate-700'
+                    }`}
+                  >
+                    <img src={FEMALE_STUDENT_PHOTO} alt="" className="w-7 h-7 rounded-lg object-cover shrink-0" />
+                    <div className="text-left min-w-0">
+                      <p className="text-[11px] leading-tight truncate">Female Photo</p>
+                      <p className="text-[9px] text-slate-500">Girl Portrait</p>
+                    </div>
+                  </button>
+                </div>
+
+                {/* Upload or Custom URL */}
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 pt-1">
+                  <label className="px-3 py-1.5 rounded-xl bg-white hover:bg-slate-50 border border-slate-300 text-slate-700 text-xs font-semibold flex items-center justify-center gap-1.5 cursor-pointer shadow-sm">
+                    <Camera size={13} className="text-brand-600" />
+                    <span>Upload Custom Photo</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImageFileUpload}
+                      className="hidden"
+                    />
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Or paste external photo URL..."
+                    value={formData.photo}
+                    onChange={(e) => setFormData({ ...formData, photo: e.target.value })}
+                    className="flex-1 px-3 py-1.5 rounded-xl border border-slate-300 text-[11px] bg-white font-mono"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
 
           {/* Section 1: Basic Student Info */}
           <div>
