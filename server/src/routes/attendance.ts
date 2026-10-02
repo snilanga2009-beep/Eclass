@@ -509,4 +509,151 @@ router.post(['/sync', '/sync-offline'], authenticateToken, async (req: AuthReque
   }
 });
 
+// GET /api/attendance/today-roster - Comprehensive Attendance Roster with Class breakdown & Fee status
+router.get(['/today-roster', '/roster'], authenticateToken, async (req: AuthRequest, res: Response) => {
+  try {
+    const today = new Date().toISOString().substring(0, 10);
+    const allAttendanceDates = Array.from(new Set(db.data.attendances.map(a => a.date))).sort().reverse();
+    const queryDate = req.query.date ? String(req.query.date) : null;
+    
+    // Target date: requested date, or today if attendances exist today, or latest session date
+    let targetDate = queryDate || (db.data.attendances.some(a => a.date === today) ? today : (allAttendanceDates[0] || today));
+    const targetClassId = req.query.classId ? String(req.query.classId) : null;
+
+    let dayAttendances = db.data.attendances.filter(a => a.date === targetDate);
+
+    // If teacher, filter to their classes
+    if (req.user?.role === 'TEACHER' && req.user.teacherId) {
+      const teacherClassIds = db.data.classes.filter(c => c.teacherId === req.user!.teacherId).map(c => c.id);
+      dayAttendances = dayAttendances.filter(a => teacherClassIds.includes(a.classId));
+    }
+
+    // Filter by classId if specified
+    if (targetClassId && targetClassId !== 'ALL') {
+      dayAttendances = dayAttendances.filter(a => a.classId === targetClassId);
+    }
+
+    const currentMonth = targetDate.substring(0, 7);
+
+    // Map each attendance to comprehensive student & class & fee details
+    const roster = dayAttendances.map(att => {
+      const student = db.data.students.find(s => s.id === att.studentId);
+      const cls = db.data.classes.find(c => c.id === att.classId);
+      const subject = cls ? db.data.subjects.find(s => s.id === cls.subjectId) : null;
+      const teacher = cls ? db.data.teachers.find(t => t.id === cls.teacherId) : null;
+      
+      // Look up fee record for this student & class for the month
+      const feeRecord = db.data.feeRecords.find(f => 
+        f.studentId === att.studentId && 
+        f.classId === att.classId && 
+        f.month === currentMonth
+      );
+
+      const hasPendingFees = feeRecord ? feeRecord.remainingBalance > 0 : false;
+      const remainingBalance = feeRecord ? feeRecord.remainingBalance : 0;
+      const feeStatus = feeRecord ? feeRecord.status : 'PAID';
+
+      return {
+        id: att.id,
+        attendanceId: att.id,
+        studentId: att.studentId,
+        studentName: student?.fullName || 'Unknown Student',
+        studentIdNumber: student?.studentIdNumber || 'N/A',
+        studentPhoto: student?.photo || '',
+        studentGrade: student?.grade || 'General',
+        studentSchool: student?.school || '',
+        parentName: student?.parentName || '',
+        parentPhone: student?.parentPhone || '',
+        classId: att.classId,
+        className: cls?.name || 'Class',
+        classCode: cls?.classCode || '',
+        hall: cls?.hall || 'Hall A',
+        startTime: cls?.startTime || '',
+        endTime: cls?.endTime || '',
+        dayOfWeek: cls?.dayOfWeek || '',
+        subjectName: subject?.name || cls?.name || '',
+        subjectCode: subject?.code || '',
+        teacherId: teacher?.id || '',
+        teacherName: teacher?.name || 'Instructor',
+        teacherPhoto: teacher?.photo || '',
+        date: att.date,
+        status: att.status, // 'PRESENT' | 'LATE'
+        scannedAt: att.scannedAt,
+        method: att.method || 'QR_CODE', // 'QR_CODE' | 'BARCODE' | 'RFID' | 'MANUAL'
+        recordedBy: att.recordedBy || 'Staff',
+        feeInfo: {
+          feeRecordId: feeRecord?.id,
+          month: currentMonth,
+          hasPendingFees,
+          remainingBalance,
+          status: feeStatus,
+          monthlyFee: cls?.monthlyFee || 0
+        }
+      };
+    }).sort((a, b) => new Date(b.scannedAt).getTime() - new Date(a.scannedAt).getTime());
+
+    // Calculate detailed analytics for this date
+    const presentCount = roster.filter(r => r.status === 'PRESENT').length;
+    const lateCount = roster.filter(r => r.status === 'LATE').length;
+    const totalAttended = roster.length;
+    const onTimeRate = totalAttended > 0 ? Math.round((presentCount / totalAttended) * 100) : 100;
+    
+    const feesPaidCount = roster.filter(r => !r.feeInfo.hasPendingFees).length;
+    const feesPendingCount = roster.filter(r => r.feeInfo.hasPendingFees).length;
+    const feesPendingAmount = roster.reduce((sum, r) => sum + (r.feeInfo.remainingBalance || 0), 0);
+
+    const methodsBreakdown = {
+      QR_CODE: roster.filter(r => r.method === 'QR_CODE').length,
+      BARCODE: roster.filter(r => r.method === 'BARCODE').length,
+      RFID: roster.filter(r => r.method === 'RFID').length,
+      MANUAL: roster.filter(r => r.method === 'MANUAL').length
+    };
+
+    // Extract unique classes with student counts from this day's attendance
+    const attendedClassMap = new Map<string, { id: string; name: string; classCode: string; count: number; teacherName: string; hall: string; startTime: string; endTime: string }>();
+    dayAttendances.forEach(a => {
+      const cls = db.data.classes.find(c => c.id === a.classId);
+      const teacher = cls ? db.data.teachers.find(t => t.id === cls.teacherId) : null;
+      if (cls) {
+        if (!attendedClassMap.has(cls.id)) {
+          attendedClassMap.set(cls.id, {
+            id: cls.id,
+            name: cls.name,
+            classCode: cls.classCode || '',
+            count: 0,
+            teacherName: teacher?.name || '',
+            hall: cls.hall || 'Main Hall',
+            startTime: cls.startTime || '',
+            endTime: cls.endTime || ''
+          });
+        }
+        attendedClassMap.get(cls.id)!.count++;
+      }
+    });
+
+    const attendedClasses = Array.from(attendedClassMap.values());
+
+    return res.json({
+      targetDate,
+      isToday: targetDate === today,
+      allAttendanceDates,
+      roster,
+      stats: {
+        totalAttended,
+        presentCount,
+        lateCount,
+        onTimeRate,
+        uniqueClassesCount: attendedClasses.length,
+        feesPaidCount,
+        feesPendingCount,
+        feesPendingAmount,
+        methodsBreakdown
+      },
+      attendedClasses
+    });
+  } catch (error) {
+    return res.status(500).json({ error: 'Failed to fetch attendance roster' });
+  }
+});
+
 export default router;

@@ -408,12 +408,14 @@ export const Dashboard: React.FC<DashboardProps> = ({
                   <span>Scan QR / RFID</span>
                 </button>
 
-                {/* Open Attendance Tab */}
+                {/* Open Attendance Roster Tab */}
                 <button
-                  onClick={() => onNavigate('attendance')}
-                  className="px-3.5 py-1.5 rounded-2xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs transition-all shadow-sm flex items-center space-x-1"
+                  onClick={() => onNavigate('attendance-roster')}
+                  className="px-3.5 py-1.5 rounded-2xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs transition-all shadow-sm flex items-center space-x-1.5"
+                  title="Open Today's Attendance Roster & Attended Classes"
                 >
-                  <span>Attendance Desk</span>
+                  <Sparkles size={13} className="text-emerald-400" />
+                  <span>Attended Roster</span>
                   <ChevronRight size={14} />
                 </button>
               </div>

@@ -201,6 +201,14 @@ export const App: React.FC = () => {
             />
           )}
 
+          {currentTab === 'attendance-roster' && (
+            <Attendance 
+              initialMode="ROSTER"
+              onOpenStudentProfile={(id) => setActiveProfileStudentId(id)}
+              onOpenPaymentModal={(stuId, feeId) => handleOpenPayFee(stuId, feeId)}
+            />
+          )}
+
           {currentTab === 'daily-earnings' && (
             <DailyEarnings 
               onOpenReceipt={(r) => setActiveReceiptNumber(r)}

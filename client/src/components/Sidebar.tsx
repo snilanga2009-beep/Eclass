@@ -99,6 +99,17 @@ export const Sidebar: React.FC<SidebarProps> = ({
       badgeColor: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
     },
     { 
+      id: 'attendance-roster', 
+      label: "Today's Attended Roster", 
+      icon: Users, 
+      roles: ['SUPER_ADMIN', 'ADMIN', 'TEACHER', 'RECEPTIONIST'], 
+      category: 'ACADEMICS',
+      gradient: 'from-emerald-500 to-teal-600',
+      glow: 'shadow-emerald-500/25',
+      badge: 'ROSTER',
+      badgeColor: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
+    },
+    { 
       id: 'teachers', 
       label: 'Faculty & Teachers', 
       icon: GraduationCap, 
