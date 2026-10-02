@@ -12,11 +12,12 @@ import {
   ChevronDown,
   LogOut,
   ShieldCheck,
-  Key
+  Key,
+  RefreshCw
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { UserRole } from '../types';
-import { apiRequest } from '../api';
+import { apiRequest, clearAppCache } from '../api';
 import { RolePermissionsModal } from './RolePermissionsModal';
 import { ChangePasswordModal } from './ChangePasswordModal';
 
@@ -39,6 +40,19 @@ export const Header: React.FC<HeaderProps> = ({
   const [isRoleGuideOpen, setIsRoleGuideOpen] = useState(false);
   const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const [clearingCache, setClearingCache] = useState(false);
+
+  const handleClearCache = async () => {
+    setClearingCache(true);
+    try {
+      const res = await clearAppCache();
+      alert(res.message || 'Cache cleared and data synchronized!');
+    } catch (err: any) {
+      alert(err.message || 'Failed to clear cache');
+    } finally {
+      setClearingCache(false);
+    }
+  };
 
   const availableRoles: { role: UserRole; label: string; desc: string; color: string }[] = [
     { role: 'SUPER_ADMIN', label: 'Super Admin', desc: 'Full system privileges & configuration', color: 'bg-purple-500' },
@@ -121,6 +135,17 @@ export const Header: React.FC<HeaderProps> = ({
             >
               <CreditCard size={15} />
               <span>Collect Fee</span>
+            </button>
+
+            {/* Clear Cache & Resync Button */}
+            <button
+              onClick={handleClearCache}
+              disabled={clearingCache}
+              className="hidden sm:flex items-center space-x-1 px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold transition-all shadow-sm active:scale-95"
+              title="Clear Server Cache & Resync Data"
+            >
+              <RefreshCw size={13} className={clearingCache ? 'animate-spin text-brand-600' : 'text-slate-500'} />
+              <span className="hidden xl:inline">{clearingCache ? 'Syncing...' : 'Clear Cache'}</span>
             </button>
           </>
         )}

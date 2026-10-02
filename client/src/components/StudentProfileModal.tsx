@@ -59,7 +59,25 @@ export const StudentProfileModal: React.FC<StudentProfileModalProps> = ({
   const [sendingParentLink, setSendingParentLink] = useState(false);
   const [parentLinkSuccess, setParentLinkSuccess] = useState<{ url: string; msg: string } | null>(null);
   const [updatingAvatar, setUpdatingAvatar] = useState(false);
+  const [updatingStatus, setUpdatingStatus] = useState(false);
   const profileFileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleToggleStatus = async () => {
+    if (!student?.id || updatingStatus) return;
+    const nextStatus = student.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';
+    setUpdatingStatus(true);
+    try {
+      await apiRequest(`/students/${student.id}`, {
+        method: 'PUT',
+        body: JSON.stringify({ status: nextStatus })
+      });
+      setStudent((prev: any) => ({ ...prev, status: nextStatus }));
+    } catch (err: any) {
+      alert(err.message || 'Failed to update student status');
+    } finally {
+      setUpdatingStatus(false);
+    }
+  };
 
   const handleUpdateProfileAvatar = async (newPhoto: string) => {
     if (!student?.id) return;
@@ -210,9 +228,23 @@ export const StudentProfileModal: React.FC<StudentProfileModalProps> = ({
                 <div>
                   <div className="flex items-center space-x-2">
                     <h2 className="text-lg sm:text-xl font-bold text-white tracking-tight">{student.fullName}</h2>
-                    <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[10px] font-bold">
-                      {student.status}
-                    </span>
+                    <button
+                      type="button"
+                      onClick={handleToggleStatus}
+                      disabled={updatingStatus}
+                      title="Click to toggle Active / Inactive status"
+                      className={`px-2.5 py-0.5 rounded-full text-[11px] font-bold border transition-all flex items-center gap-1.5 cursor-pointer shadow-sm ${
+                        student.status === 'ACTIVE'
+                          ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40 hover:bg-emerald-500/30'
+                          : 'bg-rose-500/20 text-rose-300 border-rose-500/40 hover:bg-rose-500/30'
+                      }`}
+                    >
+                      <span className={`w-2 h-2 rounded-full ${student.status === 'ACTIVE' ? 'bg-emerald-400 animate-pulse' : 'bg-rose-400'}`}></span>
+                      <span>{student.status === 'ACTIVE' ? 'Active' : 'Inactive'}</span>
+                      <span className="text-[10px] opacity-75 font-normal underline ml-0.5">
+                        {updatingStatus ? 'Saving...' : 'Switch'}
+                      </span>
+                    </button>
                   </div>
                   <p className="text-xs text-brand-300 font-mono font-medium mt-0.5">
                     {student.studentIdNumber} • {student.grade} • {student.school || 'Private Candidate'}
@@ -359,6 +391,23 @@ export const StudentProfileModal: React.FC<StudentProfileModalProps> = ({
                         <div>
                           <span className="text-slate-400 block text-[11px]">Registered Date</span>
                           <span className="font-semibold text-slate-800">{formatDate(student.registrationDate)}</span>
+                        </div>
+                        <div>
+                          <span className="text-slate-400 block text-[11px]">Enrollment Status</span>
+                          <button
+                            type="button"
+                            onClick={handleToggleStatus}
+                            disabled={updatingStatus}
+                            className={`mt-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold border flex items-center gap-1.5 transition-all ${
+                              student.status === 'ACTIVE'
+                                ? 'bg-emerald-50 text-emerald-700 border-emerald-300 hover:bg-emerald-100'
+                                : 'bg-rose-50 text-rose-700 border-rose-300 hover:bg-rose-100'
+                            }`}
+                          >
+                            <span className={`w-2 h-2 rounded-full ${student.status === 'ACTIVE' ? 'bg-emerald-500' : 'bg-rose-500'}`}></span>
+                            <span>{student.status === 'ACTIVE' ? 'Active' : 'Inactive'}</span>
+                            <span className="text-[10px] text-slate-500 font-normal">({updatingStatus ? 'Updating...' : 'Toggle'})</span>
+                          </button>
                         </div>
                         <div className="col-span-2 pt-1 border-t border-slate-100 flex items-center justify-between">
                           <div>

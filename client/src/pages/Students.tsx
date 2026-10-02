@@ -199,6 +199,20 @@ export const Students: React.FC<StudentsProps> = ({ onOpenProfile, onOpenIDCard 
     fetchStudents();
   };
 
+  const handleToggleStudentStatus = async (s: Student, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    const nextStatus = s.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';
+    try {
+      const updated = await apiRequest<Student>(`/students/${s.id}`, {
+        method: 'PUT',
+        body: JSON.stringify({ status: nextStatus })
+      });
+      setStudents(prev => prev.map(item => item.id === s.id ? { ...item, status: updated.status || nextStatus } : item));
+    } catch (err: any) {
+      alert(err.message || 'Failed to update student status');
+    }
+  };
+
   const handleAddSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setModalError(null);
@@ -490,11 +504,19 @@ export const Students: React.FC<StudentsProps> = ({ onOpenProfile, onOpenIDCard 
                     </td>
 
                     <td className="py-3 px-4">
-                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                        s.status === 'ACTIVE' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-slate-100 text-slate-500'
-                      }`}>
-                        {s.status}
-                      </span>
+                      <button
+                        type="button"
+                        onClick={(e) => handleToggleStudentStatus(s, e)}
+                        title="Click to toggle Active / Inactive status"
+                        className={`px-2 py-0.5 rounded-full text-[10px] font-bold border transition-all cursor-pointer flex items-center gap-1 ${
+                          s.status === 'ACTIVE'
+                            ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100'
+                            : 'bg-rose-50 text-rose-700 border-rose-200 hover:bg-rose-100'
+                        }`}
+                      >
+                        <span className={`w-1.5 h-1.5 rounded-full ${s.status === 'ACTIVE' ? 'bg-emerald-500' : 'bg-rose-500'}`}></span>
+                        <span>{s.status}</span>
+                      </button>
                     </td>
 
                     <td className="py-3 px-4 text-right">
@@ -591,11 +613,19 @@ export const Students: React.FC<StudentsProps> = ({ onOpenProfile, onOpenIDCard 
                         <span className="px-2 py-0.5 rounded-lg bg-indigo-50 text-indigo-700 text-[10px] font-bold border border-indigo-200/60">
                           {s.grade}
                         </span>
-                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                          s.status === 'ACTIVE' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-slate-100 text-slate-500'
-                        }`}>
-                          {s.status}
-                        </span>
+                        <button
+                          type="button"
+                          onClick={(e) => handleToggleStudentStatus(s, e)}
+                          title="Click to toggle Active / Inactive status"
+                          className={`px-2 py-0.5 rounded-full text-[10px] font-bold border transition-all cursor-pointer flex items-center gap-1 ${
+                            s.status === 'ACTIVE'
+                              ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100'
+                              : 'bg-rose-50 text-rose-700 border-rose-200 hover:bg-rose-100'
+                          }`}
+                        >
+                          <span className={`w-1.5 h-1.5 rounded-full ${s.status === 'ACTIVE' ? 'bg-emerald-500' : 'bg-rose-500'}`}></span>
+                          <span>{s.status}</span>
+                        </button>
                       </div>
                     </div>
                   </div>

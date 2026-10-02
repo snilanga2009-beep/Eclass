@@ -10,9 +10,9 @@ import db, {
 export async function seedDatabase() {
   console.log('--- Initializing CAMS Database Seeding ---');
 
-  // Check if data already exists
-  if (db.data.students.length >= 50 && db.data.users.length >= 7) {
-    console.log('Database already has rich sample data. Skipping seed.');
+  // Never overwrite if database already has users or students!
+  if ((db.data.users && db.data.users.length > 0) || (db.data.students && db.data.students.length > 0)) {
+    console.log(`Database already has active data (${db.data.students?.length || 0} students, ${db.data.users?.length || 0} users). Preserving database - skipping seed.`);
     return;
   }
 

@@ -32,11 +32,20 @@ app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
+// Aggressive Cache-Control Header: Prevent browsers and proxies from serving stale data
+app.use((req, res, next) => {
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
+  res.setHeader('Surrogate-Control', 'no-store');
+  next();
+});
+
 // Ensure database is initialized with default users/roles in serverless environments (e.g. Vercel)
 let initPromise: Promise<void> | null = null;
 app.use(async (req, res, next) => {
   try {
-    if (!db.data.users || db.data.users.length < 5) {
+    if ((!db.data.users || db.data.users.length === 0) && (!db.data.students || db.data.students.length === 0)) {
       if (!initPromise) {
         initPromise = seedDatabase().catch(err => {
           console.error('[DB Init Error]:', err);
@@ -49,6 +58,28 @@ app.use(async (req, res, next) => {
     console.error('Database initialization error:', err);
   }
   next();
+});
+
+// Cache clearing & database synchronization endpoint
+app.all(['/api/clear-cache', '/clear-cache', '/api/settings/clear-cache'], (req, res) => {
+  try {
+    db.reload();
+    return res.json({
+      success: true,
+      message: 'Server cache cleared and database reloaded from disk.',
+      timestamp: new Date().toISOString(),
+      counts: {
+        students: db.data.students.length,
+        classes: db.data.classes.length,
+        attendances: db.data.attendances.length,
+        payments: db.data.payments.length,
+        feeRecords: db.data.feeRecords.length,
+        users: db.data.users.length
+      }
+    });
+  } catch (err: any) {
+    return res.status(500).json({ error: 'Failed to reload database: ' + err.message });
+  }
 });
 
 // Static files for uploaded materials / photos

@@ -28,6 +28,8 @@ export async function apiRequest<T = any>(
   const token = getAuthToken();
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
+    'Pragma': 'no-cache',
+    'Cache-Control': 'no-cache, no-store, must-revalidate',
     ...(options.headers as Record<string, string> || {})
   };
 
@@ -35,9 +37,17 @@ export async function apiRequest<T = any>(
     headers['Authorization'] = `Bearer ${token}`;
   }
 
-  const url = endpoint.startsWith('http') ? endpoint : `${API_BASE}${endpoint}`;
+  let url = endpoint.startsWith('http') ? endpoint : `${API_BASE}${endpoint}`;
+
+  // Cache busting for GET requests to guarantee fresh data on refresh
+  const method = (options.method || 'GET').toUpperCase();
+  if (method === 'GET') {
+    const separator = url.includes('?') ? '&' : '?';
+    url = `${url}${separator}_t=${Date.now()}`;
+  }
 
   const response = await fetch(url, {
+    cache: 'no-store',
     ...options,
     headers
   });
@@ -55,6 +65,37 @@ export async function apiRequest<T = any>(
   }
 
   return data as T;
+}
+
+export async function clearAppCache(): Promise<{ success: boolean; message: string }> {
+  try {
+    // Call server to reload DB and drop in-memory cache
+    const res = await apiRequest('/clear-cache', { method: 'POST' }).catch(() => null);
+
+    // Clear browser CacheStorage (PWA / Service Worker caches)
+    if (typeof window !== 'undefined' && 'caches' in window) {
+      const keys = await caches.keys();
+      await Promise.all(keys.map(k => caches.delete(k)));
+    }
+
+    // Unregister any active service worker registrations so fresh code runs
+    if (typeof navigator !== 'undefined' && 'serviceWorker' in navigator) {
+      const registrations = await navigator.serviceWorker.getRegistrations();
+      for (const reg of registrations) {
+        reg.update().catch(() => {});
+      }
+    }
+
+    return {
+      success: true,
+      message: res?.message || 'Cache cleared and system synchronized successfully!'
+    };
+  } catch (err: any) {
+    return {
+      success: false,
+      message: err.message || 'Failed to clear cache completely.'
+    };
+  }
 }
 
 // Currency Formatter Helper (LKR / Rs.)

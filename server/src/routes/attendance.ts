@@ -160,37 +160,33 @@ router.post('/scan', authenticateToken, async (req: AuthRequest, res: Response) 
     const digitsOnly = cleanToken.replace(/\D/g, '');
 
     const student = db.data.students.find(s => {
-      // 1. Check RFID tag match (exact or with stripped leading zeros)
-      if (s.rfidTag) {
-        const sTag = s.rfidTag.trim().toLowerCase();
-        const sTagStripped = sTag.replace(/^0+/, '');
-        if (sTag === cleanToken || (strippedToken.length >= 4 && sTagStripped === strippedToken)) {
-          return true;
-        }
-      }
+      const stuIdNum = (s.studentIdNumber || '').trim().toLowerCase();
+      const qrTok = (s.qrCodeToken || '').trim().toLowerCase();
+      const sId = (s.id || '').trim().toLowerCase();
+      const sTag = (s.rfidTag || '').trim().toLowerCase();
+      const sTagStripped = sTag.replace(/^0+/, '');
 
-      // 2. Check QR code token or student ID number (exact or contained)
-      const stuIdNum = s.studentIdNumber.toLowerCase();
-      const qrTok = s.qrCodeToken.toLowerCase();
-      const sId = s.id.toLowerCase();
+      // 1. Exact matches (Highest Priority)
+      if (qrTok && qrTok === cleanToken) return true;
+      if (stuIdNum && stuIdNum === cleanToken) return true;
+      if (sTag && sTag === cleanToken) return true;
+      if (sId && sId === cleanToken) return true;
 
-      if (
-        qrTok === cleanToken || 
-        stuIdNum === cleanToken || 
-        sId === cleanToken ||
-        cleanToken.includes(stuIdNum) ||
-        cleanToken.includes(qrTok) ||
-        qrTok.includes(cleanToken)
-      ) {
+      // 2. Stripped RFID leading zeros match
+      if (sTagStripped && strippedToken && strippedToken.length >= 5 && sTagStripped === strippedToken) {
         return true;
       }
 
-      // 3. Numeric barcode match (e.g. barcode scanner returns 20260001 or 0001 for STU-2026-0001)
-      if (digitsOnly && digitsOnly.length >= 4) {
+      // 3. If rawInput was a full URL containing the exact student ID or QR token
+      if (qrTok && qrTok.length >= 8 && cleanToken.includes(qrTok)) return true;
+      if (stuIdNum && stuIdNum.length >= 8 && cleanToken.includes(stuIdNum)) return true;
+
+      // 4. Exact numeric barcode match
+      if (digitsOnly && digitsOnly.length >= 6) {
         const sDigits = stuIdNum.replace(/\D/g, '');
-        if (sDigits === digitsOnly || sDigits.endsWith(digitsOnly)) {
-          return true;
-        }
+        if (sDigits === digitsOnly) return true;
+        const tagDigits = sTag.replace(/\D/g, '');
+        if (tagDigits && tagDigits === digitsOnly) return true;
       }
 
       return false;

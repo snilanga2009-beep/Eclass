@@ -17,9 +17,10 @@ import {
   Smartphone,
   Copy,
   Info,
-  FileText
+  FileText,
+  RefreshCw
 } from 'lucide-react';
-import { apiRequest } from '../api';
+import { apiRequest, clearAppCache } from '../api';
 import { useSettings, DEFAULT_SMS_TEMPLATES } from '../context/SettingsContext';
 
 export const Settings: React.FC = () => {
@@ -29,7 +30,23 @@ export const Settings: React.FC = () => {
   const [saved, setSaved] = useState(false);
   const [testResult, setTestResult] = useState<any>(null);
   const [testingTextLk, setTestingTextLk] = useState(false);
+  const [clearingCache, setClearingCache] = useState(false);
+  const [cacheNotice, setCacheNotice] = useState<string | null>(null);
   const [selectedTemplateKey, setSelectedTemplateKey] = useState<string>('SMS_TEMPLATE_WELCOME');
+
+  const handleClearServerCache = async () => {
+    setClearingCache(true);
+    setCacheNotice(null);
+    try {
+      const res = await clearAppCache();
+      setCacheNotice(res.message);
+      setTimeout(() => setCacheNotice(null), 5000);
+    } catch (err: any) {
+      alert(err.message || 'Failed to clear cache');
+    } finally {
+      setClearingCache(false);
+    }
+  };
 
   useEffect(() => {
     apiRequest('/settings')
@@ -646,6 +663,43 @@ export const Settings: React.FC = () => {
             >
               <Download size={14} />
               <span>Download Snapshot</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Server Cache & Client Resynchronization */}
+        <div className="p-6 rounded-3xl bg-white border border-slate-200/80 shadow-sm space-y-4 flex flex-col justify-between">
+          <div>
+            <div className="flex items-center justify-between">
+              <h3 className="font-bold text-sm text-slate-900 flex items-center gap-2">
+                <RefreshCw size={16} className={`text-brand-600 ${clearingCache ? 'animate-spin' : ''}`} />
+                <span>Server Cache &amp; Client Resynchronization</span>
+              </h3>
+              <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold">
+                Live Disk Sync
+              </span>
+            </div>
+            <p className="text-xs text-slate-500 mt-2">
+              Reloads the database directly from disk storage, flushes PWA Service Worker caches, and bypasses browser HTTP cache to guarantee fresh attendance, fees, and student profile changes.
+            </p>
+            {cacheNotice && (
+              <div className="mt-3 p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold flex items-center gap-2">
+                <CheckCircle2 size={15} />
+                <span>{cacheNotice}</span>
+              </div>
+            )}
+          </div>
+
+          <div className="pt-4 border-t border-slate-100 flex items-center justify-between">
+            <span className="text-xs text-slate-400">Zero Downtime Flush</span>
+            <button
+              type="button"
+              onClick={handleClearServerCache}
+              disabled={clearingCache}
+              className="px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold flex items-center gap-1.5 transition-all shadow-sm active:scale-95 disabled:opacity-50"
+            >
+              <RefreshCw size={14} className={clearingCache ? 'animate-spin' : ''} />
+              <span>{clearingCache ? 'Clearing Cache & Resyncing...' : 'Clear Cache & Resync'}</span>
             </button>
           </div>
         </div>

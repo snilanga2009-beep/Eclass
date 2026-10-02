@@ -173,9 +173,36 @@ router.post('/', authenticateToken, requireRoles(['SUPER_ADMIN', 'ADMIN', 'ACCOU
 
     // Validate and calculate balances strictly
     for (const item of items) {
-      const fee = db.data.feeRecords.find(f => f.id === item.feeRecordId && f.studentId === studentId);
+      let fee = item.feeRecordId ? db.data.feeRecords.find(f => f.id === item.feeRecordId && f.studentId === studentId) : null;
+      
+      // If feeRecordId not found or collecting for a custom selected month
+      if (!fee && item.classId && item.month) {
+        fee = db.data.feeRecords.find(f => f.studentId === studentId && f.classId === item.classId && f.month === item.month);
+        if (!fee) {
+          const cls = db.data.classes.find(c => c.id === item.classId);
+          const feeAmount = cls ? cls.monthlyFee : (Number(item.amountPaid) || 0);
+          fee = {
+            id: db.generateId(),
+            studentId,
+            classId: item.classId,
+            month: item.month,
+            baseFee: feeAmount,
+            discount: 0,
+            previousBalance: 0,
+            totalDue: feeAmount,
+            paidAmount: 0,
+            remainingBalance: feeAmount,
+            status: 'PENDING',
+            dueDate: new Date().toISOString().substring(0, 10),
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+          };
+          db.data.feeRecords.push(fee);
+        }
+      }
+
       if (!fee) {
-        return res.status(400).json({ error: `Fee record ${item.feeRecordId} not found for student` });
+        return res.status(400).json({ error: `Fee record not found for student` });
       }
 
       const amountToPay = Number(item.amountPaid);
