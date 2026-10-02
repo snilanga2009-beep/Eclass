@@ -16,28 +16,75 @@ const TEMPLATES = [
   { id: 'tpl-6', code: 'GENERAL_ANNOUNCE', name: 'General Announcement', channel: 'BOTH', text: 'Notice from Apex Institute: {message} For queries, call +94 11 234 5678.' }
 ];
 
+// Helper to get system settings
+const getSetting = (k: string, def: string) => {
+  const s = db.data.settings.find(st => st.key === k);
+  return s && s.value ? s.value : def;
+};
+
 // GET /api/messaging/provider - Get current active SMS & WhatsApp provider config
 router.get('/provider', authenticateToken, (req: AuthRequest, res: Response) => {
-  const getVal = (key: string, def: string) => {
-    const s = db.data.settings.find(st => st.key === key);
-    return s ? s.value : def;
-  };
-
-  const currentToken = getVal('TEXTLK_API_TOKEN', '');
-  const senderId = getVal('TEXTLK_SENDER_ID', 'TextLKDemo');
+  const currentToken = getSetting('TEXTLK_API_TOKEN', '');
+  const senderId = getSetting('TEXTLK_SENDER_ID', 'TextLKDemo');
 
   return res.json({
-    provider: getVal('SMS_PROVIDER', 'text.lk'),
+    provider: getSetting('SMS_PROVIDER', 'text.lk'),
     senderId,
     apiToken: currentToken ? currentToken.trim() : '',
-    endpoint: getVal('TEXTLK_ENDPOINT', 'https://app.text.lk/api/v3/sms/send'),
+    endpoint: getSetting('TEXTLK_ENDPOINT', 'https://app.text.lk/api/v3/sms/send'),
     isConfigured: Boolean(currentToken && currentToken.length > 10)
   });
 });
 
 // GET /api/messaging/templates - Get available templates
 router.get('/templates', authenticateToken, (req: AuthRequest, res: Response) => {
-  return res.json(TEMPLATES);
+  const instName = getSetting('INSTITUTE_NAME', 'Cambridge Academy');
+  const customTemplates = [
+    {
+      id: 'tpl-1',
+      code: 'ATTENDANCE_ALERT',
+      name: 'Attendance Alert',
+      channel: 'SMS',
+      text: getSetting('SMS_TEMPLATE_ATTENDANCE', 'Dear Parent, your child {student_name} has been marked {status} for {class_name} today at {time}. - {institute_name}').replace(/{institute_name}/g, instName)
+    },
+    {
+      id: 'tpl-2',
+      code: 'PAYMENT_RECEIPT',
+      name: 'Payment Confirmation',
+      channel: 'BOTH',
+      text: getSetting('SMS_TEMPLATE_PAYMENT', 'Dear Parent, received Rs. {amount} for {student_name}. Receipt #{receipt_no}. Outstanding balance: Rs. {balance}. - {institute_name}').replace(/{institute_name}/g, instName)
+    },
+    {
+      id: 'tpl-3',
+      code: 'FEE_REMINDER',
+      name: 'Pending Fee Reminder',
+      channel: 'BOTH',
+      text: getSetting('SMS_TEMPLATE_REMINDER', 'Reminder: Tuition fee of Rs. {balance} for {student_name} ({class_name} - {month}) remains pending. Kindly settle at the reception counter. - {institute_name}').replace(/{institute_name}/g, instName)
+    },
+    {
+      id: 'tpl-4',
+      code: 'CLASS_CANCEL',
+      name: 'Class Cancellation Notice',
+      channel: 'BOTH',
+      text: getSetting('SMS_TEMPLATE_CANCEL', 'Important Notice: The {class_name} scheduled for {date} at {time} has been postponed. Next session details will follow. - {institute_name}').replace(/{institute_name}/g, instName)
+    },
+    {
+      id: 'tpl-5',
+      code: 'EXAM_RESULT',
+      name: 'Exam Result Notification',
+      channel: 'BOTH',
+      text: getSetting('SMS_TEMPLATE_EXAM', 'Result: {student_name} scored {marks}/100 (Grade {grade}, Rank #{rank}) in {exam_title}. Detailed review available on portal. - {institute_name}').replace(/{institute_name}/g, instName)
+    },
+    {
+      id: 'tpl-6',
+      code: 'GENERAL_ANNOUNCE',
+      name: 'General Announcement',
+      channel: 'BOTH',
+      text: getSetting('SMS_TEMPLATE_ANNOUNCE', 'Notice from {institute_name}: {message}').replace(/{institute_name}/g, instName)
+    }
+  ];
+
+  return res.json(customTemplates);
 });
 
 // GET /api/messaging/logs - Get SMS and WhatsApp delivery logs
@@ -238,8 +285,10 @@ router.post('/send', authenticateToken, requireRoles(['SUPER_ADMIN', 'ADMIN', 'R
       return res.status(400).json({ error: 'No valid phone recipients found for this target selection' });
     }
 
+    const instName = getSetting('INSTITUTE_NAME', 'Cambridge Academy');
     const tpl = TEMPLATES.find(t => t.code === templateCode);
-    const baseMessage = customMessage || tpl?.text || 'Important notice from Apex Education Institute';
+    const baseMessage = (customMessage || tpl?.text || 'Important notice from {institute_name}')
+      .replace(/{institute_name}/g, instName);
 
     const providerSetting = db.data.settings.find(s => s.key === 'SMS_PROVIDER')?.value || 'text.lk';
     const textlkSender = db.data.settings.find(s => s.key === 'TEXTLK_SENDER_ID')?.value || 'ApexEdu';
@@ -248,7 +297,9 @@ router.post('/send', authenticateToken, requireRoles(['SUPER_ADMIN', 'ADMIN', 'R
 
     // Process dispatches
     for (const r of recipients) {
-      const personalizedMsg = baseMessage.replace(/{student_name}/g, r.name);
+      const personalizedMsg = baseMessage
+        .replace(/{student_name}/g, r.name)
+        .replace(/{institute_name}/g, instName);
 
       if (channel === 'WHATSAPP' || channel === 'BOTH') {
         db.data.whatsappLogs.unshift({

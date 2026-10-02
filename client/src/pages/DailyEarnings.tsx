@@ -27,6 +27,7 @@ import {
 } from 'lucide-react';
 import { apiRequest, formatLKR, formatDate } from '../api';
 import { useAuth } from '../context/AuthContext';
+import { useSettings } from '../context/SettingsContext';
 
 interface DailyEarningsProps {
   onOpenReceipt: (receiptNumber: string) => void;
@@ -34,6 +35,7 @@ interface DailyEarningsProps {
 
 export const DailyEarnings: React.FC<DailyEarningsProps> = ({ onOpenReceipt }) => {
   const { user, hasRole } = useAuth();
+  const { instituteName } = useSettings();
 
   // Selected date (defaults to today)
   const todayStr = new Date().toISOString().substring(0, 10);
@@ -879,7 +881,7 @@ export const DailyEarnings: React.FC<DailyEarningsProps> = ({ onOpenReceipt }) =
       {/* Printable End-of-Day Settlement Slip for Thermal / A4 Printout */}
       <div id="receipt-printable-area" className="hidden print:block font-mono text-black p-4 max-w-sm mx-auto text-xs space-y-2">
         <div className="text-center space-y-1 border-b border-black pb-2">
-          <h2 className="text-base font-bold uppercase">Apex Academy</h2>
+          <h2 className="text-base font-bold uppercase">{instituteName}</h2>
           <p className="text-[10px]">Daily Cashier Drawer Settlement Slip</p>
           <p className="text-[10px]">Date: {selectedDate}</p>
         </div>

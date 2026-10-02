@@ -39,6 +39,7 @@ import { decodeQRFromFile } from '../utils/qrScanner';
 import { useRFIDReader } from '../utils/useRFIDReader';
 import { RFIDGuideModal } from '../components/RFIDGuideModal';
 import { getStudentAvatar } from '../utils/studentAvatars';
+import { useSettings } from '../context/SettingsContext';
 
 const CLASS_THEMES = [
   {
@@ -130,6 +131,7 @@ export const Attendance: React.FC<AttendanceProps> = ({
   onOpenPaymentModal,
   initialMode = 'QR_SCANNER'
 }) => {
+  const { instituteName } = useSettings();
   const [classes, setClasses] = useState<any[]>([]);
   const [selectedClassId, setSelectedClassId] = useState<string>('');
   const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().substring(0, 10));
@@ -256,7 +258,7 @@ export const Attendance: React.FC<AttendanceProps> = ({
       ? `Tuition Fee: Pending Rs. ${item.feeInfo.remainingBalance.toLocaleString()}`
       : `Tuition Fee: Fully Settled`;
 
-    const message = `*CAMS ACADEMY ATTENDANCE RECEIPT*\n\nStudent: *${item.studentName}* (${item.studentIdNumber})\nClass: *${item.className}*\nTeacher: ${item.teacherName}\nDate: ${item.date}\nCheck-in Time: ${timeStr}\nStatus: ${item.status === 'LATE' ? 'Late Arrival ⚠️' : 'Present ✅'}\n${feeStatusText}\n\nThank you for choosing CAMS Academy!`;
+    const message = `*${instituteName.toUpperCase()} ATTENDANCE RECEIPT*\n\nStudent: *${item.studentName}* (${item.studentIdNumber})\nClass: *${item.className}*\nTeacher: ${item.teacherName}\nDate: ${item.date}\nCheck-in Time: ${timeStr}\nStatus: ${item.status === 'LATE' ? 'Late Arrival ⚠️' : 'Present ✅'}\n${feeStatusText}\n\nThank you for choosing ${instituteName}!`;
 
     window.open(`https://wa.me/${intlPhone}?text=${encodeURIComponent(message)}`, '_blank');
   };

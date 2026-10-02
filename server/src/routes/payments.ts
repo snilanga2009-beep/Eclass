@@ -272,7 +272,17 @@ router.post('/', authenticateToken, requireRoles(['SUPER_ADMIN', 'ADMIN', 'ACCOU
         .filter(f => f.studentId === student.id && f.status !== 'PAID')
         .reduce((sum, f) => sum + f.remainingBalance, 0);
 
-      const paymentMsg = `Dear Parent, received Rs. ${grandTotalPaid.toLocaleString()} for ${student.fullName}. Receipt #${receiptNumber}. Outstanding balance: Rs. ${remainingTotal.toLocaleString()}. - Apex Institute`;
+      const instName = db.data.settings.find(s => s.key === 'INSTITUTE_NAME')?.value || 'Cambridge Academy';
+      const paymentTemplate = db.data.settings.find(s => s.key === 'SMS_TEMPLATE_PAYMENT')?.value || 
+        'Dear Parent, received Rs. {amount} for {student_name}. Receipt #{receipt_no}. Outstanding balance: Rs. {balance}. - {institute_name}';
+
+      const paymentMsg = paymentTemplate
+        .replace(/{institute_name}/g, instName)
+        .replace(/{student_name}/g, student.fullName)
+        .replace(/{student_id}/g, student.studentIdNumber)
+        .replace(/{amount}/g, grandTotalPaid.toLocaleString())
+        .replace(/{receipt_no}/g, receiptNumber)
+        .replace(/{balance}/g, remainingTotal.toLocaleString());
 
       try {
         await dispatchRealSMS(targetPhone, paymentMsg);

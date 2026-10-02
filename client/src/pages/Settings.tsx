@@ -11,16 +11,25 @@ import {
   Radio,
   Send,
   CheckCircle2,
-  AlertCircle
+  AlertCircle,
+  Sparkles,
+  RotateCcw,
+  Smartphone,
+  Copy,
+  Info,
+  FileText
 } from 'lucide-react';
 import { apiRequest } from '../api';
+import { useSettings, DEFAULT_SMS_TEMPLATES } from '../context/SettingsContext';
 
 export const Settings: React.FC = () => {
+  const { refreshSettings } = useSettings();
   const [settings, setSettings] = useState<any>({});
   const [loading, setLoading] = useState(true);
   const [saved, setSaved] = useState(false);
   const [testResult, setTestResult] = useState<any>(null);
   const [testingTextLk, setTestingTextLk] = useState(false);
+  const [selectedTemplateKey, setSelectedTemplateKey] = useState<string>('SMS_TEMPLATE_WELCOME');
 
   useEffect(() => {
     apiRequest('/settings')
@@ -30,6 +39,12 @@ export const Settings: React.FC = () => {
         if (!data.TEXTLK_SENDER_ID) data.TEXTLK_SENDER_ID = 'ApexEdu';
         if (!data.TEXTLK_API_TOKEN) data.TEXTLK_API_TOKEN = 'textlk_live_sec_89218201928301';
         if (!data.TEXTLK_ENDPOINT) data.TEXTLK_ENDPOINT = 'https://app.text.lk/api/v3/sms/send';
+        
+        // Fill default SMS templates if not already stored
+        Object.entries(DEFAULT_SMS_TEMPLATES).forEach(([k, v]) => {
+          if (!data[k]) data[k] = v;
+        });
+
         setSettings(data);
       })
       .finally(() => setLoading(false));
@@ -46,6 +61,7 @@ export const Settings: React.FC = () => {
         method: 'PUT',
         body: JSON.stringify(settings)
       });
+      await refreshSettings();
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);
     } catch (err: any) {
@@ -84,6 +100,152 @@ export const Settings: React.FC = () => {
     } catch (err) {
       alert('Failed to generate backup');
     }
+  };
+
+  const TEMPLATE_CONFIGS = [
+    {
+      key: 'SMS_TEMPLATE_WELCOME',
+      tabLabel: 'Parent Portal Link',
+      badge: 'Registration',
+      badgeColor: 'bg-blue-50 text-blue-700 border-blue-200',
+      title: 'Student Registration & Parent Portal SMS',
+      desc: 'Dispatched to parent mobile when a student is enrolled or parent portal link is resent.',
+      placeholders: [
+        { tag: '{institute_name}', label: 'Institute Name' },
+        { tag: '{student_name}', label: 'Student Name' },
+        { tag: '{student_id}', label: 'Student ID' },
+        { tag: '{portal_url}', label: 'Parent Portal URL' }
+      ],
+      sampleData: {
+        '{student_name}': 'Kavindu Perera',
+        '{student_id}': 'STU-2026-1042',
+        '{portal_url}': 'https://cams.edu/parent/pass/STU-1042'
+      }
+    },
+    {
+      key: 'SMS_TEMPLATE_PAYMENT',
+      tabLabel: 'Fee Payment Receipt',
+      badge: 'Receipt SMS',
+      badgeColor: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+      title: 'Class Fee Payment Confirmation Receipt SMS',
+      desc: 'Sent immediately to the parent phone upon recording a fee payment at the counter.',
+      placeholders: [
+        { tag: '{institute_name}', label: 'Institute Name' },
+        { tag: '{student_name}', label: 'Student Name' },
+        { tag: '{student_id}', label: 'Student ID' },
+        { tag: '{amount}', label: 'Amount Paid' },
+        { tag: '{receipt_no}', label: 'Receipt No' },
+        { tag: '{balance}', label: 'Balance Due' }
+      ],
+      sampleData: {
+        '{student_name}': 'Kavindu Perera',
+        '{student_id}': 'STU-2026-1042',
+        '{amount}': '3,500',
+        '{receipt_no}': 'REC-2026-0042',
+        '{balance}': '0'
+      }
+    },
+    {
+      key: 'SMS_TEMPLATE_ATTENDANCE',
+      tabLabel: 'Attendance Alert',
+      badge: 'Check-in',
+      badgeColor: 'bg-purple-50 text-purple-700 border-purple-200',
+      title: 'Entrance Attendance Check-in SMS Alert',
+      desc: 'Configurable SMS dispatched when student card/barcode is scanned at entrance.',
+      placeholders: [
+        { tag: '{institute_name}', label: 'Institute Name' },
+        { tag: '{student_name}', label: 'Student Name' },
+        { tag: '{class_name}', label: 'Class Name' },
+        { tag: '{status}', label: 'Status' },
+        { tag: '{time}', label: 'Time' },
+        { tag: '{date}', label: 'Date' }
+      ],
+      sampleData: {
+        '{student_name}': 'Kavindu Perera',
+        '{class_name}': '2026 Combined Maths',
+        '{status}': 'PRESENT',
+        '{time}': '08:15 AM',
+        '{date}': new Date().toISOString().substring(0, 10)
+      }
+    },
+    {
+      key: 'SMS_TEMPLATE_REMINDER',
+      tabLabel: 'Monthly Fee Reminder',
+      badge: 'Billing',
+      badgeColor: 'bg-amber-50 text-amber-700 border-amber-200',
+      title: 'Pending Tuition Fee Reminder SMS',
+      desc: 'Sent via Messaging Center to parents of students with pending monthly balances.',
+      placeholders: [
+        { tag: '{institute_name}', label: 'Institute Name' },
+        { tag: '{student_name}', label: 'Student Name' },
+        { tag: '{class_name}', label: 'Class Name' },
+        { tag: '{month}', label: 'Month' },
+        { tag: '{balance}', label: 'Balance Due' }
+      ],
+      sampleData: {
+        '{student_name}': 'Kavindu Perera',
+        '{class_name}': '2026 Combined Maths',
+        '{month}': 'October',
+        '{balance}': '3,500'
+      }
+    },
+    {
+      key: 'SMS_TEMPLATE_CANCEL',
+      tabLabel: 'Class Postponed',
+      badge: 'Schedule',
+      badgeColor: 'bg-rose-50 text-rose-700 border-rose-200',
+      title: 'Class Reschedule or Postponement Notice SMS',
+      desc: 'Used when rescheduling, postponing, or cancelling a class session.',
+      placeholders: [
+        { tag: '{institute_name}', label: 'Institute Name' },
+        { tag: '{class_name}', label: 'Class Name' },
+        { tag: '{date}', label: 'Date' },
+        { tag: '{time}', label: 'Time' }
+      ],
+      sampleData: {
+        '{class_name}': '2026 Combined Maths',
+        '{date}': '2026-10-05',
+        '{time}': '08:00 AM'
+      }
+    },
+    {
+      key: 'SMS_TEMPLATE_ANNOUNCE',
+      tabLabel: 'General Circular',
+      badge: 'Broadcast',
+      badgeColor: 'bg-indigo-50 text-indigo-700 border-indigo-200',
+      title: 'General Academy Circular / Announcement SMS',
+      desc: 'Default template for broadcasting general circulars to parent mobile numbers.',
+      placeholders: [
+        { tag: '{institute_name}', label: 'Institute Name' },
+        { tag: '{message}', label: 'Message Body' }
+      ],
+      sampleData: {
+        '{message}': "Tomorrow's revision class starts at 8:30 AM in Hall A."
+      }
+    }
+  ];
+
+  const currentTemplate = TEMPLATE_CONFIGS.find(t => t.key === selectedTemplateKey) || TEMPLATE_CONFIGS[0];
+
+  const handleInsertPlaceholder = (placeholder: string) => {
+    const currentVal = settings[selectedTemplateKey] !== undefined ? settings[selectedTemplateKey] : ((DEFAULT_SMS_TEMPLATES as any)[selectedTemplateKey] || '');
+    const newVal = currentVal + ' ' + placeholder;
+    handleChange(selectedTemplateKey, newVal);
+  };
+
+  const handleResetTemplate = (key: string) => {
+    const defaultText = (DEFAULT_SMS_TEMPLATES as any)[key] || '';
+    handleChange(key, defaultText);
+  };
+
+  const getLivePreview = (config: typeof currentTemplate) => {
+    let text = settings[config.key] !== undefined ? settings[config.key] : ((DEFAULT_SMS_TEMPLATES as any)[config.key] || '');
+    const instName = settings.INSTITUTE_NAME || 'Cambridge Academy';
+    text = text.replace(/{institute_name}/g, instName);
+    Object.entries(config.sampleData).forEach(([placeholder, sampleVal]) => {
+      text = text.split(placeholder).join(sampleVal);
+    });
+    return text;
   };
 
   return (
@@ -307,6 +469,158 @@ export const Settings: React.FC = () => {
                 onChange={(e) => handleChange('WHATSAPP_PHONE_NUMBER_ID', e.target.value)}
                 className="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-xs font-mono"
               />
+            </div>
+          </div>
+        </div>
+
+        {/* Custom SMS Notification Templates & Wording */}
+        <div className="lg:col-span-2 p-6 rounded-3xl bg-white border border-slate-200/80 shadow-sm space-y-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-4">
+            <div>
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-xl bg-purple-100 text-purple-600 flex items-center justify-center shadow-sm">
+                  <MessageSquare size={18} />
+                </div>
+                <div>
+                  <h3 className="font-bold text-base text-slate-900 tracking-tight">Custom SMS Notification Templates & Wording</h3>
+                  <p className="text-xs text-slate-500">Customize the exact message text and dynamic placeholders dispatched via SMS to parents and students</p>
+                </div>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 self-start sm:self-auto">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-indigo-50 text-indigo-700 text-[11px] font-semibold border border-indigo-200">
+                <Sparkles size={12} />
+                <span>Dynamic Tags Enabled</span>
+              </span>
+            </div>
+          </div>
+
+          {/* Template Selector Tabs */}
+          <div className="flex gap-2 overflow-x-auto pb-2 border-b border-slate-100 scrollbar-none">
+            {TEMPLATE_CONFIGS.map(t => {
+              const isActive = selectedTemplateKey === t.key;
+              return (
+                <button
+                  key={t.key}
+                  type="button"
+                  onClick={() => setSelectedTemplateKey(t.key)}
+                  className={`px-4 py-2.5 rounded-2xl text-xs font-semibold whitespace-nowrap transition-all flex items-center gap-2 ${
+                    isActive
+                      ? 'bg-slate-900 text-white shadow-md'
+                      : 'bg-slate-50 hover:bg-slate-100 text-slate-600 border border-slate-200/70'
+                  }`}
+                >
+                  <span>{t.tabLabel}</span>
+                  <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider ${
+                    isActive ? 'bg-white/20 text-white' : t.badgeColor
+                  }`}>
+                    {t.badge}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Active Template Editor & Live Phone Preview */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            {/* Editor Side */}
+            <div className="lg:col-span-7 space-y-4">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <h4 className="font-bold text-sm text-slate-900">{currentTemplate.title}</h4>
+                  <p className="text-xs text-slate-500 mt-0.5">{currentTemplate.desc}</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => handleResetTemplate(currentTemplate.key)}
+                  className="px-3 py-1.5 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-600 text-xs font-medium flex items-center gap-1.5 shrink-0 transition-colors"
+                  title="Reset to default system message"
+                >
+                  <RotateCcw size={12} />
+                  <span>Reset Default</span>
+                </button>
+              </div>
+
+              {/* Placeholder Helper Badges */}
+              <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/70 space-y-2">
+                <div className="flex items-center justify-between text-[11px] font-semibold text-slate-600">
+                  <span className="flex items-center gap-1">
+                    <Info size={13} className="text-brand-600" />
+                    <span>Click any tag below to insert into message wording:</span>
+                  </span>
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {currentTemplate.placeholders.map(p => (
+                    <button
+                      key={p.tag}
+                      type="button"
+                      onClick={() => handleInsertPlaceholder(p.tag)}
+                      className="px-2.5 py-1 rounded-lg bg-white border border-slate-200 hover:border-brand-400 hover:bg-brand-50 text-slate-700 hover:text-brand-700 text-[11px] font-mono transition-all flex items-center gap-1 group shadow-2xs"
+                      title={`Insert ${p.label}`}
+                    >
+                      <span className="font-semibold text-brand-600 group-hover:scale-110 transition-transform">+</span>
+                      <span>{p.tag}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Textarea */}
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">SMS Message Text</label>
+                  {(() => {
+                    const val = settings[currentTemplate.key] !== undefined ? settings[currentTemplate.key] : ((DEFAULT_SMS_TEMPLATES as any)[currentTemplate.key] || '');
+                    const len = val.length;
+                    const segments = Math.ceil(len / 160) || 1;
+                    return (
+                      <span className={`text-[10px] font-mono font-medium ${len > 160 ? 'text-amber-600 font-bold' : 'text-slate-400'}`}>
+                        {len} chars • {segments} SMS {segments > 1 ? 'parts' : 'part'} (160 char/part)
+                      </span>
+                    );
+                  })()}
+                </div>
+                <textarea
+                  rows={4}
+                  value={settings[currentTemplate.key] !== undefined ? settings[currentTemplate.key] : ((DEFAULT_SMS_TEMPLATES as any)[currentTemplate.key] || '')}
+                  onChange={(e) => handleChange(currentTemplate.key, e.target.value)}
+                  placeholder="Enter custom SMS template wording..."
+                  className="w-full p-3.5 rounded-2xl border border-slate-300 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 text-xs text-slate-800 leading-relaxed font-sans transition-all resize-y"
+                />
+              </div>
+            </div>
+
+            {/* Live Phone Preview Mockup Side */}
+            <div className="lg:col-span-5 flex flex-col">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
+                  <Smartphone size={14} className="text-slate-600" />
+                  <span>Live Mobile SMS Preview</span>
+                </span>
+                <span className="text-[10px] text-slate-400 font-mono">Real-time simulation</span>
+              </div>
+
+              {/* Realistic Phone Bubble Mockup */}
+              <div className="flex-1 rounded-2xl bg-gradient-to-b from-slate-900 to-slate-950 p-4 text-white border border-slate-800 shadow-inner flex flex-col justify-between space-y-4">
+                <div className="flex items-center justify-between border-b border-slate-800 pb-2 text-[10px] text-slate-400">
+                  <div className="flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                    <span className="font-bold text-slate-200 uppercase tracking-wide">
+                      {settings.TEXTLK_SENDER_ID || 'ApexEdu'}
+                    </span>
+                  </div>
+                  <span className="font-mono">Just Now</span>
+                </div>
+
+                <div className="bg-slate-800/90 rounded-2xl rounded-tl-sm p-3.5 text-xs text-slate-100 shadow-md border border-slate-700/60 leading-relaxed font-sans">
+                  {getLivePreview(currentTemplate)}
+                </div>
+
+                <div className="pt-2 border-t border-slate-800/80 text-[10px] text-slate-400 flex items-center justify-between">
+                  <span>Mask: <strong>{settings.TEXTLK_SENDER_ID || 'ApexEdu'}</strong></span>
+                  <span className="text-emerald-400 font-semibold">Delivered via text.lk</span>
+                </div>
+              </div>
             </div>
           </div>
         </div>

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { X, Printer, Download, QrCode as QrIcon, Sparkles, Radio } from 'lucide-react';
 import { apiRequest } from '../api';
 import { getStudentAvatar } from '../utils/studentAvatars';
+import { useSettings } from '../context/SettingsContext';
 
 interface StudentIDCardModalProps {
   studentId: string | null;
@@ -9,6 +10,7 @@ interface StudentIDCardModalProps {
 }
 
 export const StudentIDCardModal: React.FC<StudentIDCardModalProps> = ({ studentId, onClose }) => {
+  const { instituteName, instituteTagline } = useSettings();
   const [student, setStudent] = useState<any>(null);
   const [loading, setLoading] = useState(false);
 
@@ -89,8 +91,8 @@ export const StudentIDCardModal: React.FC<StudentIDCardModalProps> = ({ studentI
                     <Sparkles size={16} />
                   </div>
                   <div>
-                    <h3 className="font-bold text-xs uppercase tracking-wider text-white">Apex Higher Education</h3>
-                    <p className="text-[9px] text-brand-300 font-medium">Official Student Smart Pass</p>
+                    <h3 className="font-bold text-xs uppercase tracking-wider text-white truncate max-w-[200px]">{instituteName}</h3>
+                    <p className="text-[9px] text-brand-300 font-medium truncate max-w-[200px]">{instituteTagline || 'Official Student Smart Pass'}</p>
                   </div>
                 </div>
                 <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[9px] font-bold">

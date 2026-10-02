@@ -22,6 +22,7 @@ import {
   Coins
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { useSettings } from '../context/SettingsContext';
 import { UserRole } from '../types';
 
 interface SidebarProps {
@@ -54,6 +55,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   setIsMobileOpen
 }) => {
   const { user, logout, hasRole } = useAuth();
+  const { instituteName, instituteTagline } = useSettings();
 
   // Navigation Items with Colorful Themes & Categories
   const navItems: NavItemConfig[] = [
@@ -339,13 +341,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
             </div>
 
             {!collapsed && (
-              <div className="flex flex-col truncate">
+              <div className="flex flex-col truncate max-w-[150px]">
                 <div className="flex items-center gap-1.5">
-                  <span className="font-black text-white text-base tracking-tight leading-tight">Apex CAMS</span>
-                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                  <span className="font-black text-white text-base tracking-tight leading-tight truncate">{instituteName || 'Apex CAMS'}</span>
+                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0" />
                 </div>
-                <span className="text-[10px] uppercase font-bold tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-violet-400 via-indigo-300 to-pink-400">
-                  Tuition ERP 2.0
+                <span className="text-[10px] uppercase font-bold tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-violet-400 via-indigo-300 to-pink-400 truncate">
+                  {instituteTagline || 'Tuition ERP 2.0'}
                 </span>
               </div>
             )}

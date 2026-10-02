@@ -6,6 +6,24 @@ import { AuthRequest, authenticateToken, requireRoles } from '../middleware/auth
 import { logAuditAction } from '../middleware/audit';
 import { dispatchRealSMS } from '../services/smsService';
 
+const getSetting = (k: string, def: string) => {
+  const s = db.data.settings.find(st => st.key === k);
+  return s && s.value ? s.value : def;
+};
+
+const formatWelcomeSms = (studentName: string, studentId: string, portalUrl: string) => {
+  const instName = getSetting('INSTITUTE_NAME', 'Cambridge Academy');
+  const tpl = getSetting(
+    'SMS_TEMPLATE_WELCOME',
+    "Welcome to {institute_name}! Track {student_name}'s live attendance, RFID check-in times & fee receipts on the Parent Portal PWA: {portal_url} (Save to your phone home screen for 1-tap instant access)"
+  );
+  return tpl
+    .replace(/{institute_name}/g, instName)
+    .replace(/{student_name}/g, studentName)
+    .replace(/{student_id}/g, studentId)
+    .replace(/{portal_url}/g, portalUrl);
+};
+
 const router = Router();
 
 // GET /api/students - List all students with search, filters
@@ -481,7 +499,7 @@ router.post('/', authenticateToken, requireRoles(['SUPER_ADMIN', 'ADMIN', 'RECEP
       const clientOrigin = req.headers.origin || (req.headers.referer ? new URL(req.headers.referer).origin : 'http://localhost:3000');
       
       parentPortalUrl = `${clientOrigin}/login?phone=${digitsOnly}&autoLogin=1`;
-      welcomeSms = `Welcome to Cambridge Academy! Track ${newStudent.fullName}'s live attendance, RFID check-in times & fee receipts on the Parent Portal PWA: ${parentPortalUrl} (Save to your home screen for 1-tap instant access)`;
+      welcomeSms = formatWelcomeSms(newStudent.fullName, newStudent.studentIdNumber, parentPortalUrl);
 
       // Dispatch real SMS via text.lk
       const smsResult = await dispatchRealSMS(rawTargetPhone, welcomeSms);
@@ -535,7 +553,7 @@ router.post('/:id/send-parent-link', authenticateToken, requireRoles(['SUPER_ADM
     const digitsOnly = rawTargetPhone.replace(/\D/g, '');
     const clientOrigin = req.headers.origin || (req.headers.referer ? new URL(req.headers.referer).origin : 'http://localhost:3000');
     const parentPortalUrl = `${clientOrigin}/login?phone=${digitsOnly}&autoLogin=1`;
-    const smsMessage = `Welcome to Cambridge Academy! Track ${student.fullName}'s live attendance, RFID check-in times & fee receipts on the Parent Portal PWA: ${parentPortalUrl} (Save to your phone home screen for 1-tap instant access)`;
+    const smsMessage = formatWelcomeSms(student.fullName, student.studentIdNumber, parentPortalUrl);
 
     // Dispatch real SMS via text.lk
     const smsResult = await dispatchRealSMS(rawTargetPhone, smsMessage);
@@ -743,7 +761,7 @@ router.put('/:id', authenticateToken, requireRoles(['SUPER_ADMIN', 'ADMIN', 'REC
       const digitsOnly = rawTargetPhone.replace(/\D/g, '');
       const clientOrigin = req.headers.origin || (req.headers.referer ? new URL(req.headers.referer).origin : 'http://localhost:3000');
       const parentPortalUrl = `${clientOrigin}/login?phone=${digitsOnly}&autoLogin=1`;
-      const smsMessage = `Welcome to Cambridge Academy! Track ${student.fullName}'s live attendance, RFID check-in times & fee receipts on the Parent Portal PWA: ${parentPortalUrl} (Save to your phone home screen for 1-tap instant access)`;
+      const smsMessage = formatWelcomeSms(student.fullName, student.studentIdNumber, parentPortalUrl);
 
       const smsResult = await dispatchRealSMS(rawTargetPhone, smsMessage);
       db.data.smsLogs.unshift({

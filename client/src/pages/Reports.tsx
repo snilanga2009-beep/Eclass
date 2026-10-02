@@ -22,8 +22,10 @@ import {
   Check
 } from 'lucide-react';
 import { apiRequest, formatLKR } from '../api';
+import { useSettings } from '../context/SettingsContext';
 
 export const Reports: React.FC = () => {
+  const { instituteName } = useSettings();
   // Navigation View Tab: Teacher Commission Hub vs Standard Master Reports
   const [activeView, setActiveView] = useState<'commission-hub' | 'master-reports'>('commission-hub');
 
@@ -90,7 +92,7 @@ export const Reports: React.FC = () => {
     const transactions = stats.transactionCount || 0;
 
     const message = 
-`📊 *APEX INSTITUTE - REMUNERATION & PROFIT REPORT*
+`📊 *${instituteName.toUpperCase()} - REMUNERATION & PROFIT REPORT*
 ━━━━━━━━━━━━━━━━━━━━━━━━━━
 👤 *Teacher:* ${teacherName}
 📅 *Period:* ${periodLabel}
@@ -102,7 +104,7 @@ export const Reports: React.FC = () => {
 🧾 *Total Class Payments:* ${transactions}
 ━━━━━━━━━━━━━━━━━━━━━━━━━━
 💡 *Academy Profit Margin:* ${totalCollected > 0 ? Math.round((academyProfit / totalCollected) * 100) : 0}%
-📱 *Generated automatically by Apex E-Class System*`;
+📱 *Generated automatically by ${instituteName} System*`;
 
     // Try finding teacher's phone number
     const teacherObj = commissionData.teachers?.find((t: any) => t.id === selectedTeacherId);

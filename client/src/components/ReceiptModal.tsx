@@ -82,13 +82,10 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ receiptNumber, onClo
     doc.text(`TOTAL PAID: Rs. ${data.totalPaid.toLocaleString()}`, 6, y);
     y += 5;
     doc.setFont('helvetica', 'normal');
-    doc.setFontSize(8);
-    doc.text(`Method: ${data.paymentMethod}`, 6, y);
-
     y += 10;
     doc.setFontSize(7);
     doc.text('Thank you for your payment!', 40, y, { align: 'center' });
-    doc.text('Apex Education - Continuous Academic Excellence', 40, y + 4, { align: 'center' });
+    doc.text(`${data.institute.name || 'Academy Portal'} - ${data.institute.tagline || 'Continuous Academic Excellence'}`, 40, y + 4, { align: 'center' });
 
     doc.save(`Receipt_${data.receiptNumber}.pdf`);
   };
@@ -156,7 +153,7 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ receiptNumber, onClo
               {/* Institute Branding Header */}
               <div className="text-center border-b border-dashed border-slate-300 pb-4">
                 <div className="w-12 h-12 mx-auto mb-2 rounded-2xl bg-brand-600 text-white flex items-center justify-center font-black text-xl shadow-md">
-                  A
+                  {data.institute?.name ? data.institute.name.charAt(0).toUpperCase() : 'A'}
                 </div>
                 <h2 className="text-base font-bold text-slate-900 tracking-tight">{data.institute.name}</h2>
                 <p className="text-[11px] text-slate-500">{data.institute.tagline}</p>
@@ -247,7 +244,7 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ receiptNumber, onClo
                   <span>PAYMENT VERIFIED & RECORDED</span>
                 </div>
                 <p className="text-[10px] text-slate-400">This is a computer-generated digital receipt and requires no physical seal.</p>
-                <p className="text-[10px] text-slate-400 mt-0.5">Apex Education Portal • Thank you!</p>
+                <p className="text-[10px] text-slate-400 mt-0.5">{data.institute?.name || 'Academy'} Portal • Thank you!</p>
               </div>
             </div>
           ) : null}
