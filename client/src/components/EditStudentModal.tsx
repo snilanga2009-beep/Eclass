@@ -15,7 +15,9 @@ import {
   Image as ImageIcon,
   BookOpen,
   Search,
-  RefreshCw
+  RefreshCw,
+  Receipt,
+  CreditCard
 } from 'lucide-react';
 import { useRFIDReader } from '../utils/useRFIDReader';
 import { apiRequest, formatLKR } from '../api';
@@ -68,7 +70,11 @@ export const EditStudentModal: React.FC<EditStudentModalProps> = ({
     rfidTag: '',
     photo: '',
     enrolledClassIds: [] as string[],
-    resendParentPortalLink: false
+    resendParentPortalLink: false,
+    registrationFee: 1500,
+    registrationFeeStatus: 'PAID' as 'PAID' | 'PENDING' | 'WAIVED',
+    settleRegistrationFee: false,
+    registrationFeePaymentMethod: 'CASH'
   });
 
   const [classes, setClasses] = useState<any[]>([]);
@@ -128,7 +134,11 @@ export const EditStudentModal: React.FC<EditStudentModalProps> = ({
         rfidTag: student.rfidTag || '',
         photo: student.photo || '',
         enrolledClassIds: initialClassIds,
-        resendParentPortalLink: false
+        resendParentPortalLink: false,
+        registrationFee: student.registrationFee ?? 1500,
+        registrationFeeStatus: (student.registrationFeeStatus || 'PAID') as any,
+        settleRegistrationFee: false,
+        registrationFeePaymentMethod: 'CASH'
       });
       setError(null);
       setSuccessNotice(null);
@@ -853,7 +863,96 @@ export const EditStudentModal: React.FC<EditStudentModalProps> = ({
             </div>
           </div>
 
-          {/* Section 5: Internal Administrative Notes */}
+          {/* Section 5: Student Registration / Admission Fee */}
+          <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/90 space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Receipt size={16} className="text-emerald-600" />
+                <label className="text-xs font-bold text-slate-800 uppercase tracking-wider">
+                  Admission & Registration Fee Status
+                </label>
+              </div>
+              <div>
+                {formData.registrationFeeStatus === 'PAID' ? (
+                  <span className="px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold border border-emerald-300">
+                    Paid ({formatLKR(formData.registrationFee)})
+                  </span>
+                ) : formData.registrationFeeStatus === 'WAIVED' ? (
+                  <span className="px-2.5 py-1 rounded-full bg-slate-200 text-slate-700 text-[10px] font-bold">
+                    Free / Waived
+                  </span>
+                ) : (
+                  <span className="px-2.5 py-1 rounded-full bg-amber-100 text-amber-800 text-[10px] font-bold border border-amber-300">
+                    Pending Due ({formatLKR(formData.registrationFee)})
+                  </span>
+                )}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+              <div>
+                <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                  Registration Fee Amount (LKR)
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  step="100"
+                  value={formData.registrationFee}
+                  onChange={e => setFormData({ ...formData, registrationFee: Number(e.target.value) || 0 })}
+                  className="w-full px-3 py-2 rounded-xl border border-slate-300 bg-white text-xs font-mono font-bold"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                  Status
+                </label>
+                <select
+                  value={formData.registrationFeeStatus}
+                  onChange={e => setFormData({ ...formData, registrationFeeStatus: e.target.value as any })}
+                  className="w-full px-3 py-2 rounded-xl border border-slate-300 bg-white text-xs font-semibold text-slate-800"
+                >
+                  <option value="PAID">Paid (Settled)</option>
+                  <option value="PENDING">Pending (Due)</option>
+                  <option value="WAIVED">Waived / Free (Scholarship)</option>
+                </select>
+              </div>
+            </div>
+
+            {formData.registrationFeeStatus === 'PENDING' && (
+              <div className="pt-2 border-t border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2 bg-amber-50/60 p-2.5 rounded-xl border border-amber-200">
+                <label className="flex items-center gap-2 text-xs font-bold text-amber-900 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={formData.settleRegistrationFee}
+                    onChange={e => setFormData({
+                      ...formData,
+                      settleRegistrationFee: e.target.checked,
+                      registrationFeeStatus: e.target.checked ? 'PAID' : 'PENDING'
+                    })}
+                    className="w-4 h-4 rounded text-emerald-600 border-amber-300 focus:ring-emerald-500 cursor-pointer"
+                  />
+                  <span>Collect and Settle Fee Now (Generate Official Receipt)</span>
+                </label>
+
+                {formData.settleRegistrationFee && (
+                  <select
+                    value={formData.registrationFeePaymentMethod}
+                    onChange={e => setFormData({ ...formData, registrationFeePaymentMethod: e.target.value })}
+                    className="px-2.5 py-1 rounded-lg border border-slate-300 text-xs bg-white font-semibold"
+                  >
+                    <option value="CASH">Cash</option>
+                    <option value="BANK_TRANSFER">Bank Deposit</option>
+                    <option value="CARD">POS Card</option>
+                    <option value="ONLINE">Online Transfer</option>
+                  </select>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Section 6: Internal Administrative Notes */}
           <div>
             <label className="block text-[11px] font-bold text-slate-700 mb-1">Administrative Notes</label>
             <textarea

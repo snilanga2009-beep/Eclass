@@ -185,6 +185,7 @@ export const App: React.FC = () => {
             <Students 
               onOpenProfile={(id) => setActiveProfileStudentId(id)}
               onOpenIDCard={(id) => setActiveIDCardStudentId(id)}
+              onOpenReceipt={(r) => setActiveReceiptNumber(r)}
             />
           )}
 

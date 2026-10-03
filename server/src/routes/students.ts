@@ -1,7 +1,7 @@
 import { Router, Response } from 'express';
 import crypto from 'crypto';
 import QRCode from 'qrcode';
-import db, { Student, Parent, ClassStudent, FeeRecord } from '../db';
+import db, { Student, Parent, ClassStudent, FeeRecord, Payment, PaymentItem, Income } from '../db';
 import { AuthRequest, authenticateToken, requireRoles } from '../middleware/auth';
 import { logAuditAction } from '../middleware/audit';
 import { dispatchRealSMS } from '../services/smsService';
@@ -382,7 +382,11 @@ router.post('/', authenticateToken, requireRoles(['SUPER_ADMIN', 'ADMIN', 'RECEP
       notes,
       rfidTag,
       photo,
-      enrolledClassIds
+      enrolledClassIds,
+      registrationFee,
+      collectRegistrationFeeNow,
+      registrationFeePaymentMethod,
+      registrationFeeNotes
     } = req.body;
 
     if (!fullName || !grade) {
@@ -468,6 +472,113 @@ router.post('/', authenticateToken, requireRoles(['SUPER_ADMIN', 'ADMIN', 'RECEP
     };
 
     db.data.students.push(newStudent);
+
+    // Handle Student Registration / Admission Fee
+    const regFeeAmount = Number(registrationFee) || 0;
+    let regReceiptNumber: string | undefined = undefined;
+    let regPayment: Payment | undefined = undefined;
+
+    if (regFeeAmount > 0) {
+      if (collectRegistrationFeeNow) {
+        // Collect Registration Fee Now & Issue Official Receipt
+        let maxPayNum = 0;
+        db.data.payments.forEach(p => {
+          const match = p.receiptNumber ? p.receiptNumber.match(/REC-\d{4}-(\d+)/) : null;
+          if (match) {
+            const n = parseInt(match[1], 10);
+            if (n > maxPayNum) maxPayNum = n;
+          }
+        });
+        const nextReceiptNum = String(Math.max(maxPayNum + 1, db.data.payments.length + 1)).padStart(4, '0');
+        regReceiptNumber = `REC-2026-${nextReceiptNum}`;
+
+        newStudent.registrationFee = regFeeAmount;
+        newStudent.registrationFeeStatus = 'PAID';
+        newStudent.registrationReceiptNo = regReceiptNumber;
+
+        // Payment record
+        regPayment = {
+          id: db.generateId(),
+          receiptNumber: regReceiptNumber,
+          studentId: newStudent.id,
+          totalAmount: regFeeAmount,
+          paymentMethod: (registrationFeePaymentMethod as any) || 'Cash',
+          paymentDate: new Date().toISOString(),
+          cashier: req.user?.name || 'Receptionist',
+          notes: registrationFeeNotes || 'Student Admission & Registration Fee',
+          createdAt: new Date().toISOString()
+        };
+        db.data.payments.push(regPayment);
+
+        // Admission Fee Record (settled)
+        const regFeeRecord: FeeRecord = {
+          id: db.generateId(),
+          studentId: newStudent.id,
+          classId: 'REGISTRATION_FEE',
+          month: 'REGISTRATION',
+          baseFee: regFeeAmount,
+          discount: 0,
+          previousBalance: 0,
+          totalDue: regFeeAmount,
+          paidAmount: regFeeAmount,
+          remainingBalance: 0,
+          status: 'PAID',
+          dueDate: new Date().toISOString().substring(0, 10),
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        };
+        db.data.feeRecords.push(regFeeRecord);
+
+        // Payment Item
+        db.data.paymentItems.push({
+          id: db.generateId(),
+          paymentId: regPayment.id,
+          feeRecordId: regFeeRecord.id,
+          amountPaid: regFeeAmount,
+          balanceLeft: 0,
+          description: 'Student Admission & Registration Fee'
+        });
+
+        // Income Ledger entry
+        db.data.income.push({
+          id: db.generateId(),
+          category: 'Registration Fees',
+          amount: regFeeAmount,
+          source: `${newStudent.fullName} (${newStudent.studentIdNumber})`,
+          paymentId: regPayment.id,
+          receiptNo: regReceiptNumber,
+          date: new Date().toISOString().substring(0, 10),
+          description: `Student Admission & Registration Fee Receipt ${regReceiptNumber}`,
+          receivedBy: req.user?.name || 'Receptionist',
+          createdAt: new Date().toISOString()
+        });
+      } else {
+        // Mark as Due / Pending
+        newStudent.registrationFee = regFeeAmount;
+        newStudent.registrationFeeStatus = 'PENDING';
+
+        const regFeeRecord: FeeRecord = {
+          id: db.generateId(),
+          studentId: newStudent.id,
+          classId: 'REGISTRATION_FEE',
+          month: 'REGISTRATION',
+          baseFee: regFeeAmount,
+          discount: 0,
+          previousBalance: 0,
+          totalDue: regFeeAmount,
+          paidAmount: 0,
+          remainingBalance: regFeeAmount,
+          status: 'PENDING',
+          dueDate: new Date().toISOString().substring(0, 10),
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        };
+        db.data.feeRecords.push(regFeeRecord);
+      }
+    } else {
+      newStudent.registrationFee = 0;
+      newStudent.registrationFeeStatus = 'WAIVED';
+    }
 
     // Enroll in classes
     if (Array.isArray(enrolledClassIds) && enrolledClassIds.length > 0) {
@@ -566,7 +677,9 @@ router.post('/', authenticateToken, requireRoles(['SUPER_ADMIN', 'ADMIN', 'RECEP
       ...newStudent,
       parentPortalUrl,
       welcomeSms,
-      smsSent: Boolean(welcomeSms)
+      smsSent: Boolean(welcomeSms),
+      registrationReceiptNo: regReceiptNumber,
+      registrationPayment: regPayment
     });
   } catch (error: any) {
     console.error('Error creating student:', error);
@@ -689,6 +802,61 @@ router.put('/:id', authenticateToken, requireRoles(['SUPER_ADMIN', 'ADMIN', 'REC
     if (status) student.status = status;
     if (notes !== undefined) student.notes = notes;
     if (photo !== undefined) student.photo = photo ? photo.trim() : undefined;
+
+    // Registration / Admission Fee Updates
+    if (req.body.registrationFee !== undefined) {
+      student.registrationFee = Number(req.body.registrationFee) || 0;
+    }
+    if (req.body.registrationFeeStatus !== undefined) {
+      const prevStatus = student.registrationFeeStatus;
+      student.registrationFeeStatus = req.body.registrationFeeStatus;
+      if (req.body.registrationFeeStatus === 'PAID' && prevStatus !== 'PAID') {
+        const regFee = db.data.feeRecords.find(f => f.studentId === student.id && f.classId === 'REGISTRATION_FEE');
+        const regAmount = student.registrationFee || 1500;
+        if (regFee) {
+          regFee.paidAmount = regAmount;
+          regFee.remainingBalance = 0;
+          regFee.status = 'PAID';
+          regFee.updatedAt = new Date().toISOString();
+        }
+        let maxPayNum = 0;
+        db.data.payments.forEach(p => {
+          const match = p.receiptNumber ? p.receiptNumber.match(/REC-\d{4}-(\d+)/) : null;
+          if (match) {
+            const n = parseInt(match[1], 10);
+            if (n > maxPayNum) maxPayNum = n;
+          }
+        });
+        const nextReceiptNum = String(Math.max(maxPayNum + 1, db.data.payments.length + 1)).padStart(4, '0');
+        const regReceiptNumber = `REC-2026-${nextReceiptNum}`;
+        student.registrationReceiptNo = regReceiptNumber;
+
+        const regPayment: Payment = {
+          id: db.generateId(),
+          receiptNumber: regReceiptNumber,
+          studentId: student.id,
+          totalAmount: regAmount,
+          paymentMethod: req.body.registrationFeePaymentMethod || 'Cash',
+          paymentDate: new Date().toISOString(),
+          cashier: req.user?.name || 'Receptionist',
+          notes: 'Settled Student Admission & Registration Fee',
+          createdAt: new Date().toISOString()
+        };
+        db.data.payments.push(regPayment);
+        db.data.income.push({
+          id: db.generateId(),
+          category: 'Registration Fees',
+          amount: regAmount,
+          source: `${student.fullName} (${student.studentIdNumber})`,
+          paymentId: regPayment.id,
+          receiptNo: regReceiptNumber,
+          date: new Date().toISOString().substring(0, 10),
+          description: `Settled Admission & Registration Fee Receipt ${regReceiptNumber}`,
+          receivedBy: req.user?.name || 'Receptionist',
+          createdAt: new Date().toISOString()
+        });
+      }
+    }
 
     // Sync Parent Name & Phone
     if (parentPhone !== undefined) {

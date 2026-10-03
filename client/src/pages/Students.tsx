@@ -26,13 +26,17 @@ import {
   Clock,
   RefreshCw,
   Camera,
-  Image as ImageIcon
+  Image as ImageIcon,
+  Receipt,
+  CreditCard,
+  DollarSign
 } from 'lucide-react';
 import { apiRequest, formatLKR, formatDate } from '../api';
 import { Student } from '../types';
 import { AssignRFIDModal } from '../components/AssignRFIDModal';
 import { EditStudentModal } from '../components/EditStudentModal';
 import { useRFIDReader } from '../utils/useRFIDReader';
+import { useSettings } from '../context/SettingsContext';
 import { 
   MALE_STUDENT_AVATAR, 
   FEMALE_STUDENT_AVATAR, 
@@ -44,9 +48,13 @@ import {
 interface StudentsProps {
   onOpenProfile: (studentId: string) => void;
   onOpenIDCard: (studentId: string) => void;
+  onOpenReceipt?: (receiptNumber: string) => void;
 }
 
-export const Students: React.FC<StudentsProps> = ({ onOpenProfile, onOpenIDCard }) => {
+export const Students: React.FC<StudentsProps> = ({ onOpenProfile, onOpenIDCard, onOpenReceipt }) => {
+  const { settings } = useSettings();
+  const defaultRegistrationFee = Number(settings.DEFAULT_REGISTRATION_FEE || '1500') || 1500;
+
   const [students, setStudents] = useState<Student[]>([]);
   const [classes, setClasses] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -63,6 +71,9 @@ export const Students: React.FC<StudentsProps> = ({ onOpenProfile, onOpenIDCard 
 
   // Add Student Modal State
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [regFeeMode, setRegFeeMode] = useState<'COLLECT_NOW' | 'MARK_DUE' | 'WAIVE'>('COLLECT_NOW');
+  const [lastIssuedReceiptNo, setLastIssuedReceiptNo] = useState<string | null>(null);
+
   const [formData, setFormData] = useState({
     fullName: '',
     grade: 'Grade 12',
@@ -80,7 +91,11 @@ export const Students: React.FC<StudentsProps> = ({ onOpenProfile, onOpenIDCard 
     notes: '',
     rfidTag: '',
     photo: MALE_STUDENT_AVATAR,
-    enrolledClassIds: [] as string[]
+    enrolledClassIds: [] as string[],
+    registrationFee: defaultRegistrationFee,
+    collectRegistrationFeeNow: true,
+    registrationFeePaymentMethod: 'CASH',
+    registrationFeeNotes: ''
   });
   const [submitting, setSubmitting] = useState(false);
   const [modalError, setModalError] = useState<string | null>(null);
@@ -239,9 +254,18 @@ export const Students: React.FC<StudentsProps> = ({ onOpenProfile, onOpenIDCard 
 
     setSubmitting(true);
     try {
+      const payload = {
+        ...formData,
+        registrationFee: regFeeMode === 'WAIVE' ? 0 : Number(formData.registrationFee || 0),
+        collectRegistrationFeeNow: regFeeMode === 'COLLECT_NOW',
+        registrationFeeStatus: regFeeMode === 'COLLECT_NOW' ? 'PAID' : regFeeMode === 'MARK_DUE' ? 'PENDING' : 'WAIVED',
+        registrationFeePaymentMethod: formData.registrationFeePaymentMethod,
+        registrationFeeNotes: formData.registrationFeeNotes
+      };
+
       const created = await apiRequest<any>('/students', {
         method: 'POST',
-        body: JSON.stringify(formData)
+        body: JSON.stringify(payload)
       });
       setIsAddModalOpen(false);
       setFormData({
@@ -261,15 +285,30 @@ export const Students: React.FC<StudentsProps> = ({ onOpenProfile, onOpenIDCard 
         notes: '',
         rfidTag: '',
         photo: MALE_STUDENT_AVATAR,
-        enrolledClassIds: []
+        enrolledClassIds: [],
+        registrationFee: defaultRegistrationFee,
+        collectRegistrationFeeNow: true,
+        registrationFeePaymentMethod: 'CASH',
+        registrationFeeNotes: ''
       });
+      setRegFeeMode('COLLECT_NOW');
       setGradeFilter('ALL');
       setStatusFilter('ALL');
       setClassFilter('ALL');
       setSearch('');
       fetchStudents({ search: '', grade: 'ALL', status: 'ALL', classId: 'ALL' });
-      setSuccessNotice(`Student ${created.fullName} (${created.studentIdNumber}) registered successfully!`);
-      setTimeout(() => setSuccessNotice(null), 6000);
+
+      if (created.registrationReceiptNo) {
+        setLastIssuedReceiptNo(created.registrationReceiptNo);
+        setSuccessNotice(`Student ${created.fullName} (${created.studentIdNumber}) registered successfully! Official Registration Receipt #${created.registrationReceiptNo} issued.`);
+      } else if (payload.registrationFeeStatus === 'PENDING') {
+        setLastIssuedReceiptNo(null);
+        setSuccessNotice(`Student ${created.fullName} (${created.studentIdNumber}) registered successfully! Admission fee of ${formatLKR(payload.registrationFee)} marked as Pending.`);
+      } else {
+        setLastIssuedReceiptNo(null);
+        setSuccessNotice(`Student ${created.fullName} (${created.studentIdNumber}) registered successfully! Admission fee waived.`);
+      }
+      setTimeout(() => setSuccessNotice(null), 9000);
 
       try {
         window.dispatchEvent(new CustomEvent('cams-data-changed', {
@@ -371,9 +410,21 @@ export const Students: React.FC<StudentsProps> = ({ onOpenProfile, onOpenIDCard 
       </div>
 
       {successNotice && (
-        <div className="p-3.5 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold flex items-center gap-2 shadow-sm animate-in fade-in">
-          <Check size={16} className="text-emerald-600 shrink-0" />
-          <span>{successNotice}</span>
+        <div className="p-3.5 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-sm animate-in fade-in">
+          <div className="flex items-center gap-2">
+            <Check size={16} className="text-emerald-600 shrink-0" />
+            <span>{successNotice}</span>
+          </div>
+          {lastIssuedReceiptNo && onOpenReceipt && (
+            <button
+              type="button"
+              onClick={() => onOpenReceipt(lastIssuedReceiptNo)}
+              className="px-3.5 py-1.5 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs flex items-center gap-1.5 shadow transition-all shrink-0 cursor-pointer"
+            >
+              <Receipt size={14} />
+              <span>Print Receipt #{lastIssuedReceiptNo}</span>
+            </button>
+          )}
         </div>
       )}
 
@@ -457,6 +508,7 @@ export const Students: React.FC<StudentsProps> = ({ onOpenProfile, onOpenIDCard 
                 <th className="py-3 px-4">Contact</th>
                 <th className="py-3 px-4">Guardian Details</th>
                 <th className="py-3 px-4">Enrolled Classes</th>
+                <th className="py-3 px-4">Admission Fee</th>
                 <th className="py-3 px-4">Status</th>
                 <th className="py-3 px-4 text-right">Actions</th>
               </tr>
@@ -464,11 +516,11 @@ export const Students: React.FC<StudentsProps> = ({ onOpenProfile, onOpenIDCard 
             <tbody className="divide-y divide-slate-100">
               {loading ? (
                 <tr>
-                  <td colSpan={7} className="py-12 text-center text-slate-400">Loading student directory...</td>
+                  <td colSpan={8} className="py-12 text-center text-slate-400">Loading student directory...</td>
                 </tr>
               ) : students.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="py-12 text-center text-slate-400">No students match current search filter.</td>
+                  <td colSpan={8} className="py-12 text-center text-slate-400">No students match current search filter.</td>
                 </tr>
               ) : (
                 students.map(s => (
@@ -536,6 +588,34 @@ export const Students: React.FC<StudentsProps> = ({ onOpenProfile, onOpenIDCard 
                         <BookOpen size={12} className="text-indigo-600" />
                         <span>{s.enrollments?.length || 0} Classes</span>
                       </button>
+                    </td>
+
+                    <td className="py-3 px-4">
+                      {s.registrationFeeStatus === 'PAID' ? (
+                        <div className="flex items-center gap-1">
+                          <span className="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 font-bold text-[10px] border border-emerald-200">
+                            Paid {s.registrationFee ? `(${formatLKR(s.registrationFee)})` : ''}
+                          </span>
+                          {s.registrationReceiptNo && onOpenReceipt && (
+                            <button
+                              type="button"
+                              onClick={() => onOpenReceipt(s.registrationReceiptNo!)}
+                              className="p-1 rounded text-slate-400 hover:text-emerald-700 hover:bg-emerald-50 transition-colors"
+                              title={`View / Print Receipt #${s.registrationReceiptNo}`}
+                            >
+                              <Receipt size={13} />
+                            </button>
+                          )}
+                        </div>
+                      ) : s.registrationFeeStatus === 'WAIVED' ? (
+                        <span className="px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 font-semibold text-[10px] border border-slate-200">
+                          Free / Waived
+                        </span>
+                      ) : (
+                        <span className="px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 font-bold text-[10px] border border-amber-200">
+                          Due {s.registrationFee ? `(${formatLKR(s.registrationFee)})` : ''}
+                        </span>
+                      )}
                     </td>
 
                     <td className="py-3 px-4">
@@ -644,10 +724,23 @@ export const Students: React.FC<StudentsProps> = ({ onOpenProfile, onOpenIDCard 
                         {s.fullName}
                       </h4>
                       <p className="text-[11px] text-slate-400 font-mono">{s.studentIdNumber}</p>
-                      <div className="flex items-center gap-1.5 mt-1">
+                      <div className="flex items-center gap-1.5 mt-1 flex-wrap">
                         <span className="px-2 py-0.5 rounded-lg bg-indigo-50 text-indigo-700 text-[10px] font-bold border border-indigo-200/60">
                           {s.grade}
                         </span>
+                        {s.registrationFeeStatus === 'PAID' ? (
+                          <span className="px-2 py-0.5 rounded-lg bg-emerald-50 text-emerald-700 text-[10px] font-bold border border-emerald-200">
+                            Adm: Paid
+                          </span>
+                        ) : s.registrationFeeStatus === 'WAIVED' ? (
+                          <span className="px-2 py-0.5 rounded-lg bg-slate-100 text-slate-600 text-[10px] font-semibold border border-slate-200">
+                            Adm: Free
+                          </span>
+                        ) : (
+                          <span className="px-2 py-0.5 rounded-lg bg-amber-50 text-amber-700 text-[10px] font-bold border border-amber-200">
+                            Adm: Due {s.registrationFee ? `(${formatLKR(s.registrationFee)})` : ''}
+                          </span>
+                        )}
                         <button
                           type="button"
                           onClick={(e) => handleToggleStudentStatus(s, e)}
@@ -1247,6 +1340,176 @@ export const Students: React.FC<StudentsProps> = ({ onOpenProfile, onOpenIDCard 
                         })}
                       </div>
                     )}
+                  </div>
+                </div>
+
+                {/* Registration / Admission Fee Section */}
+                <div className="sm:col-span-2 space-y-3 pt-3 border-t border-slate-200">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Receipt size={16} className="text-emerald-600" />
+                      <label className="text-xs font-bold text-slate-800 uppercase tracking-wider">
+                        Student Admission / Registration Fee
+                      </label>
+                    </div>
+                    <span className="text-[10px] text-slate-400 font-medium">Official Academy Accounting</span>
+                  </div>
+
+                  {/* Mode Selector Tabs */}
+                  <div className="grid grid-cols-3 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setRegFeeMode('COLLECT_NOW');
+                        setFormData(prev => ({
+                          ...prev,
+                          registrationFee: prev.registrationFee || defaultRegistrationFee,
+                          collectRegistrationFeeNow: true
+                        }));
+                      }}
+                      className={`p-2.5 rounded-xl border text-center transition-all cursor-pointer ${
+                        regFeeMode === 'COLLECT_NOW'
+                          ? 'bg-emerald-50 border-emerald-500 text-emerald-900 font-bold ring-2 ring-emerald-400/50 shadow-xs'
+                          : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
+                      }`}
+                    >
+                      <p className="text-xs">Collect Now</p>
+                      <p className="text-[10px] text-emerald-700 font-bold mt-0.5">Issue Receipt</p>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setRegFeeMode('MARK_DUE');
+                        setFormData(prev => ({
+                          ...prev,
+                          registrationFee: prev.registrationFee || defaultRegistrationFee,
+                          collectRegistrationFeeNow: false
+                        }));
+                      }}
+                      className={`p-2.5 rounded-xl border text-center transition-all cursor-pointer ${
+                        regFeeMode === 'MARK_DUE'
+                          ? 'bg-amber-50 border-amber-500 text-amber-900 font-bold ring-2 ring-amber-400/50 shadow-xs'
+                          : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
+                      }`}
+                    >
+                      <p className="text-xs">Mark as Due</p>
+                      <p className="text-[10px] text-amber-700 font-bold mt-0.5">Collect Later</p>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setRegFeeMode('WAIVE');
+                        setFormData(prev => ({
+                          ...prev,
+                          registrationFee: 0,
+                          collectRegistrationFeeNow: false
+                        }));
+                      }}
+                      className={`p-2.5 rounded-xl border text-center transition-all cursor-pointer ${
+                        regFeeMode === 'WAIVE'
+                          ? 'bg-purple-50 border-purple-500 text-purple-900 font-bold ring-2 ring-purple-400/50 shadow-xs'
+                          : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
+                      }`}
+                    >
+                      <p className="text-xs">Waive / Free</p>
+                      <p className="text-[10px] text-purple-700 font-bold mt-0.5">Scholarship</p>
+                    </button>
+                  </div>
+
+                  {regFeeMode !== 'WAIVE' ? (
+                    <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 space-y-3">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div>
+                          <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1">
+                            Admission Fee Amount (LKR) *
+                          </label>
+                          <div className="relative">
+                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">Rs.</span>
+                            <input
+                              type="number"
+                              min="0"
+                              step="100"
+                              value={formData.registrationFee}
+                              onChange={(e) => setFormData({ ...formData, registrationFee: Number(e.target.value) || 0 })}
+                              className="w-full pl-9 pr-3 py-2 rounded-xl border border-slate-300 text-xs font-mono font-bold bg-white focus:ring-2 focus:ring-brand-500"
+                              placeholder="1500"
+                            />
+                          </div>
+
+                          {/* Quick presets */}
+                          <div className="flex items-center gap-1 mt-1.5 flex-wrap">
+                            {[1000, 1500, 2000, 2500, 3000].map(amt => (
+                              <button
+                                key={amt}
+                                type="button"
+                                onClick={() => setFormData({ ...formData, registrationFee: amt })}
+                                className={`px-2 py-0.5 rounded-lg text-[10px] font-bold border transition-colors cursor-pointer ${
+                                  formData.registrationFee === amt
+                                    ? 'bg-brand-600 text-white border-brand-600'
+                                    : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-100'
+                                }`}
+                              >
+                                Rs. {amt.toLocaleString()}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+
+                        {regFeeMode === 'COLLECT_NOW' && (
+                          <div>
+                            <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1">
+                              Payment Method
+                            </label>
+                            <select
+                              value={formData.registrationFeePaymentMethod}
+                              onChange={(e) => setFormData({ ...formData, registrationFeePaymentMethod: e.target.value })}
+                              className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs bg-white font-semibold text-slate-800"
+                            >
+                              <option value="CASH">Cash at Reception</option>
+                              <option value="BANK_TRANSFER">Bank Transfer / Deposit Slip</option>
+                              <option value="CARD">Credit / Debit POS Card</option>
+                              <option value="ONLINE">Online Transfer / Gateway</option>
+                            </select>
+                          </div>
+                        )}
+                      </div>
+
+                      <div>
+                        <input
+                          type="text"
+                          placeholder="Optional registration fee notes (e.g. Bank Ref #, promo code, receipt note)..."
+                          value={formData.registrationFeeNotes}
+                          onChange={(e) => setFormData({ ...formData, registrationFeeNotes: e.target.value })}
+                          className="w-full px-3 py-1.5 rounded-xl border border-slate-200 bg-white text-[11px] placeholder-slate-400"
+                        />
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="p-3 rounded-2xl bg-purple-50/70 border border-purple-200 text-purple-900 text-xs flex items-center gap-2">
+                      <CheckCircle2 size={16} className="text-purple-600 shrink-0" />
+                      <span>Registration fee is waived (Rs. 0). No admission fee will be charged or recorded as due.</span>
+                    </div>
+                  )}
+
+                  {/* Financial Summary Card */}
+                  <div className="p-3.5 rounded-2xl bg-gradient-to-r from-slate-900 to-indigo-950 text-white shadow-md flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div className="space-y-0.5">
+                      <p className="text-[10px] font-bold uppercase tracking-wider text-indigo-300">New Registration Financial Breakdown</p>
+                      <div className="flex items-center gap-3 text-xs text-slate-300">
+                        <span>Admission: <strong className="text-white font-mono">{formatLKR(regFeeMode === 'WAIVE' ? 0 : Number(formData.registrationFee || 0))}</strong></span>
+                        <span>&bull;</span>
+                        <span>Monthly Classes: <strong className="text-white font-mono">{formData.enrolledClassIds.length} Batches ({formatLKR(totalSelectedFees)}/mo)</strong></span>
+                      </div>
+                    </div>
+
+                    <div className="text-right sm:border-l sm:border-slate-700/80 sm:pl-4">
+                      <p className="text-[10px] text-slate-400 uppercase font-semibold">Immediate Cash Collection</p>
+                      <p className="text-lg font-black font-mono text-emerald-400">
+                        {regFeeMode === 'COLLECT_NOW' ? formatLKR(Number(formData.registrationFee || 0)) : formatLKR(0)}
+                      </p>
+                    </div>
                   </div>
                 </div>
               </div>

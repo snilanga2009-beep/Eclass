@@ -73,6 +73,9 @@ export interface Student {
   parentId?: string | null;
   parentName?: string;
   parentPhone?: string;
+  registrationFee?: number;
+  registrationFeeStatus?: 'PAID' | 'PENDING' | 'WAIVED';
+  registrationReceiptNo?: string;
   createdAt: string;
   updatedAt: string;
 }

@@ -469,6 +469,36 @@ export const Settings: React.FC = () => {
                 className="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-xs"
               />
             </div>
+
+            <div>
+              <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">
+                Standard Student Admission &amp; Registration Fee ({settings.CURRENCY_CODE || 'LKR'})
+              </label>
+              <div className="flex items-center gap-2">
+                <input
+                  type="number"
+                  min="0"
+                  step="100"
+                  value={settings.DEFAULT_REGISTRATION_FEE || '1500'}
+                  onChange={(e) => handleChange('DEFAULT_REGISTRATION_FEE', e.target.value)}
+                  className="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-xs font-mono font-bold"
+                  placeholder="e.g. 1500"
+                />
+                <div className="flex items-center gap-1 shrink-0">
+                  {['1000', '1500', '2000', '0'].map(amt => (
+                    <button
+                      key={amt}
+                      type="button"
+                      onClick={() => handleChange('DEFAULT_REGISTRATION_FEE', amt)}
+                      className="px-2 py-1 rounded-lg border border-slate-200 bg-slate-50 hover:bg-slate-100 text-[10px] font-bold text-slate-600 transition-colors"
+                    >
+                      {amt === '0' ? 'Free' : `Rs.${amt}`}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <p className="text-[10px] text-slate-400 mt-1">Pre-filled default registration fee when enrolling new students.</p>
+            </div>
           </div>
         </div>
 
