@@ -33,23 +33,44 @@ interface ManualFeeItem {
   monthlyFee: number;
 }
 
-// Generate Month Options: from -6 months to +3 months relative to current date
-const generateMonthList = () => {
-  const list = [];
+interface MonthOption {
+  code: string;
+  name: string;
+  year: number;
+  monthNum: number;
+  isCurrent: boolean;
+  isPrevious: boolean;
+}
+
+// Comprehensive Month Options: Generates ALL 12 calendar months for Current Year, Previous Year, and Next Year
+const generateMonthList = (): MonthOption[] => {
+  const list: MonthOption[] = [];
   const now = new Date();
-  for (let i = -6; i <= 3; i++) {
-    const d = new Date(now.getFullYear(), now.getMonth() + i, 1);
-    const y = d.getFullYear();
-    const m = String(d.getMonth() + 1).padStart(2, '0');
-    const code = `${y}-${m}`;
-    const name = d.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
-    list.push({
-      code,
-      name,
-      isCurrent: i === 0,
-      isPrevious: i === -1
-    });
-  }
+  const currentYear = now.getFullYear();
+  const currentMonthNum = now.getMonth() + 1; // 1-12
+
+  const years = [currentYear, currentYear - 1, currentYear + 1];
+
+  years.forEach(yr => {
+    for (let m = 1; m <= 12; m++) {
+      const d = new Date(yr, m - 1, 1);
+      const code = `${yr}-${String(m).padStart(2, '0')}`;
+      const name = d.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+      const isCurrent = (yr === currentYear && m === currentMonthNum);
+      const isPrevious = (yr === currentYear && m === currentMonthNum - 1) || 
+                         (currentMonthNum === 1 && yr === currentYear - 1 && m === 12);
+      
+      list.push({
+        code,
+        name,
+        year: yr,
+        monthNum: m,
+        isCurrent,
+        isPrevious
+      });
+    }
+  });
+
   return list;
 };
 
@@ -305,6 +326,20 @@ export const PaymentCollectModal: React.FC<PaymentCollectModalProps> = ({
       });
 
       onPaymentSuccess(res.receiptNumber, selectedStudentId);
+
+      // Real-time synchronization: Dispatch global event so all pages instantly update
+      try {
+        window.dispatchEvent(new CustomEvent('cams-data-changed', {
+          detail: {
+            type: 'PAYMENT',
+            receiptNumber: res.receiptNumber,
+            studentId: selectedStudentId
+          }
+        }));
+      } catch (evtErr) {
+        console.warn('Sync dispatch error:', evtErr);
+      }
+
       onClose();
     } catch (err: any) {
       setError(err.message || 'Payment processing failed');
@@ -489,17 +524,42 @@ export const PaymentCollectModal: React.FC<PaymentCollectModalProps> = ({
                 {/* Dropdowns for Month and Class */}
                 <div className="grid grid-cols-1 sm:grid-cols-12 gap-2 pt-1">
                   <div className="sm:col-span-5">
-                    <label className="block text-[10px] font-bold text-indigo-900 uppercase mb-1">Select Month</label>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="block text-[10px] font-bold text-indigo-900 uppercase">Select Month (All Months)</label>
+                      <input 
+                        type="month"
+                        value={selectedManualMonth}
+                        onChange={e => e.target.value && setSelectedManualMonth(e.target.value)}
+                        className="text-[10px] px-1.5 py-0.5 rounded-lg border border-indigo-200 bg-white text-indigo-700 cursor-pointer"
+                        title="Pick custom calendar month"
+                      />
+                    </div>
                     <select
                       value={selectedManualMonth}
                       onChange={e => setSelectedManualMonth(e.target.value)}
-                      className="w-full px-2.5 py-1.5 rounded-xl border border-indigo-200 bg-white text-xs font-medium text-slate-800"
+                      className="w-full px-2.5 py-1.5 rounded-xl border border-indigo-200 bg-white text-xs font-semibold text-slate-800 focus:outline-none focus:ring-1 focus:ring-indigo-500"
                     >
-                      {monthList.map(m => (
-                        <option key={m.code} value={m.code}>
-                          {m.name} {m.isCurrent ? '⭐ (Current)' : m.isPrevious ? '⚡ (Last Month)' : ''}
-                        </option>
-                      ))}
+                      <optgroup label={`📅 Current Year (${new Date().getFullYear()}) - All 12 Months`}>
+                        {monthList.filter(m => m.year === new Date().getFullYear()).map(m => (
+                          <option key={m.code} value={m.code}>
+                            {m.name} {m.isCurrent ? '⭐ (Current Month)' : m.isPrevious ? '⚡ (Last Month)' : ''}
+                          </option>
+                        ))}
+                      </optgroup>
+                      <optgroup label={`⏮️ Previous Year (${new Date().getFullYear() - 1}) - All 12 Months`}>
+                        {monthList.filter(m => m.year === new Date().getFullYear() - 1).map(m => (
+                          <option key={m.code} value={m.code}>
+                            {m.name}
+                          </option>
+                        ))}
+                      </optgroup>
+                      <optgroup label={`⏭️ Upcoming Year (${new Date().getFullYear() + 1}) - All 12 Months`}>
+                        {monthList.filter(m => m.year === new Date().getFullYear() + 1).map(m => (
+                          <option key={m.code} value={m.code}>
+                            {m.name}
+                          </option>
+                        ))}
+                      </optgroup>
                     </select>
                   </div>
 

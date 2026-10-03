@@ -463,6 +463,15 @@ class DatabaseStore {
         fs.mkdirSync(DATA_DIR, { recursive: true });
       }
       fs.writeFileSync(DATA_FILE, JSON.stringify(this.data, null, 2), 'utf-8');
+
+      // Also sync to root data/ directory if present
+      const altDataDir = path.resolve(__dirname, '..', '..', 'data');
+      const altDataFile = path.join(altDataDir, 'db.json');
+      if (fs.existsSync(altDataDir) && altDataFile !== DATA_FILE) {
+        try {
+          fs.writeFileSync(altDataFile, JSON.stringify(this.data, null, 2), 'utf-8');
+        } catch (e) {}
+      }
     } catch (err) {
       console.error('Failed to persist database to disk:', err);
     }

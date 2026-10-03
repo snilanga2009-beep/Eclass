@@ -7,10 +7,11 @@ const router = Router();
 // GET /api/dashboard - High level aggregated statistics for Admin Dashboard
 router.get('/', authenticateToken, (req: AuthRequest, res: Response) => {
   try {
-    const today = new Date().toISOString().substring(0, 10);
-    const currentMonth = '2026-09';
+    const now = new Date();
+    const today = now.toISOString().substring(0, 10);
+    const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
     const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-    const currentDayName = dayNames[new Date().getDay()];
+    const currentDayName = dayNames[now.getDay()];
 
     const totalStudents = db.data.students.length;
     const activeStudents = db.data.students.filter(s => s.status === 'ACTIVE').length;
@@ -36,6 +37,7 @@ router.get('/', authenticateToken, (req: AuthRequest, res: Response) => {
       const student = db.data.students.find(s => s.id === a.studentId);
       const cls = db.data.classes.find(c => c.id === a.classId);
       const teacher = cls ? db.data.teachers.find(t => t.id === cls.teacherId) : null;
+      const feeRecord = db.data.feeRecords.find(f => f.studentId === a.studentId && f.classId === a.classId && f.month === currentMonth);
       return {
         id: a.id,
         studentId: a.studentId,
@@ -43,6 +45,7 @@ router.get('/', authenticateToken, (req: AuthRequest, res: Response) => {
         studentIdNumber: student?.studentIdNumber || 'N/A',
         studentPhoto: student?.photo || '',
         studentGrade: student?.grade || 'General',
+        parentPhone: student?.parentPhone || student?.phone || '',
         classId: a.classId,
         className: cls?.name || 'Tuition Class',
         classCode: cls?.classCode || '',
@@ -51,7 +54,14 @@ router.get('/', authenticateToken, (req: AuthRequest, res: Response) => {
         status: a.status,
         scannedAt: a.scannedAt,
         method: a.method || 'QR_CODE',
-        recordedBy: a.recordedBy || 'Gate Scanner'
+        recordedBy: a.recordedBy || 'Gate Scanner',
+        feeInfo: {
+          feeRecordId: feeRecord?.id,
+          month: feeRecord?.month || currentMonth,
+          status: feeRecord?.status || 'PAID',
+          remainingBalance: feeRecord ? feeRecord.remainingBalance : 0,
+          hasPendingFees: feeRecord ? feeRecord.status !== 'PAID' && feeRecord.remainingBalance > 0 : false
+        }
       };
     }).sort((a, b) => new Date(b.scannedAt).getTime() - new Date(a.scannedAt).getTime());
 
@@ -102,15 +112,25 @@ router.get('/', authenticateToken, (req: AuthRequest, res: Response) => {
         status: s.status
       }));
 
-    // Revenue Trend Chart (Past 6 Months)
-    const revenueChart = [
-      { month: 'Apr', revenue: 420000, expenses: 280000, net: 140000 },
-      { month: 'May', revenue: 480000, expenses: 295000, net: 185000 },
-      { month: 'Jun', revenue: 510000, expenses: 310000, net: 200000 },
-      { month: 'Jul', revenue: 560000, expenses: 320000, net: 240000 },
-      { month: 'Aug', revenue: 620000, expenses: 340000, net: 280000 },
-      { month: 'Sep (Current)', revenue: monthlyRevenue || 685000, expenses: monthlyExpenses || 315000, net: (monthlyRevenue || 685000) - (monthlyExpenses || 315000) }
-    ];
+    // Dynamic Revenue Trend Chart (Past 6 Months from actual database)
+    const revenueChart = [];
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const mStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      const mLabel = d.toLocaleDateString('en-US', { month: 'short' }) + (i === 0 ? ' (Current)' : '');
+      const rev = db.data.payments
+        .filter(p => p.paymentDate && p.paymentDate.startsWith(mStr))
+        .reduce((sum, p) => sum + p.totalAmount, 0);
+      const exp = db.data.expenses
+        .filter(e => e.date && e.date.startsWith(mStr))
+        .reduce((sum, e) => sum + e.amount, 0);
+      revenueChart.push({
+        month: mLabel,
+        revenue: rev,
+        expenses: exp,
+        net: rev - exp
+      });
+    }
 
     // Attendance Rate by Day
     const attendanceChart = [

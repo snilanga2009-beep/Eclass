@@ -47,6 +47,15 @@ export const Payments: React.FC<PaymentsProps> = ({ onOpenReceipt, onOpenPayment
     fetchPayments();
   }, [methodFilter, fromDate, toDate]);
 
+  // Real-time synchronization: Auto-refresh on payment or attendance changes
+  useEffect(() => {
+    const handleDataChanged = () => {
+      fetchPayments();
+    };
+    window.addEventListener('cams-data-changed', handleDataChanged);
+    return () => window.removeEventListener('cams-data-changed', handleDataChanged);
+  }, [methodFilter, fromDate, toDate]);
+
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     fetchPayments();

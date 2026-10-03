@@ -51,6 +51,15 @@ export const PendingFees: React.FC<PendingFeesProps> = ({
     apiRequest<any[]>('/classes').then(res => setClasses(res || []));
   }, [filter, classFilter]);
 
+  // Real-time synchronization: Auto-refresh pending fees on payment or changes
+  useEffect(() => {
+    const handleDataChanged = () => {
+      fetchPendingFees();
+    };
+    window.addEventListener('cams-data-changed', handleDataChanged);
+    return () => window.removeEventListener('cams-data-changed', handleDataChanged);
+  }, [filter, classFilter]);
+
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     fetchPendingFees();

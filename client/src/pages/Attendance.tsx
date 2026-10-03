@@ -260,6 +260,16 @@ export const Attendance: React.FC<AttendanceProps> = ({
     }
   }, [mode, selectedDate]);
 
+  // Real-time synchronization: listen to data changes (payments, scans, profile updates)
+  useEffect(() => {
+    const handleDataChanged = () => {
+      fetchRoster(selectedDate);
+    };
+
+    window.addEventListener('cams-data-changed', handleDataChanged);
+    return () => window.removeEventListener('cams-data-changed', handleDataChanged);
+  }, [selectedDate]);
+
   const handleSendWhatsApp = (item: any) => {
     const rawPhone = item.parentPhone || '';
     const phone = rawPhone.replace(/\D/g, '');
@@ -382,6 +392,19 @@ export const Attendance: React.FC<AttendanceProps> = ({
             console.warn('Auto WhatsApp window popup blocked:', e);
           }
         }
+
+        // Real-time synchronization: Dispatch global event and refresh roster
+        try {
+          window.dispatchEvent(new CustomEvent('cams-data-changed', {
+            detail: {
+              type: 'ATTENDANCE',
+              classId: selectedClassId,
+              studentId: res.student?.id
+            }
+          }));
+        } catch (e) {}
+
+        fetchRoster(selectedDate);
       } else if (res.scanResult === 'ALREADY_RECORDED') {
         playBeep('WARN');
       } else {
