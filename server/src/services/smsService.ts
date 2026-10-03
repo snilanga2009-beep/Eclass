@@ -72,6 +72,7 @@ export async function dispatchRealSMS(
           'Content-Type': 'application/json',
           'Accept': 'application/json'
         },
+        signal: AbortSignal.timeout(3500),
         body: JSON.stringify({
           recipient: normalized,
           sender_id: senderId,

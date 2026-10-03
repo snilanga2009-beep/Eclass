@@ -363,7 +363,7 @@ router.get('/:id', authenticateToken, async (req: AuthRequest, res: Response) =>
 });
 
 // POST /api/students - Register new student
-router.post('/', authenticateToken, requireRoles(['SUPER_ADMIN', 'ADMIN', 'RECEPTIONIST']), async (req: AuthRequest, res: Response) => {
+router.post('/', authenticateToken, requireRoles(['SUPER_ADMIN', 'ADMIN', 'RECEPTIONIST', 'ACCOUNTANT']), async (req: AuthRequest, res: Response) => {
   try {
     const {
       fullName,
@@ -397,9 +397,23 @@ router.post('/', authenticateToken, requireRoles(['SUPER_ADMIN', 'ADMIN', 'RECEP
       }
     }
 
-    // Auto-generate student ID: STU-2026-XXXX
-    const nextNum = String(db.data.students.length + 1).padStart(4, '0');
+    // Auto-generate unique student ID: STU-2026-XXXX
+    let maxNum = 0;
+    db.data.students.forEach(s => {
+      const match = s.studentIdNumber ? s.studentIdNumber.match(/STU-\d{4}-(\d+)/) : null;
+      if (match) {
+        const n = parseInt(match[1], 10);
+        if (n > maxNum) maxNum = n;
+      }
+    });
+    const nextNum = String(Math.max(maxNum + 1, db.data.students.length + 1)).padStart(4, '0');
     const studentIdNumber = `STU-2026-${nextNum}`;
+
+    // Auto-assign unique 10-digit 125kHz RFID card UID if not provided
+    let finalRfidTag = rfidTag ? String(rfidTag).trim() : undefined;
+    if (!finalRfidTag) {
+      finalRfidTag = `000${String(4928100 + Math.max(maxNum + 1, db.data.students.length + 1)).padStart(7, '0')}`;
+    }
 
     // Generate secure random QR token
     const qrCodeToken = `CAMS-STU-${crypto.randomBytes(6).toString('hex').toUpperCase()}`;
@@ -445,7 +459,7 @@ router.post('/', authenticateToken, requireRoles(['SUPER_ADMIN', 'ADMIN', 'RECEP
       registrationDate: new Date().toISOString(),
       status: 'ACTIVE',
       notes: notes ? notes.trim() : undefined,
-      rfidTag: rfidTag ? String(rfidTag).trim() : undefined,
+      rfidTag: finalRfidTag,
       parentId,
       parentName: parentName ? parentName.trim() : undefined,
       parentPhone: parentPhone ? parentPhone.trim() : undefined,
@@ -561,7 +575,7 @@ router.post('/', authenticateToken, requireRoles(['SUPER_ADMIN', 'ADMIN', 'RECEP
 });
 
 // POST /api/students/:id/send-parent-link - Generate/Resend Parent Portal direct SMS link
-router.post('/:id/send-parent-link', authenticateToken, requireRoles(['SUPER_ADMIN', 'ADMIN', 'RECEPTIONIST']), async (req: AuthRequest, res: Response) => {
+router.post('/:id/send-parent-link', authenticateToken, requireRoles(['SUPER_ADMIN', 'ADMIN', 'RECEPTIONIST', 'ACCOUNTANT']), async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
     const student = db.data.students.find(s => s.id === id);
@@ -617,7 +631,7 @@ router.post('/:id/send-parent-link', authenticateToken, requireRoles(['SUPER_ADM
 });
 
 // PUT /api/students/:id - Update student profile
-router.put('/:id', authenticateToken, requireRoles(['SUPER_ADMIN', 'ADMIN', 'RECEPTIONIST']), async (req: AuthRequest, res: Response) => {
+router.put('/:id', authenticateToken, requireRoles(['SUPER_ADMIN', 'ADMIN', 'RECEPTIONIST', 'ACCOUNTANT']), async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
     const student = db.data.students.find(s => s.id === id);

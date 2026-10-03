@@ -134,14 +134,21 @@ export const Students: React.FC<StudentsProps> = ({ onOpenProfile, onOpenIDCard 
     }
   });
 
-  const fetchStudents = async () => {
+  const [successNotice, setSuccessNotice] = useState<string | null>(null);
+
+  const fetchStudents = async (overrideFilters?: { search?: string; grade?: string; status?: string; classId?: string }) => {
     setLoading(true);
     try {
+      const qSearch = overrideFilters?.search !== undefined ? overrideFilters.search : search;
+      const qGrade = overrideFilters?.grade !== undefined ? overrideFilters.grade : gradeFilter;
+      const qStatus = overrideFilters?.status !== undefined ? overrideFilters.status : statusFilter;
+      const qClass = overrideFilters?.classId !== undefined ? overrideFilters.classId : classFilter;
+
       const queryParams = new URLSearchParams({
-        search,
-        grade: gradeFilter,
-        status: statusFilter,
-        classId: classFilter
+        search: qSearch,
+        grade: qGrade,
+        status: qStatus,
+        classId: qClass
       });
       const data = await apiRequest<Student[]>(`/students?${queryParams.toString()}`);
       setStudents(data || []);
@@ -260,7 +267,9 @@ export const Students: React.FC<StudentsProps> = ({ onOpenProfile, onOpenIDCard 
       setStatusFilter('ALL');
       setClassFilter('ALL');
       setSearch('');
-      fetchStudents();
+      fetchStudents({ search: '', grade: 'ALL', status: 'ALL', classId: 'ALL' });
+      setSuccessNotice(`Student ${created.fullName} (${created.studentIdNumber}) registered successfully!`);
+      setTimeout(() => setSuccessNotice(null), 6000);
 
       try {
         window.dispatchEvent(new CustomEvent('cams-data-changed', {
@@ -360,6 +369,13 @@ export const Students: React.FC<StudentsProps> = ({ onOpenProfile, onOpenIDCard 
           </button>
         </div>
       </div>
+
+      {successNotice && (
+        <div className="p-3.5 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold flex items-center gap-2 shadow-sm animate-in fade-in">
+          <Check size={16} className="text-emerald-600 shrink-0" />
+          <span>{successNotice}</span>
+        </div>
+      )}
 
       {/* Filter and Search Bar */}
       <div className="p-4 rounded-2xl bg-white border border-slate-200/80 shadow-sm flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">

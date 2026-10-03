@@ -15,7 +15,7 @@ router.get('/', authenticateToken, (req: AuthRequest, res: Response) => {
 });
 
 // PUT /api/settings - Update system settings
-router.put('/', authenticateToken, requireRoles(['SUPER_ADMIN', 'ADMIN']), async (req: AuthRequest, res: Response) => {
+router.put('/', authenticateToken, requireRoles(['SUPER_ADMIN', 'ADMIN', 'ACCOUNTANT', 'RECEPTIONIST']), async (req: AuthRequest, res: Response) => {
   try {
     const updates = req.body; // { key: value }
 

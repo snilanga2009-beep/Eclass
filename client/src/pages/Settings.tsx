@@ -30,7 +30,11 @@ export const Settings: React.FC = () => {
   const { refreshSettings } = useSettings();
   const [settings, setSettings] = useState<any>({});
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [togglingKey, setTogglingKey] = useState<string | null>(null);
+  const [toggleNotice, setToggleNotice] = useState<{ key: string; message: string } | null>(null);
   const [testResult, setTestResult] = useState<any>(null);
   const [testingTextLk, setTestingTextLk] = useState(false);
   const [clearingCache, setClearingCache] = useState(false);
@@ -74,8 +78,34 @@ export const Settings: React.FC = () => {
     setSettings((prev: any) => ({ ...prev, [key]: value }));
   };
 
-  const handleSave = async (e: React.FormEvent) => {
-    e.preventDefault();
+  // Instant toggle persistence to backend
+  const handleToggle = async (key: string, nextValue: string, label: string) => {
+    setSettings((prev: any) => ({ ...prev, [key]: nextValue }));
+    setTogglingKey(key);
+    try {
+      await apiRequest('/settings', {
+        method: 'PUT',
+        body: JSON.stringify({ [key]: nextValue })
+      });
+      await refreshSettings();
+      setToggleNotice({
+        key,
+        message: `${label}: Successfully switched to ${nextValue === 'true' ? 'ENABLED (ON)' : 'DISABLED (OFF)'}`
+      });
+      setTimeout(() => setToggleNotice(null), 4000);
+    } catch (err: any) {
+      // Revert if error
+      setSettings((prev: any) => ({ ...prev, [key]: nextValue === 'true' ? 'false' : 'true' }));
+      alert(err.message || 'Failed to update setting');
+    } finally {
+      setTogglingKey(null);
+    }
+  };
+
+  const handleSaveAll = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    setSaving(true);
+    setSaveError(null);
     try {
       await apiRequest('/settings', {
         method: 'PUT',
@@ -83,9 +113,11 @@ export const Settings: React.FC = () => {
       });
       await refreshSettings();
       setSaved(true);
-      setTimeout(() => setSaved(false), 3000);
+      setTimeout(() => setSaved(false), 4000);
     } catch (err: any) {
-      alert(err.message || 'Failed to update settings');
+      setSaveError(err.message || 'Failed to update settings');
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -295,19 +327,48 @@ export const Settings: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">System Settings & Configuration</h1>
-        <p className="text-xs text-slate-500 mt-0.5">Configure institute branding, receipt currency, text.lk SMS gateway integration, and system backups</p>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">System Settings &amp; Configuration</h1>
+          <p className="text-xs text-slate-500 mt-0.5">Configure institute branding, receipt currency, text.lk SMS gateway integration, and system backups</p>
+        </div>
+
+        <button
+          type="button"
+          onClick={() => handleSaveAll()}
+          disabled={saving}
+          className="px-5 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-700 text-white font-bold text-xs shadow-md shadow-brand-600/30 transition-all flex items-center gap-2 self-start sm:self-auto disabled:opacity-50"
+        >
+          {saving ? <RefreshCw size={15} className="animate-spin" /> : <Check size={15} />}
+          <span>{saving ? 'Saving Changes...' : 'Save All Changes'}</span>
+        </button>
       </div>
 
       {saved && (
-        <div className="p-3.5 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs flex items-center gap-2">
-          <Check size={16} className="text-emerald-600 shrink-0" />
-          <span>Settings saved and applied successfully across all modules.</span>
+        <div className="p-3.5 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs flex items-center gap-2 animate-in fade-in">
+          <CheckCircle2 size={16} className="text-emerald-600 shrink-0" />
+          <span className="font-semibold">All settings and templates have been saved successfully to the database.</span>
         </div>
       )}
 
-      <form onSubmit={handleSave} className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      {saveError && (
+        <div className="p-3.5 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 text-xs flex items-center gap-2 animate-in fade-in">
+          <AlertCircle size={16} className="text-rose-600 shrink-0" />
+          <span>{saveError}</span>
+        </div>
+      )}
+
+      {toggleNotice && (
+        <div className="p-3.5 rounded-2xl bg-indigo-50 border border-indigo-200 text-indigo-900 text-xs flex items-center justify-between gap-2 shadow-sm animate-in fade-in">
+          <div className="flex items-center gap-2">
+            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping"></span>
+            <span className="font-bold">{toggleNotice.message}</span>
+          </div>
+          <span className="text-[10px] text-indigo-600 uppercase font-bold tracking-wider">Saved to Disk</span>
+        </div>
+      )}
+
+      <form onSubmit={handleSaveAll} className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Institute Branding */}
         <div className="p-6 rounded-3xl bg-white border border-slate-200/80 shadow-sm space-y-4">
           <h3 className="font-bold text-sm text-slate-900 flex items-center gap-2">
@@ -437,15 +498,22 @@ export const Settings: React.FC = () => {
               </span>
               <button
                 type="button"
-                onClick={() => handleChange('SMS_ENABLED', settings.SMS_ENABLED === 'false' ? 'true' : 'false')}
-                className={`px-3.5 py-1.5 rounded-xl text-xs font-extrabold flex items-center gap-2 transition-all shadow-md active:scale-95 ${
+                onClick={() => handleToggle('SMS_ENABLED', settings.SMS_ENABLED === 'false' ? 'true' : 'false', 'Master System SMS')}
+                disabled={togglingKey === 'SMS_ENABLED'}
+                className={`px-3.5 py-1.5 rounded-xl text-xs font-extrabold flex items-center gap-2 transition-all shadow-md active:scale-95 disabled:opacity-50 ${
                   settings.SMS_ENABLED !== 'false'
                     ? 'bg-emerald-500 text-white ring-2 ring-emerald-300 shadow-emerald-500/30'
                     : 'bg-rose-500 text-white ring-2 ring-rose-300 shadow-rose-500/30'
                 }`}
               >
                 <span className={`w-2.5 h-2.5 rounded-full ${settings.SMS_ENABLED !== 'false' ? 'bg-white animate-pulse' : 'bg-white/80'}`}></span>
-                <span>{settings.SMS_ENABLED !== 'false' ? 'SMS ENABLED (ON)' : 'SMS DISABLED (OFF)'}</span>
+                <span>
+                  {togglingKey === 'SMS_ENABLED' 
+                    ? 'SAVING...' 
+                    : settings.SMS_ENABLED !== 'false' 
+                      ? 'SMS ENABLED (ON)' 
+                      : 'SMS DISABLED (OFF)'}
+                </span>
               </button>
             </div>
           </div>
@@ -461,14 +529,15 @@ export const Settings: React.FC = () => {
                 </span>
                 <button
                   type="button"
-                  onClick={() => handleChange('SMS_PAYMENTS_ENABLED', settings.SMS_PAYMENTS_ENABLED === 'false' ? 'true' : 'false')}
-                  className={`px-2 py-0.5 rounded-lg text-[10px] font-bold transition-all ${
+                  onClick={() => handleToggle('SMS_PAYMENTS_ENABLED', settings.SMS_PAYMENTS_ENABLED === 'false' ? 'true' : 'false', 'Fee Payment SMS')}
+                  disabled={togglingKey === 'SMS_PAYMENTS_ENABLED'}
+                  className={`px-2.5 py-1 rounded-lg text-[10px] font-bold transition-all disabled:opacity-50 ${
                     settings.SMS_PAYMENTS_ENABLED !== 'false'
-                      ? 'bg-emerald-500/30 text-emerald-300 border border-emerald-400/40'
-                      : 'bg-white/10 text-slate-400'
+                      ? 'bg-emerald-500 text-white shadow-sm ring-1 ring-emerald-400'
+                      : 'bg-white/10 text-slate-300 hover:bg-white/20'
                   }`}
                 >
-                  {settings.SMS_PAYMENTS_ENABLED !== 'false' ? 'ON' : 'OFF'}
+                  {togglingKey === 'SMS_PAYMENTS_ENABLED' ? '...' : (settings.SMS_PAYMENTS_ENABLED !== 'false' ? 'ON' : 'OFF')}
                 </button>
               </div>
               <p className="text-[11px] text-slate-300 leading-snug">
@@ -485,14 +554,15 @@ export const Settings: React.FC = () => {
                 </span>
                 <button
                   type="button"
-                  onClick={() => handleChange('SMS_ATTENDANCE_ENABLED', settings.SMS_ATTENDANCE_ENABLED === 'true' ? 'false' : 'true')}
-                  className={`px-2 py-0.5 rounded-lg text-[10px] font-bold transition-all ${
+                  onClick={() => handleToggle('SMS_ATTENDANCE_ENABLED', settings.SMS_ATTENDANCE_ENABLED === 'true' ? 'false' : 'true', 'QR Attendance SMS')}
+                  disabled={togglingKey === 'SMS_ATTENDANCE_ENABLED'}
+                  className={`px-2.5 py-1 rounded-lg text-[10px] font-bold transition-all disabled:opacity-50 ${
                     settings.SMS_ATTENDANCE_ENABLED === 'true'
-                      ? 'bg-purple-500/30 text-purple-300 border border-purple-400/40'
-                      : 'bg-white/10 text-slate-400'
+                      ? 'bg-purple-500 text-white shadow-sm ring-1 ring-purple-400'
+                      : 'bg-white/10 text-slate-300 hover:bg-white/20'
                   }`}
                 >
-                  {settings.SMS_ATTENDANCE_ENABLED === 'true' ? 'ON' : 'OFF'}
+                  {togglingKey === 'SMS_ATTENDANCE_ENABLED' ? '...' : (settings.SMS_ATTENDANCE_ENABLED === 'true' ? 'ON' : 'OFF')}
                 </button>
               </div>
               <p className="text-[11px] text-slate-300 leading-snug">
@@ -509,14 +579,15 @@ export const Settings: React.FC = () => {
                 </span>
                 <button
                   type="button"
-                  onClick={() => handleChange('SMS_WELCOME_ENABLED', settings.SMS_WELCOME_ENABLED === 'false' ? 'true' : 'false')}
-                  className={`px-2 py-0.5 rounded-lg text-[10px] font-bold transition-all ${
+                  onClick={() => handleToggle('SMS_WELCOME_ENABLED', settings.SMS_WELCOME_ENABLED === 'false' ? 'true' : 'false', 'Registration Welcome SMS')}
+                  disabled={togglingKey === 'SMS_WELCOME_ENABLED'}
+                  className={`px-2.5 py-1 rounded-lg text-[10px] font-bold transition-all disabled:opacity-50 ${
                     settings.SMS_WELCOME_ENABLED !== 'false'
-                      ? 'bg-teal-500/30 text-teal-300 border border-teal-400/40'
-                      : 'bg-white/10 text-slate-400'
+                      ? 'bg-teal-500 text-white shadow-sm ring-1 ring-teal-400'
+                      : 'bg-white/10 text-slate-300 hover:bg-white/20'
                   }`}
                 >
-                  {settings.SMS_WELCOME_ENABLED !== 'false' ? 'ON' : 'OFF'}
+                  {togglingKey === 'SMS_WELCOME_ENABLED' ? '...' : (settings.SMS_WELCOME_ENABLED !== 'false' ? 'ON' : 'OFF')}
                 </button>
               </div>
               <p className="text-[11px] text-slate-300 leading-snug">
@@ -533,14 +604,15 @@ export const Settings: React.FC = () => {
                 </span>
                 <button
                   type="button"
-                  onClick={() => handleChange('WHATSAPP_ATTENDANCE_ENABLED', settings.WHATSAPP_ATTENDANCE_ENABLED === 'false' ? 'true' : 'false')}
-                  className={`px-2 py-0.5 rounded-lg text-[10px] font-bold transition-all ${
+                  onClick={() => handleToggle('WHATSAPP_ATTENDANCE_ENABLED', settings.WHATSAPP_ATTENDANCE_ENABLED === 'false' ? 'true' : 'false', 'WhatsApp Attendance Alert')}
+                  disabled={togglingKey === 'WHATSAPP_ATTENDANCE_ENABLED'}
+                  className={`px-2.5 py-1 rounded-lg text-[10px] font-bold transition-all disabled:opacity-50 ${
                     settings.WHATSAPP_ATTENDANCE_ENABLED !== 'false'
-                      ? 'bg-emerald-500/30 text-emerald-300 border border-emerald-400/40'
-                      : 'bg-white/10 text-slate-400'
+                      ? 'bg-emerald-500 text-white shadow-sm ring-1 ring-emerald-400'
+                      : 'bg-white/10 text-slate-300 hover:bg-white/20'
                   }`}
                 >
-                  {settings.WHATSAPP_ATTENDANCE_ENABLED !== 'false' ? 'ON' : 'OFF'}
+                  {togglingKey === 'WHATSAPP_ATTENDANCE_ENABLED' ? '...' : (settings.WHATSAPP_ATTENDANCE_ENABLED !== 'false' ? 'ON' : 'OFF')}
                 </button>
               </div>
               <p className="text-[11px] text-slate-300 leading-snug">
@@ -874,11 +946,13 @@ export const Settings: React.FC = () => {
         {/* Submit */}
         <div className="lg:col-span-2 flex justify-end">
           <button
-            type="submit"
-            className="px-6 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-700 text-white font-bold text-xs shadow-md shadow-brand-600/30 transition-all flex items-center gap-2"
+            type="button"
+            onClick={() => handleSaveAll()}
+            disabled={saving}
+            className="px-6 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-700 text-white font-bold text-xs shadow-md shadow-brand-600/30 transition-all flex items-center gap-2 disabled:opacity-50"
           >
-            <Check size={16} />
-            <span>Save All Configuration Changes</span>
+            {saving ? <RefreshCw size={16} className="animate-spin" /> : <Check size={16} />}
+            <span>{saving ? 'Saving All Settings...' : 'Save All Configuration Changes'}</span>
           </button>
         </div>
       </form>
