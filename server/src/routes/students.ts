@@ -489,39 +489,64 @@ router.post('/', authenticateToken, requireRoles(['SUPER_ADMIN', 'ADMIN', 'RECEP
       }
     }
 
-    // Generate Parent & Guardian Portal direct login link
+    // Persist immediately to disk so student is NEVER lost even if SMS or network fails
+    db.save();
+
+    // Generate Parent & Guardian Portal direct login link (safely)
     let parentPortalUrl: string | null = null;
     let welcomeSms: string | null = null;
 
     if (newStudent.parentPhone || newStudent.phone) {
-      const rawTargetPhone = newStudent.parentPhone || newStudent.phone || '';
-      const digitsOnly = rawTargetPhone.replace(/\D/g, '');
-      const clientOrigin = req.headers.origin || (req.headers.referer ? new URL(req.headers.referer).origin : 'http://localhost:3000');
-      
-      parentPortalUrl = `${clientOrigin}/login?phone=${digitsOnly}&autoLogin=1`;
-      welcomeSms = formatWelcomeSms(newStudent.fullName, newStudent.studentIdNumber, parentPortalUrl);
+      try {
+        const rawTargetPhone = newStudent.parentPhone || newStudent.phone || '';
+        const digitsOnly = rawTargetPhone.replace(/\D/g, '');
+        let clientOrigin = 'http://localhost:3000';
+        try {
+          if (req.headers.origin) {
+            clientOrigin = req.headers.origin;
+          } else if (req.headers.referer) {
+            clientOrigin = new URL(req.headers.referer).origin;
+          }
+        } catch {
+          clientOrigin = 'http://localhost:3000';
+        }
+        
+        parentPortalUrl = `${clientOrigin}/login?phone=${digitsOnly}&autoLogin=1`;
+        welcomeSms = formatWelcomeSms(newStudent.fullName, newStudent.studentIdNumber, parentPortalUrl);
 
-      // Dispatch real SMS via text.lk
-      const smsResult = await dispatchRealSMS(rawTargetPhone, welcomeSms);
+        // Check master & welcome SMS switch
+        const isMasterSms = db.data.settings.find(s => s.key === 'SMS_ENABLED')?.value;
+        const isWelcomeSms = db.data.settings.find(s => s.key === 'SMS_WELCOME_ENABLED')?.value;
+        const canSendSms = (isMasterSms !== 'false') && (isWelcomeSms !== 'false');
 
-      db.data.smsLogs.unshift({
-        id: db.generateId(),
-        studentId: newStudent.id,
-        recipient: rawTargetPhone,
-        message: welcomeSms,
-        type: 'PARENT_PORTAL_WELCOME',
-        status: smsResult.success ? 'DELIVERED' : 'FAILED',
-        sentAt: new Date().toISOString()
-      });
+        if (canSendSms) {
+          const smsResult = await dispatchRealSMS(rawTargetPhone, welcomeSms);
+
+          db.data.smsLogs.unshift({
+            id: db.generateId(),
+            studentId: newStudent.id,
+            recipient: rawTargetPhone,
+            message: welcomeSms,
+            type: 'PARENT_PORTAL_WELCOME',
+            status: smsResult.success ? 'DELIVERED' : 'FAILED',
+            sentAt: new Date().toISOString()
+          });
+          db.save();
+        }
+      } catch (smsErr) {
+        console.warn('Welcome SMS dispatch error (non-fatal):', smsErr);
+      }
     }
 
-    db.save();
-
-    await logAuditAction(
-      req,
-      'STUDENT_CREATE',
-      `Registered student ${newStudent.fullName} (${newStudent.studentIdNumber}) in Grade ${newStudent.grade}. Sent Parent Portal SMS link to ${newStudent.parentPhone || 'N/A'}`
-    );
+    try {
+      await logAuditAction(
+        req,
+        'STUDENT_CREATE',
+        `Registered student ${newStudent.fullName} (${newStudent.studentIdNumber}) in Grade ${newStudent.grade}. Sent Parent Portal SMS link to ${newStudent.parentPhone || 'N/A'}`
+      );
+    } catch (auditErr) {
+      console.warn('Audit log error (non-fatal):', auditErr);
+    }
 
     return res.status(201).json({
       ...newStudent,
@@ -753,35 +778,48 @@ router.put('/:id', authenticateToken, requireRoles(['SUPER_ADMIN', 'ADMIN', 'REC
     }
 
     student.updatedAt = new Date().toISOString();
+    db.save();
 
     // Optionally re-send Parent Portal SMS link if requested
     let portalLinkResult = null;
     if (resendParentPortalLink && (student.parentPhone || student.phone)) {
-      const rawTargetPhone = student.parentPhone || student.phone!;
-      const digitsOnly = rawTargetPhone.replace(/\D/g, '');
-      const clientOrigin = req.headers.origin || (req.headers.referer ? new URL(req.headers.referer).origin : 'http://localhost:3000');
-      const parentPortalUrl = `${clientOrigin}/login?phone=${digitsOnly}&autoLogin=1`;
-      const smsMessage = formatWelcomeSms(student.fullName, student.studentIdNumber, parentPortalUrl);
+      try {
+        const rawTargetPhone = student.parentPhone || student.phone!;
+        const digitsOnly = rawTargetPhone.replace(/\D/g, '');
+        let clientOrigin = 'http://localhost:3000';
+        try {
+          if (req.headers.origin) {
+            clientOrigin = req.headers.origin;
+          } else if (req.headers.referer) {
+            clientOrigin = new URL(req.headers.referer).origin;
+          }
+        } catch {
+          clientOrigin = 'http://localhost:3000';
+        }
+        const parentPortalUrl = `${clientOrigin}/login?phone=${digitsOnly}&autoLogin=1`;
+        const smsMessage = formatWelcomeSms(student.fullName, student.studentIdNumber, parentPortalUrl);
 
-      const smsResult = await dispatchRealSMS(rawTargetPhone, smsMessage);
-      db.data.smsLogs.unshift({
-        id: db.generateId(),
-        studentId: student.id,
-        recipient: rawTargetPhone,
-        message: smsMessage,
-        type: 'PARENT_PORTAL_WELCOME',
-        status: smsResult.success ? 'DELIVERED' : 'FAILED',
-        sentAt: new Date().toISOString()
-      });
+        const smsResult = await dispatchRealSMS(rawTargetPhone, smsMessage);
+        db.data.smsLogs.unshift({
+          id: db.generateId(),
+          studentId: student.id,
+          recipient: rawTargetPhone,
+          message: smsMessage,
+          type: 'PARENT_PORTAL_WELCOME',
+          status: smsResult.success ? 'DELIVERED' : 'FAILED',
+          sentAt: new Date().toISOString()
+        });
+        db.save();
 
-      portalLinkResult = {
-        recipient: rawTargetPhone,
-        smsResult,
-        parentPortalUrl
-      };
+        portalLinkResult = {
+          recipient: rawTargetPhone,
+          smsResult,
+          parentPortalUrl
+        };
+      } catch (smsErr) {
+        console.warn('Resend portal SMS error (non-fatal):', smsErr);
+      }
     }
-
-    db.save();
 
     await logAuditAction(
       req,

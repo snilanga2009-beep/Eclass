@@ -4,7 +4,7 @@
   "description": "Class Accounting Management System Backend API",
   "main": "dist/index.js",
   "scripts": {
-    "dev": "tsx watch src/index.ts",
+    "dev": "tsx watch --ignore \"data/**\" --ignore \"../data/**\" src/index.ts",
     "build": "tsc",
     "start": "node dist/index.js",
     "prisma:generate": "prisma generate",

@@ -169,6 +169,15 @@ export const Students: React.FC<StudentsProps> = ({ onOpenProfile, onOpenIDCard 
     fetchClasses();
   }, [gradeFilter, statusFilter, classFilter]);
 
+  // Real-time synchronization: Auto-refresh on changes
+  useEffect(() => {
+    const handleDataChanged = () => {
+      fetchStudents();
+    };
+    window.addEventListener('cams-data-changed', handleDataChanged);
+    return () => window.removeEventListener('cams-data-changed', handleDataChanged);
+  }, [gradeFilter, statusFilter, classFilter, search]);
+
   // When Add Modal is opened, ensure fresh classes are fetched
   useEffect(() => {
     if (isAddModalOpen) {
@@ -230,7 +239,7 @@ export const Students: React.FC<StudentsProps> = ({ onOpenProfile, onOpenIDCard 
       setIsAddModalOpen(false);
       setFormData({
         fullName: '',
-        grade: 'Grade 12',
+        grade: 'Grade 11',
         school: '',
         gender: 'Male',
         dateOfBirth: '',
@@ -247,7 +256,17 @@ export const Students: React.FC<StudentsProps> = ({ onOpenProfile, onOpenIDCard 
         photo: MALE_STUDENT_AVATAR,
         enrolledClassIds: []
       });
+      setGradeFilter('ALL');
+      setStatusFilter('ALL');
+      setClassFilter('ALL');
+      setSearch('');
       fetchStudents();
+
+      try {
+        window.dispatchEvent(new CustomEvent('cams-data-changed', {
+          detail: { type: 'STUDENT_CREATED', studentId: created?.id }
+        }));
+      } catch (e) {}
 
       // Show SMS link modal if parent portal link was generated
       if (created.parentPortalUrl && created.welcomeSms) {
