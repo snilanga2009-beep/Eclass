@@ -294,7 +294,13 @@ router.post('/', authenticateToken, requireRoles(['SUPER_ADMIN', 'ADMIN', 'ACCOU
     // Dispatch instant Payment Receipt SMS & WhatsApp to parent
     const targetPhone = student.parentPhone || student.phone;
     let smsDispatched = false;
-    if (targetPhone) {
+
+    const isMasterSms = db.data.settings.find(s => s.key === 'SMS_ENABLED')?.value;
+    const isPaymentSms = db.data.settings.find(s => s.key === 'SMS_PAYMENTS_ENABLED')?.value;
+    const isMasterOn = isMasterSms === undefined || isMasterSms === 'true' || isMasterSms === '1';
+    const isPaymentSmsOn = isPaymentSms === undefined || isPaymentSms === 'true' || isPaymentSms === '1';
+
+    if (targetPhone && isMasterOn && isPaymentSmsOn) {
       const remainingTotal = db.data.feeRecords
         .filter(f => f.studentId === student.id && f.status !== 'PAID')
         .reduce((sum, f) => sum + f.remainingBalance, 0);

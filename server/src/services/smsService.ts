@@ -39,6 +39,23 @@ export async function dispatchRealSMS(
   overrideSenderId?: string
 ): Promise<SendSMSResult> {
   const normalized = normalizeSriLankaPhone(recipientPhone);
+
+  // Check Master SMS Switch: if disabled, bypass outbound SMS
+  const smsEnabledSetting = db.data.settings.find(s => s.key === 'SMS_ENABLED')?.value;
+  const isSmsEnabled = smsEnabledSetting === undefined ? true : (smsEnabledSetting === 'true' || smsEnabledSetting === '1');
+
+  if (!isSmsEnabled && !overrideToken) {
+    return {
+      success: false,
+      provider: 'text.lk',
+      recipient: recipientPhone,
+      normalizedPhone: normalized,
+      senderId: 'Disabled',
+      isMock: true,
+      error: 'System-wide SMS dispatch is currently TURNED OFF in System Settings.'
+    };
+  }
+
   const token = overrideToken || db.data.settings.find(s => s.key === 'TEXTLK_API_TOKEN')?.value || '';
   const senderId = overrideSenderId || db.data.settings.find(s => s.key === 'TEXTLK_SENDER_ID')?.value || 'TextLKDemo';
   const endpoint = db.data.settings.find(s => s.key === 'TEXTLK_ENDPOINT')?.value || 'https://app.text.lk/api/v3/sms/send';

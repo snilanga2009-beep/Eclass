@@ -18,7 +18,10 @@ import {
   Copy,
   Info,
   FileText,
-  RefreshCw
+  RefreshCw,
+  CreditCard,
+  QrCode,
+  MessageCircle
 } from 'lucide-react';
 import { apiRequest, clearAppCache } from '../api';
 import { useSettings, DEFAULT_SMS_TEMPLATES } from '../context/SettingsContext';
@@ -239,6 +242,31 @@ export const Settings: React.FC = () => {
       sampleData: {
         '{message}': "Tomorrow's revision class starts at 8:30 AM in Hall A."
       }
+    },
+    {
+      key: 'WHATSAPP_TEMPLATE_ATTENDANCE',
+      tabLabel: 'WhatsApp Attendance',
+      badge: 'WhatsApp',
+      badgeColor: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+      title: 'WhatsApp Parent Attendance Confirmation Template',
+      desc: 'Message formatted with WhatsApp bolding (*) sent to parent when QR is scanned.',
+      placeholders: [
+        { tag: '{institute_name}', label: 'Institute Name' },
+        { tag: '{student_name}', label: 'Student Name' },
+        { tag: '{student_id}', label: 'Student ID' },
+        { tag: '{class_name}', label: 'Class Name' },
+        { tag: '{time}', label: 'Check-in Time' },
+        { tag: '{date}', label: 'Date' },
+        { tag: '{fee_status}', label: 'Fee Status' }
+      ],
+      sampleData: {
+        '{student_name}': 'Kavindu Perera',
+        '{student_id}': 'STU-2026-1042',
+        '{class_name}': '2026 Combined Maths',
+        '{time}': '08:15 AM',
+        '{date}': new Date().toISOString().substring(0, 10),
+        '{fee_status}': '✅ Tuition Fee: Fully Settled'
+      }
     }
   ];
 
@@ -379,6 +407,145 @@ export const Settings: React.FC = () => {
                 onChange={(e) => handleChange('ACADEMIC_YEAR', e.target.value)}
                 className="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-xs"
               />
+            </div>
+          </div>
+        </div>
+
+        {/* MASTER NOTIFICATION CONTROLS: SMS ON/OFF & WHATSAPP TOGGLE */}
+        <div className="lg:col-span-2 p-6 rounded-3xl bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white shadow-xl border border-indigo-900/60 space-y-5">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-white/10">
+            <div>
+              <div className="flex items-center space-x-2.5">
+                <div className="w-9 h-9 rounded-xl bg-purple-500/20 border border-purple-400/40 flex items-center justify-center text-purple-300">
+                  <MessageSquare size={18} />
+                </div>
+                <div>
+                  <h3 className="font-extrabold text-base text-white tracking-wide">
+                    Master Notification Controls (SMS &amp; WhatsApp)
+                  </h3>
+                  <p className="text-xs text-slate-300 mt-0.5">
+                    Control system-wide SMS dispatch on/off, entrance QR scan alerts, and parent WhatsApp messaging.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Master SMS ON/OFF Switch */}
+            <div className="flex items-center space-x-3 bg-white/10 p-2 sm:p-2.5 rounded-2xl border border-white/15 shrink-0 self-start sm:self-auto">
+              <span className="text-xs font-bold uppercase tracking-wider text-slate-200">
+                System SMS:
+              </span>
+              <button
+                type="button"
+                onClick={() => handleChange('SMS_ENABLED', settings.SMS_ENABLED === 'false' ? 'true' : 'false')}
+                className={`px-3.5 py-1.5 rounded-xl text-xs font-extrabold flex items-center gap-2 transition-all shadow-md active:scale-95 ${
+                  settings.SMS_ENABLED !== 'false'
+                    ? 'bg-emerald-500 text-white ring-2 ring-emerald-300 shadow-emerald-500/30'
+                    : 'bg-rose-500 text-white ring-2 ring-rose-300 shadow-rose-500/30'
+                }`}
+              >
+                <span className={`w-2.5 h-2.5 rounded-full ${settings.SMS_ENABLED !== 'false' ? 'bg-white animate-pulse' : 'bg-white/80'}`}></span>
+                <span>{settings.SMS_ENABLED !== 'false' ? 'SMS ENABLED (ON)' : 'SMS DISABLED (OFF)'}</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Granular notification triggers */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
+            {/* 1. Tuition Fee Receipts SMS */}
+            <div className="p-3.5 rounded-2xl bg-white/5 border border-white/10 space-y-2.5">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-bold text-slate-200 uppercase tracking-wider flex items-center gap-1.5">
+                  <CreditCard size={14} className="text-emerald-400" />
+                  <span>Fee Payment SMS</span>
+                </span>
+                <button
+                  type="button"
+                  onClick={() => handleChange('SMS_PAYMENTS_ENABLED', settings.SMS_PAYMENTS_ENABLED === 'false' ? 'true' : 'false')}
+                  className={`px-2 py-0.5 rounded-lg text-[10px] font-bold transition-all ${
+                    settings.SMS_PAYMENTS_ENABLED !== 'false'
+                      ? 'bg-emerald-500/30 text-emerald-300 border border-emerald-400/40'
+                      : 'bg-white/10 text-slate-400'
+                  }`}
+                >
+                  {settings.SMS_PAYMENTS_ENABLED !== 'false' ? 'ON' : 'OFF'}
+                </button>
+              </div>
+              <p className="text-[11px] text-slate-300 leading-snug">
+                Send official SMS receipt to parent immediately upon fee collection.
+              </p>
+            </div>
+
+            {/* 2. QR Attendance Scan SMS */}
+            <div className="p-3.5 rounded-2xl bg-white/5 border border-white/10 space-y-2.5">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-bold text-slate-200 uppercase tracking-wider flex items-center gap-1.5">
+                  <QrCode size={14} className="text-purple-400" />
+                  <span>QR Scan SMS</span>
+                </span>
+                <button
+                  type="button"
+                  onClick={() => handleChange('SMS_ATTENDANCE_ENABLED', settings.SMS_ATTENDANCE_ENABLED === 'true' ? 'false' : 'true')}
+                  className={`px-2 py-0.5 rounded-lg text-[10px] font-bold transition-all ${
+                    settings.SMS_ATTENDANCE_ENABLED === 'true'
+                      ? 'bg-purple-500/30 text-purple-300 border border-purple-400/40'
+                      : 'bg-white/10 text-slate-400'
+                  }`}
+                >
+                  {settings.SMS_ATTENDANCE_ENABLED === 'true' ? 'ON' : 'OFF'}
+                </button>
+              </div>
+              <p className="text-[11px] text-slate-300 leading-snug">
+                Send entrance check-in SMS alert when student QR/barcode is scanned.
+              </p>
+            </div>
+
+            {/* 3. Student Registration Welcome SMS */}
+            <div className="p-3.5 rounded-2xl bg-white/5 border border-white/10 space-y-2.5">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-bold text-slate-200 uppercase tracking-wider flex items-center gap-1.5">
+                  <Smartphone size={14} className="text-teal-400" />
+                  <span>Registration SMS</span>
+                </span>
+                <button
+                  type="button"
+                  onClick={() => handleChange('SMS_WELCOME_ENABLED', settings.SMS_WELCOME_ENABLED === 'false' ? 'true' : 'false')}
+                  className={`px-2 py-0.5 rounded-lg text-[10px] font-bold transition-all ${
+                    settings.SMS_WELCOME_ENABLED !== 'false'
+                      ? 'bg-teal-500/30 text-teal-300 border border-teal-400/40'
+                      : 'bg-white/10 text-slate-400'
+                  }`}
+                >
+                  {settings.SMS_WELCOME_ENABLED !== 'false' ? 'ON' : 'OFF'}
+                </button>
+              </div>
+              <p className="text-[11px] text-slate-300 leading-snug">
+                Send welcome SMS with Parent Portal PWA link to newly registered students.
+              </p>
+            </div>
+
+            {/* 4. WhatsApp Attendance Alert on QR Scan */}
+            <div className="p-3.5 rounded-2xl bg-white/5 border border-white/10 space-y-2.5">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-bold text-slate-200 uppercase tracking-wider flex items-center gap-1.5">
+                  <MessageCircle size={14} className="text-emerald-400" />
+                  <span>WhatsApp on QR Scan</span>
+                </span>
+                <button
+                  type="button"
+                  onClick={() => handleChange('WHATSAPP_ATTENDANCE_ENABLED', settings.WHATSAPP_ATTENDANCE_ENABLED === 'false' ? 'true' : 'false')}
+                  className={`px-2 py-0.5 rounded-lg text-[10px] font-bold transition-all ${
+                    settings.WHATSAPP_ATTENDANCE_ENABLED !== 'false'
+                      ? 'bg-emerald-500/30 text-emerald-300 border border-emerald-400/40'
+                      : 'bg-white/10 text-slate-400'
+                  }`}
+                >
+                  {settings.WHATSAPP_ATTENDANCE_ENABLED !== 'false' ? 'ON' : 'OFF'}
+                </button>
+              </div>
+              <p className="text-[11px] text-slate-300 leading-snug">
+                Enable WhatsApp parent attendance confirmation card &amp; 1-click delivery on scan.
+              </p>
             </div>
           </div>
         </div>

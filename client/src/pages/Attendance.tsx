@@ -131,11 +131,26 @@ export const Attendance: React.FC<AttendanceProps> = ({
   onOpenPaymentModal,
   initialMode = 'QR_SCANNER'
 }) => {
-  const { instituteName } = useSettings();
+  const { instituteName, settings, updateSettings } = useSettings();
   const [classes, setClasses] = useState<any[]>([]);
   const [selectedClassId, setSelectedClassId] = useState<string>('');
   const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().substring(0, 10));
   const [mode, setMode] = useState<'QR_SCANNER' | 'ROSTER' | 'MANUAL_SHEET'>(initialMode);
+  const [autoWhatsAppOnScan, setAutoWhatsAppOnScan] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem('cams_auto_whatsapp_scan') === '1';
+    } catch {
+      return false;
+    }
+  });
+
+  const handleToggleAutoWhatsApp = () => {
+    const nextVal = !autoWhatsAppOnScan;
+    setAutoWhatsAppOnScan(nextVal);
+    try {
+      localStorage.setItem('cams_auto_whatsapp_scan', nextVal ? '1' : '0');
+    } catch {}
+  };
   const [manualSheetData, setManualSheetData] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [feePromptStudent, setFeePromptStudent] = useState<{
@@ -358,6 +373,15 @@ export const Attendance: React.FC<AttendanceProps> = ({
       if (res.scanResult === 'SUCCESS') {
         playBeep('SUCCESS');
         confetti({ particleCount: 35, spread: 60, origin: { y: 0.5 } });
+
+        // Auto-open WhatsApp if enabled and student parent phone is available
+        if (autoWhatsAppOnScan && res.whatsapp?.url) {
+          try {
+            window.open(res.whatsapp.url, '_blank');
+          } catch (e) {
+            console.warn('Auto WhatsApp window popup blocked:', e);
+          }
+        }
       } else if (res.scanResult === 'ALREADY_RECORDED') {
         playBeep('WARN');
       } else {
@@ -741,6 +765,38 @@ export const Attendance: React.FC<AttendanceProps> = ({
         </div>
 
         <div className="flex flex-wrap items-center gap-2 w-full md:w-auto justify-end">
+          {/* Live SMS & WhatsApp Quick Toggles */}
+          <button
+            type="button"
+            onClick={async () => {
+              const nextVal = settings.SMS_ENABLED === 'false' ? 'true' : 'false';
+              await updateSettings({ ...settings, SMS_ENABLED: nextVal });
+            }}
+            className={`px-2.5 py-1.5 rounded-xl text-[11px] font-bold flex items-center gap-1.5 transition-all border ${
+              settings.SMS_ENABLED !== 'false'
+                ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40 hover:bg-emerald-500/30'
+                : 'bg-rose-500/20 text-rose-300 border-rose-500/40 hover:bg-rose-500/30'
+            }`}
+            title="Click to toggle system-wide SMS dispatch ON / OFF"
+          >
+            <span className={`w-2 h-2 rounded-full ${settings.SMS_ENABLED !== 'false' ? 'bg-emerald-400 animate-pulse' : 'bg-rose-400'}`}></span>
+            <span>{settings.SMS_ENABLED !== 'false' ? 'SMS: ON' : 'SMS: OFF'}</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={handleToggleAutoWhatsApp}
+            className={`px-2.5 py-1.5 rounded-xl text-[11px] font-bold flex items-center gap-1.5 transition-all border ${
+              autoWhatsAppOnScan
+                ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40 hover:bg-emerald-500/30'
+                : 'bg-white/10 text-slate-300 border-white/15 hover:bg-white/20'
+            }`}
+            title="Click to toggle Auto WhatsApp parent slip on scan"
+          >
+            <MessageCircle size={13} className={autoWhatsAppOnScan ? 'text-emerald-400' : 'text-slate-400'} />
+            <span>{autoWhatsAppOnScan ? 'Auto WA: ON' : 'Auto WA: OFF'}</span>
+          </button>
+
           {/* Quick Hardware Simulator / Demo Buttons */}
           <div className="flex items-center gap-1.5 bg-white/10 px-2.5 py-1 rounded-xl border border-white/10 text-xs">
             <span className="text-[10px] text-brand-300 font-bold uppercase hidden sm:inline">Simulate:</span>
@@ -1076,11 +1132,29 @@ export const Attendance: React.FC<AttendanceProps> = ({
                       </div>
                     )}
 
-                    {/* Recipient parent SMS badge */}
-                    {scanResult.student?.parentPhone && (
-                      <div className="flex items-center gap-1.5 text-[10px] text-slate-600 pt-1 border-t border-amber-200">
-                        <Smartphone size={12} className="text-emerald-600 shrink-0" />
-                        <span>Instant SMS receipt will be sent to Parent: <strong className="font-mono text-slate-900">{scanResult.student.parentPhone}</strong></span>
+                    {/* Direct WhatsApp Attendance Confirmation Slip & SMS Status */}
+                    {(scanResult.whatsapp?.url || scanResult.student?.parentPhone) && (
+                      <div className="pt-2 border-t border-amber-200/80 space-y-1.5">
+                        <a
+                          href={scanResult.whatsapp?.url || `https://wa.me/${(scanResult.student.parentPhone || scanResult.student.phone).replace(/\D/g, '')}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="w-full py-2.5 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs shadow-md shadow-emerald-600/30 flex items-center justify-center space-x-1.5 transition-all active:scale-95"
+                          title="Open WhatsApp chat with parent with formatted check-in slip"
+                        >
+                          <MessageCircle size={15} />
+                          <span>💬 Send Parent WhatsApp Attendance Slip</span>
+                        </a>
+
+                        <div className="flex items-center justify-between text-[10px] text-slate-600 px-1">
+                          <span className="flex items-center gap-1 font-mono">
+                            <span>Parent Mobile:</span>
+                            <strong className="text-slate-900">{scanResult.student.parentPhone || scanResult.student.phone}</strong>
+                          </span>
+                          <span className={scanResult.smsDispatched ? 'text-emerald-700 font-bold' : 'text-slate-500 italic'}>
+                            {scanResult.smsDispatched ? '✓ SMS Sent' : (settings.SMS_ENABLED === 'false' ? 'SMS: Globally Off' : 'SMS: Scan Muted')}
+                          </span>
+                        </div>
                       </div>
                     )}
 

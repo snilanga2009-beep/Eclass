@@ -17,7 +17,8 @@ import {
   CreditCard,
   Smartphone,
   Check,
-  Clock
+  Clock,
+  MessageCircle
 } from 'lucide-react';
 import { decodeQRFromFile, decodeQRFromVideo } from '../utils/qrScanner';
 
@@ -47,6 +48,21 @@ export const QRScannerModal: React.FC<QRScannerModalProps> = ({
   const [manualToken, setManualToken] = useState<string>('');
   const [lastScanResult, setLastScanResult] = useState<any | null>(null);
   const [payLaterNotice, setPayLaterNotice] = useState<string | null>(null);
+  const [autoWhatsApp, setAutoWhatsApp] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem('cams_auto_whatsapp_scan') === '1';
+    } catch {
+      return false;
+    }
+  });
+
+  const toggleAutoWhatsApp = () => {
+    const next = !autoWhatsApp;
+    setAutoWhatsApp(next);
+    try {
+      localStorage.setItem('cams_auto_whatsapp_scan', next ? '1' : '0');
+    } catch {}
+  };
 
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -191,6 +207,13 @@ export const QRScannerModal: React.FC<QRScannerModalProps> = ({
       setLastScanResult(result);
       if (result?.scanResult === 'SUCCESS') {
         playBeep('SUCCESS');
+        if (autoWhatsApp && result.whatsapp?.url) {
+          try {
+            window.open(result.whatsapp.url, '_blank');
+          } catch (e) {
+            console.warn('Auto WhatsApp window.open blocked:', e);
+          }
+        }
       } else if (result?.scanResult === 'ALREADY_RECORDED') {
         playBeep('WARN');
       } else {
@@ -284,6 +307,22 @@ export const QRScannerModal: React.FC<QRScannerModalProps> = ({
           </div>
 
           <div className="flex items-center space-x-1 sm:space-x-1.5">
+            {/* Auto WhatsApp Toggle */}
+            <button
+              type="button"
+              onClick={toggleAutoWhatsApp}
+              className={`p-1.5 sm:px-2.5 sm:py-1.5 rounded-xl border text-xs font-bold flex items-center space-x-1 transition-all ${
+                autoWhatsApp
+                  ? 'bg-emerald-500/20 border-emerald-500/60 text-emerald-300'
+                  : 'bg-slate-800/80 border-slate-700 text-slate-400 hover:text-slate-200'
+              }`}
+              title={autoWhatsApp ? 'Auto-open WhatsApp on scan is ON' : 'Auto-open WhatsApp on scan is OFF'}
+            >
+              <MessageCircle size={15} className={autoWhatsApp ? 'text-emerald-400' : 'text-slate-400'} />
+              <span className="hidden sm:inline">WA:</span>
+              <span className={autoWhatsApp ? 'text-emerald-400' : 'text-slate-400'}>{autoWhatsApp ? 'ON' : 'OFF'}</span>
+            </button>
+
             {/* Audio Beep Toggle */}
             <button
               type="button"
@@ -523,11 +562,29 @@ export const QRScannerModal: React.FC<QRScannerModalProps> = ({
                         </div>
                       )}
 
-                      {/* Parent SMS notice */}
-                      {lastScanResult.student?.parentPhone && (
-                        <div className="flex items-center justify-center gap-1 text-[10px] text-slate-300 pt-0.5">
-                          <Smartphone size={11} className="text-emerald-400 shrink-0" />
-                          <span className="truncate">SMS receipt to Parent on Fee Pay: <strong className="text-white font-mono">{lastScanResult.student.parentPhone}</strong></span>
+                      {/* Parent WhatsApp Attendance Slip & SMS status */}
+                      {(lastScanResult.whatsapp?.url || lastScanResult.student?.parentPhone) && (
+                        <div className="pt-1.5 border-t border-indigo-900/60 space-y-1.5 text-left">
+                          <a
+                            href={lastScanResult.whatsapp?.url || `https://wa.me/${(lastScanResult.student?.parentPhone || lastScanResult.student?.phone || '').replace(/\D/g, '')}`}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="w-full py-2 px-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-[11px] shadow-md shadow-emerald-600/30 flex items-center justify-center space-x-1.5 transition-all active:scale-95"
+                            title="Open WhatsApp chat with parent with formatted check-in slip"
+                          >
+                            <MessageCircle size={14} />
+                            <span>💬 Send Parent WhatsApp Slip</span>
+                          </a>
+
+                          <div className="flex items-center justify-between text-[10px] text-slate-400 px-0.5">
+                            <span className="flex items-center gap-1 font-mono truncate">
+                              <Smartphone size={11} className="text-emerald-400 shrink-0" />
+                              <span>{lastScanResult.student?.parentPhone || lastScanResult.student?.phone}</span>
+                            </span>
+                            <span className={lastScanResult.smsDispatched ? 'text-emerald-400 font-bold shrink-0' : 'text-slate-500 italic shrink-0'}>
+                              {lastScanResult.smsDispatched ? '✓ SMS Sent' : 'SMS: Off / Muted'}
+                            </span>
+                          </div>
                         </div>
                       )}
 

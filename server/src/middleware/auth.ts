@@ -8,6 +8,7 @@ export interface AuthRequest extends Request {
     username: string;
     name: string;
     role: string;
+    phone?: string;
     teacherId?: string | null;
     studentId?: string | null;
     parentId?: string | null;
@@ -40,6 +41,7 @@ export const authenticateToken = (req: AuthRequest, res: Response, next: NextFun
       username: user.username,
       name: user.name,
       role: role?.name || 'STUDENT',
+      phone: user.phone,
       teacherId: user.teacherId,
       studentId: user.studentId,
       parentId: user.parentId

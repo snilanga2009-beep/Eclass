@@ -18,6 +18,12 @@ export interface SettingsContextType {
 const SettingsContext = createContext<SettingsContextType | undefined>(undefined);
 
 export const DEFAULT_SMS_TEMPLATES = {
+  SMS_ENABLED: "true",
+  SMS_ATTENDANCE_ENABLED: "false",
+  SMS_PAYMENTS_ENABLED: "true",
+  SMS_WELCOME_ENABLED: "true",
+  WHATSAPP_ATTENDANCE_ENABLED: "true",
+  WHATSAPP_TEMPLATE_ATTENDANCE: "*{institute_name} ATTENDANCE CONFIRMATION*\n\nStudent: *{student_name}* ({student_id})\nClass: *{class_name}*\nStatus: Marked Present ✅\nCheck-in Time: {time}\nDate: {date}\n{fee_status}\n\nThank you for choosing {institute_name}!",
   SMS_TEMPLATE_WELCOME: "Welcome to {institute_name}! Track {student_name}'s live attendance, RFID check-in times & fee receipts on the Parent Portal PWA: {portal_url} (Save to your phone home screen for 1-tap instant access)",
   SMS_TEMPLATE_PAYMENT: "Dear Parent, received Rs. {amount} for {student_name}. Receipt #{receipt_no}. Outstanding balance: Rs. {balance}. - {institute_name}",
   SMS_TEMPLATE_ATTENDANCE: "Dear Parent, your child {student_name} has been marked {status} for {class_name} today at {time}. - {institute_name}",

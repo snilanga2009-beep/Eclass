@@ -3,6 +3,7 @@ import QRCode from 'qrcode';
 import db, { Attendance, AttendanceSession } from '../db';
 import { AuthRequest, authenticateToken, requireRoles } from '../middleware/auth';
 import { logAuditAction } from '../middleware/audit';
+import { dispatchRealSMS } from '../services/smsService';
 
 const router = Router();
 
@@ -283,7 +284,48 @@ router.post('/scan', authenticateToken, async (req: AuthRequest, res: Response) 
       a.date === scanDate
     );
 
+    const buildWhatsAppPayload = (attTime: string) => {
+      const targetPhone = student.parentPhone || student.phone;
+      const isWaEnabled = db.data.settings.find(s => s.key === 'WHATSAPP_ATTENDANCE_ENABLED')?.value !== 'false';
+      const instName = db.data.settings.find(s => s.key === 'INSTITUTE_NAME')?.value || 'Cambridge Academy';
+
+      if (!targetPhone) {
+        return { enabled: isWaEnabled, url: '', message: '', recipient: '' };
+      }
+
+      const scanTimeStr = new Date(attTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      const feeStatusText = (pendingFees.length > 0)
+        ? `⚠️ Tuition Fee: Pending Rs. ${totalPendingAmount.toLocaleString()}`
+        : `✅ Tuition Fee: Fully Settled`;
+
+      const defaultWaTemplate = `*${instName.toUpperCase()} ATTENDANCE CONFIRMATION*\n\nStudent: *{student_name}* ({student_id})\nClass: *{class_name}*\nStatus: Marked Present ✅\nCheck-in Time: {time}\nDate: {date}\n${feeStatusText}\n\nThank you for choosing ${instName}!`;
+
+      const waTemplate = db.data.settings.find(s => s.key === 'WHATSAPP_TEMPLATE_ATTENDANCE')?.value || defaultWaTemplate;
+      const waMessage = waTemplate
+        .replace(/{institute_name}/g, instName)
+        .replace(/{student_name}/g, student.fullName)
+        .replace(/{student_id}/g, student.studentIdNumber)
+        .replace(/{class_name}/g, currentClass.name)
+        .replace(/{status}/g, 'Present ✅')
+        .replace(/{time}/g, scanTimeStr)
+        .replace(/{date}/g, scanDate)
+        .replace(/{fee_status}/g, feeStatusText);
+
+      const rawDigits = targetPhone.replace(/\D/g, '');
+      const intlPhone = rawDigits.startsWith('0') ? '94' + rawDigits.substring(1) : (rawDigits.startsWith('94') ? rawDigits : '94' + rawDigits);
+      const waUrl = `https://wa.me/${intlPhone}?text=${encodeURIComponent(waMessage)}`;
+
+      return {
+        enabled: isWaEnabled,
+        url: waUrl,
+        message: waMessage,
+        recipient: targetPhone,
+        intlPhone
+      };
+    };
+
     if (existingAttendance) {
+      const waPayload = buildWhatsAppPayload(existingAttendance.scannedAt);
       return res.json({
         scanResult: 'ALREADY_RECORDED', // YELLOW in UI
         student: {
@@ -292,7 +334,7 @@ router.post('/scan', authenticateToken, async (req: AuthRequest, res: Response) 
           studentIdNumber: student.studentIdNumber,
           photo: student.photo,
           grade: student.grade,
-          parentPhone: student.parentPhone
+          parentPhone: student.parentPhone || student.phone
         },
         class: {
           id: currentClass.id,
@@ -312,6 +354,8 @@ router.post('/scan', authenticateToken, async (req: AuthRequest, res: Response) 
           due: totalPendingAmount,
           feeRecordId: pendingFees[0].id
         } : null),
+        whatsapp: waPayload,
+        smsDispatched: false,
         message: `Attendance already marked at ${new Date(existingAttendance.scannedAt).toLocaleTimeString()}`
       });
     }
@@ -349,14 +393,67 @@ router.post('/scan', authenticateToken, async (req: AuthRequest, res: Response) 
 
     db.data.attendances.push(newAttendance);
 
-    // Attendance scan SMS is muted as requested ("when i scend qr 1 sms please off, aftre pay calss fress sms keep")
-    // Fee payment receipt SMS remains active on POST /api/payments
+    // 1. Check SMS Settings: Master SMS Switch + Attendance Scan SMS Switch
+    const isMasterSmsSetting = db.data.settings.find(s => s.key === 'SMS_ENABLED')?.value;
+    const isAttendanceSmsSetting = db.data.settings.find(s => s.key === 'SMS_ATTENDANCE_ENABLED')?.value;
+    const isMasterSmsOn = isMasterSmsSetting === undefined || isMasterSmsSetting === 'true' || isMasterSmsSetting === '1';
+    const isAttendanceSmsOn = isAttendanceSmsSetting === 'true' || isAttendanceSmsSetting === '1';
+
+    const targetPhone = student.parentPhone || student.phone;
+    let smsDispatched = false;
+
+    if (isMasterSmsOn && isAttendanceSmsOn && targetPhone) {
+      const instName = db.data.settings.find(s => s.key === 'INSTITUTE_NAME')?.value || 'Cambridge Academy';
+      const attTemplate = db.data.settings.find(s => s.key === 'SMS_TEMPLATE_ATTENDANCE')?.value ||
+        'Dear Parent, your child {student_name} has been marked {status} for {class_name} today at {time}. - {institute_name}';
+      
+      const scanTimeStr = new Date(newAttendance.scannedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      const attMsg = attTemplate
+        .replace(/{institute_name}/g, instName)
+        .replace(/{student_name}/g, student.fullName)
+        .replace(/{student_id}/g, student.studentIdNumber)
+        .replace(/{class_name}/g, currentClass.name)
+        .replace(/{status}/g, 'PRESENT')
+        .replace(/{time}/g, scanTimeStr)
+        .replace(/{date}/g, scanDate);
+
+      try {
+        await dispatchRealSMS(targetPhone, attMsg);
+        smsDispatched = true;
+        db.data.smsLogs.unshift({
+          id: db.generateId(),
+          studentId: student.id,
+          recipient: targetPhone,
+          message: attMsg,
+          type: 'ATTENDANCE_ALERT',
+          status: 'DELIVERED',
+          sentAt: new Date().toISOString()
+        });
+      } catch (err) {
+        console.warn('Attendance SMS dispatch failed:', err);
+      }
+    }
+
+    // 2. Build WhatsApp Alert Payload & Record WhatsApp Log
+    const waPayload = buildWhatsAppPayload(newAttendance.scannedAt);
+    if (waPayload.recipient && waPayload.message) {
+      db.data.whatsappLogs.unshift({
+        id: db.generateId(),
+        studentId: student.id,
+        recipient: waPayload.recipient,
+        templateName: 'attendance_confirmation',
+        message: waPayload.message,
+        status: 'DELIVERED',
+        sentAt: new Date().toISOString()
+      });
+    }
+
     db.save();
 
     await logAuditAction(
       req,
       'ATTENDANCE_SCAN',
-      `Marked attendance for ${student.fullName} in ${currentClass.name} via ${scanMethod} (Scan SMS muted; fee receipt SMS active).`
+      `Marked attendance for ${student.fullName} in ${currentClass.name} via ${scanMethod}. SMS: ${smsDispatched ? 'Sent' : 'Muted/Disabled'}, WhatsApp Ready: ${Boolean(waPayload.url)}.`
     );
 
     return res.json({
@@ -387,6 +484,8 @@ router.post('/scan', authenticateToken, async (req: AuthRequest, res: Response) 
         due: totalPendingAmount,
         feeRecordId: pendingFees[0].id
       } : null),
+      whatsapp: waPayload,
+      smsDispatched,
       message: `Successfully marked PRESENT for ${student.fullName}`
     });
   } catch (error: any) {

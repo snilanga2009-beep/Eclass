@@ -114,6 +114,7 @@ export interface Class {
   startTime: string; // "08:30"
   endTime: string; // "11:30"
   room?: string;
+  hall?: string;
   monthlyFee: number; // in LKR, e.g. 2500
   maxStudents: number;
   status: 'ACTIVE' | 'INACTIVE' | 'ARCHIVED';
