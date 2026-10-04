@@ -1,0 +1,59 @@
+version: '3.8'
+
+services:
+  # 1. PostgreSQL 16 Database
+  postgres:
+    image: postgres:16-alpine
+    container_name: cams-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: cams_db
+      POSTGRES_USER: cams_admin
+      POSTGRES_PASSWORD: CamsPgPass2026_Secure!
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "127.0.0.1:5432:5432"
+    networks:
+      - cams-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U cams_admin -d cams_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # 2. CAMS Application (Backend + Frontend SPA)
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: cams-app
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      PORT: 5000
+      DATABASE_URL: "postgresql://cams_admin:CamsPgPass2026_Secure%21@postgres:5432/cams_db?schema=public"
+      DIRECT_URL: "postgresql://cams_admin:CamsPgPass2026_Secure%21@postgres:5432/cams_db?schema=public"
+      JWT_SECRET: "cams-jwt-production-secret-apex-2026"
+    volumes:
+      - app_uploads:/app/server/uploads
+      - app_data:/app/server/data
+    ports:
+      - "127.0.0.1:5000:5000"
+    networks:
+      - cams-network
+
+volumes:
+  postgres_data:
+    name: cams_postgres_data
+  app_uploads:
+    name: cams_app_uploads
+  app_data:
+    name: cams_app_data
+
+networks:
+  cams-network:
+    name: cams_network
+    driver: bridge

@@ -1,0 +1,12 @@
+node_modules
+client/node_modules
+server/node_modules
+.git
+.github
+*.log
+.env
+.env.local
+scratch
+dist
+client/dist
+server/dist
