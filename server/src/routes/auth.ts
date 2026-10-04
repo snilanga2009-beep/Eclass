@@ -6,7 +6,7 @@ import { AuthRequest, authenticateToken, requireRoles } from '../middleware/auth
 import { logAuditAction } from '../middleware/audit';
 
 const router = Router();
-const JWT_SECRET = process.env.JWT_SECRET || 'cams_super_secure_jwt_secret_key_2026_lk';
+const getJwtSecret = () => process.env.JWT_SECRET || 'cams_super_secure_jwt_secret_key_2026_lk';
 
 // Helper to populate user details
 const populateUser = (u: any) => {
@@ -75,7 +75,7 @@ router.post('/login', async (req: AuthRequest, res: Response) => {
         role: populated.role,
         username: user.username
       },
-      JWT_SECRET,
+      getJwtSecret(),
       { expiresIn: '7d' }
     );
 
@@ -138,7 +138,7 @@ router.post('/switch-role', async (req: AuthRequest, res: Response) => {
         role: populated.role,
         username: user.username
       },
-      JWT_SECRET,
+      getJwtSecret(),
       { expiresIn: '7d' }
     );
 
@@ -259,7 +259,7 @@ router.post('/parent-login', async (req: AuthRequest, res: Response) => {
         parentId: parent.id,
         phone: user.phone
       },
-      JWT_SECRET,
+      getJwtSecret(),
       { expiresIn: '365d' }
     );
 
