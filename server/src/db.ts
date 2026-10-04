@@ -379,6 +379,8 @@ export interface DatabaseData {
   settings: SystemSetting[];
 }
 
+import { Pool } from 'pg';
+
 const IS_VERCEL = !!process.env.VERCEL;
 const BUNDLED_DATA_DIR = path.join(__dirname, '..', 'data');
 const BUNDLED_DATA_FILE = path.join(BUNDLED_DATA_DIR, 'db.json');
@@ -386,12 +388,77 @@ const BUNDLED_DATA_FILE = path.join(BUNDLED_DATA_DIR, 'db.json');
 const DATA_DIR = IS_VERCEL ? '/tmp/cams_data' : BUNDLED_DATA_DIR;
 const DATA_FILE = path.join(DATA_DIR, 'db.json');
 
-// In-Memory Database Store with Atomic Persistence
+// Database Store with Dual Memory & PostgreSQL Persistence
 class DatabaseStore {
   public data: DatabaseData;
+  private pgPool: Pool | null = null;
+  public isPgConnected: boolean = false;
 
   constructor() {
     this.data = this.load();
+    this.setupPostgreSQL();
+  }
+
+  private setupPostgreSQL(): void {
+    const dbUrl = process.env.DATABASE_URL;
+    if (dbUrl) {
+      try {
+        console.log('[PostgreSQL] Initializing PostgreSQL connection pool...');
+        this.pgPool = new Pool({
+          connectionString: dbUrl,
+          ssl: dbUrl.includes('sslmode=require') ? { rejectUnauthorized: false } : undefined
+        });
+        this.initPg();
+      } catch (err: any) {
+        console.warn('[PostgreSQL] Failed to initialize pool:', err.message);
+      }
+    }
+  }
+
+  public async initPg(): Promise<void> {
+    if (!this.pgPool) return;
+    try {
+      // 1. Ensure kv_store table exists in PostgreSQL
+      await this.pgPool.query(`
+        CREATE TABLE IF NOT EXISTS cams_kv_store (
+          key VARCHAR(50) PRIMARY KEY,
+          data JSONB NOT NULL,
+          updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+        );
+      `);
+
+      // 2. Load latest data from PostgreSQL if exists
+      const res = await this.pgPool.query(`SELECT data FROM cams_kv_store WHERE key = 'app_data' LIMIT 1`);
+      if (res.rows.length > 0 && res.rows[0].data) {
+        const pgData = res.rows[0].data;
+        if (pgData && pgData.users && pgData.users.length > 0) {
+          console.log('[PostgreSQL] Loaded active dataset from PostgreSQL.');
+          this.data = pgData;
+          this.saveLocal();
+        }
+      } else {
+        // First run on PostgreSQL: Seed with current state
+        console.log('[PostgreSQL] Seeding PostgreSQL from local dataset...');
+        await this.saveToPg();
+      }
+      this.isPgConnected = true;
+      console.log('[PostgreSQL] Connected and synchronized successfully.');
+    } catch (err: any) {
+      console.error('[PostgreSQL] Init/Sync Error:', err.message);
+    }
+  }
+
+  private async saveToPg(): Promise<void> {
+    if (!this.pgPool) return;
+    try {
+      await this.pgPool.query(`
+        INSERT INTO cams_kv_store (key, data, updated_at)
+        VALUES ('app_data', $1::jsonb, NOW())
+        ON CONFLICT (key) DO UPDATE SET data = EXCLUDED.data, updated_at = NOW();
+      `, [JSON.stringify(this.data)]);
+    } catch (err: any) {
+      console.error('[PostgreSQL] Save error:', err.message);
+    }
   }
 
   private getDefaultData(): DatabaseData {
@@ -460,7 +527,7 @@ class DatabaseStore {
     return this.getDefaultData();
   }
 
-  public save(): void {
+  public saveLocal(): void {
     try {
       if (!fs.existsSync(DATA_DIR)) {
         fs.mkdirSync(DATA_DIR, { recursive: true });
@@ -480,8 +547,18 @@ class DatabaseStore {
     }
   }
 
+  public save(): void {
+    this.saveLocal();
+    if (this.pgPool) {
+      this.saveToPg().catch(() => {});
+    }
+  }
+
   public reload(): void {
     this.data = this.load();
+    if (this.pgPool) {
+      this.initPg().catch(() => {});
+    }
   }
 
   // Helper generators
