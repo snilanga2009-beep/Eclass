@@ -957,7 +957,7 @@
       "isActive": true,
       "createdAt": "2026-09-25T09:48:43.755Z",
       "updatedAt": "2026-09-25T09:48:43.755Z",
-      "lastLogin": "2026-10-03T18:27:56.352Z",
+      "lastLogin": "2026-10-04T04:56:52.316Z",
       "studentId": null,
       "parentId": null,
       "teacherId": null
@@ -1574,6 +1574,17 @@
   "announcements": [],
   "documents": [],
   "auditLogs": [
+    {
+      "id": "oizdd31-mutcmo2r",
+      "userId": "usr-admin",
+      "userName": "Sunil Jayawardena (Campus Admin)",
+      "userRole": "ADMIN",
+      "action": "LOGIN",
+      "details": "User admin logged in successfully with role ADMIN",
+      "ipAddress": "127.0.0.1",
+      "userAgent": "Unknown Agent",
+      "createdAt": "2026-10-04T04:56:52.323Z"
+    },
     {
       "id": "kdfts8t-mutc253n",
       "userId": "bvxua2r-mutc24sz",

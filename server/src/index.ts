@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import path from 'path';
+import fs from 'fs';
 import db from './db';
 import { seedDatabase } from './seed';
 
@@ -103,10 +104,36 @@ app.use(['/api/audit', '/audit'], auditRoutes);
 app.use(['/api/dashboard', '/dashboard'], dashboardRoutes);
 app.use(['/api/notifications', '/notifications'], notificationRoutes);
 
-// Health check and root ping endpoints
-app.get(['/api/health', '/health', '/api', '/'], (req, res) => {
+// Health check and API ping endpoints
+app.get(['/api/health', '/health', '/api'], (req, res) => {
   res.json({ status: 'ok', name: 'Class Accounting Management System (CAMS) API', time: new Date() });
 });
+
+// Serve frontend static build in production (Vite SPA)
+const possibleClientDistPaths = [
+  path.join(__dirname, '..', '..', 'client', 'dist'),
+  path.join(__dirname, '..', '..', 'dist'),
+  path.join(__dirname, '..', 'public'),
+  path.join(process.cwd(), 'client', 'dist'),
+  path.join(process.cwd(), 'dist')
+];
+
+const foundClientDist = possibleClientDistPaths.find(p => fs.existsSync(path.join(p, 'index.html')));
+
+if (foundClientDist) {
+  console.log(`[Static] Serving frontend SPA from: ${foundClientDist}`);
+  app.use(express.static(foundClientDist));
+  app.get('*', (req, res, next) => {
+    if (req.path.startsWith('/api') || req.path.startsWith('/uploads') || req.path.startsWith('/health')) {
+      return next();
+    }
+    res.sendFile(path.join(foundClientDist, 'index.html'));
+  });
+} else {
+  app.get('/', (req, res) => {
+    res.json({ status: 'ok', name: 'Class Accounting Management System (CAMS) API', time: new Date() });
+  });
+}
 
 // Seed data and start server
 async function startServer() {

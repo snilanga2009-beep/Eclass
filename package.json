@@ -10,6 +10,7 @@
     "build:client": "npm run build --prefix client",
     "build:server": "npm run build --prefix server",
     "build": "node build.cjs",
+    "start": "node server/dist/index.js",
     "vercel-build": "node build.cjs"
   },
   "dependencies": {
