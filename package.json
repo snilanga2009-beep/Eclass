@@ -31,5 +31,8 @@
     "qrcode": "^1.5.4",
     "tsx": "^4.23.15",
     "typescript": "^5.7.2"
+  },
+  "devDependencies": {
+    "ssh2": "^1.17.0"
   }
 }
