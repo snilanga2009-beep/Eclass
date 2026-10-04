@@ -13,11 +13,14 @@ import {
   LogOut,
   ShieldCheck,
   Key,
-  RefreshCw
+  RefreshCw,
+  Building,
+  User as UserIcon,
+  Check
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { UserRole } from '../types';
-import { apiRequest, clearAppCache } from '../api';
+import { clearAppCache } from '../api';
 import { RolePermissionsModal } from './RolePermissionsModal';
 import { ChangePasswordModal } from './ChangePasswordModal';
 
@@ -36,40 +39,56 @@ export const Header: React.FC<HeaderProps> = ({
 }) => {
   const { user, switchRole, logout } = useAuth();
   const [notificationsOpen, setNotificationsOpen] = useState(false);
-  const [roleMenuOpen, setRoleMenuOpen] = useState(false);
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [isRoleGuideOpen, setIsRoleGuideOpen] = useState(false);
   const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [clearingCache, setClearingCache] = useState(false);
+  const [currentTime, setCurrentTime] = useState<string>('');
+  const [currentDate, setCurrentDate] = useState<string>('');
+
+  // Live real-time clock for institute control desk
+  useEffect(() => {
+    const updateTime = () => {
+      const now = new Date();
+      setCurrentTime(now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
+      setCurrentDate(now.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' }));
+    };
+    updateTime();
+    const timer = setInterval(updateTime, 1000);
+    return () => clearInterval(timer);
+  }, []);
 
   const handleClearCache = async () => {
     setClearingCache(true);
     try {
       const res = await clearAppCache();
-      alert(res.message || 'Cache cleared and data synchronized!');
+      alert(res.message || 'System cache synchronized successfully!');
     } catch (err: any) {
-      alert(err.message || 'Failed to clear cache');
+      alert(err.message || 'Failed to clear system cache');
     } finally {
       setClearingCache(false);
     }
   };
 
-  const availableRoles: { role: UserRole; label: string; desc: string; color: string }[] = [
-    { role: 'SUPER_ADMIN', label: 'Super Admin', desc: 'Full system privileges & configuration', color: 'bg-purple-500' },
-    { role: 'ADMIN', label: 'Campus Admin', desc: 'Manage students, classes, teachers & finances', color: 'bg-indigo-500' },
-    { role: 'ACCOUNTANT', label: 'Chief Accountant', desc: 'Fees, payments, expenses, teacher commissions', color: 'bg-emerald-500' },
-    { role: 'TEACHER', label: 'Teacher (Dr. Silva)', desc: 'My classes, QR attendance, tests, materials', color: 'bg-blue-500' },
-    { role: 'RECEPTIONIST', label: 'Front Office Receptionist', desc: 'Student registrations, desk fees, fast attendance', color: 'bg-amber-500' },
-    { role: 'PARENT', label: 'Parent (Mr. Kalhara)', desc: 'View child attendance, fee receipts, exam marks', color: 'bg-teal-500' },
-    { role: 'STUDENT', label: 'Student (Kasun)', desc: 'Personal schedule, study materials, receipts', color: 'bg-rose-500' }
+  const availableRoles: { role: UserRole; label: string; desc: string; badgeClass: string }[] = [
+    { role: 'SUPER_ADMIN', label: 'Super Admin', desc: 'Full institutional control & configuration', badgeClass: 'bg-purple-100 text-purple-800 border-purple-200' },
+    { role: 'ADMIN', label: 'Campus Admin', desc: 'Manage students, classes, teachers & finances', badgeClass: 'bg-blue-100 text-blue-800 border-blue-200' },
+    { role: 'ACCOUNTANT', label: 'Chief Accountant', desc: 'Tuition fees, expenses, teacher payroll', badgeClass: 'bg-emerald-100 text-emerald-800 border-emerald-200' },
+    { role: 'TEACHER', label: 'Teacher (Dr. Silva)', desc: 'Assigned classes, QR attendance, study files', badgeClass: 'bg-indigo-100 text-indigo-800 border-indigo-200' },
+    { role: 'RECEPTIONIST', label: 'Front Desk Receptionist', desc: 'Student registrations, fee collection, gate scan', badgeClass: 'bg-amber-100 text-amber-800 border-amber-200' },
+    { role: 'PARENT', label: 'Parent Portal (Kalhara)', desc: 'View child attendance, fee receipts, reports', badgeClass: 'bg-teal-100 text-teal-800 border-teal-200' },
+    { role: 'STUDENT', label: 'Student Portal (Kasun)', desc: 'Study schedule, digital pass, fee status', badgeClass: 'bg-slate-100 text-slate-800 border-slate-200' }
   ];
 
   // PWA install prompt handler
   useEffect(() => {
-    window.addEventListener('beforeinstallprompt', (e) => {
+    const handler = (e: any) => {
       e.preventDefault();
       setDeferredPrompt(e);
-    });
+    };
+    window.addEventListener('beforeinstallprompt', handler);
+    return () => window.removeEventListener('beforeinstallprompt', handler);
   }, []);
 
   const handleInstallPWA = async () => {
@@ -81,205 +100,249 @@ export const Header: React.FC<HeaderProps> = ({
     }
   };
 
-  // Sample in-app notifications
+  // Sample in-app notifications with realistic institutional events
   const notifications = [
-    { id: '1', title: 'Fee Payment Received', text: 'Kasun Kalhara paid Rs. 3,500 (REC-2026-0041)', time: '5m ago', unread: true },
-    { id: '2', title: 'Today Attendance Completed', text: 'Grade 12 Combined Maths: 42 present, 2 absent', time: '20m ago', unread: true },
-    { id: '3', title: 'New Material Uploaded', text: 'Physics Mechanics Notes by Mrs. Menaka Perera', time: '1h ago', unread: false }
+    { id: '1', title: 'Fee Payment Processed', text: 'Kasun Kalhara paid Rs. 3,500 for Combined Mathematics (REC-2026-0041)', time: '5m ago', unread: true },
+    { id: '2', title: 'Session Attendance Closed', text: 'Grade 12 Physics: 42 present, 2 absent verified by scanner', time: '20m ago', unread: true },
+    { id: '3', title: 'New Academic Material', text: 'Mechanics Module 02 uploaded for Advanced Level batch', time: '1h ago', unread: false }
   ];
 
   return (
-    <header className="sticky top-0 z-30 h-16 bg-white/95 backdrop-blur border-b border-slate-200/80 px-4 lg:px-8 flex items-center justify-between transition-all">
+    <header className="sticky top-0 z-30 h-16 bg-white/95 backdrop-blur-md border-b border-slate-200/90 px-4 lg:px-8 flex items-center justify-between transition-all select-none">
       {/* Left: Mobile hamburger + Global Search */}
-      <div className="flex items-center space-x-3">
+      <div className="flex items-center space-x-3 sm:space-x-4">
         <button
           onClick={onOpenMobileMenu}
-          className="lg:hidden p-2 rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-colors"
-          title="Open menu"
+          className="lg:hidden p-2 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-colors cursor-pointer"
+          title="Open navigation menu"
         >
           <Menu size={20} />
         </button>
 
-        {/* Global Search trigger bar */}
+        {/* Global Search Trigger Bar */}
         <button
           onClick={onOpenSearch}
-          className="flex items-center space-x-3 px-3.5 py-2 rounded-xl bg-slate-100/80 hover:bg-slate-200/70 text-slate-500 hover:text-slate-800 text-sm border border-slate-200/60 transition-all w-48 sm:w-72 lg:w-96 shadow-inner"
+          className="flex items-center space-x-3 px-3.5 py-2 rounded-lg bg-slate-50 hover:bg-slate-100/90 text-slate-500 hover:text-slate-800 text-sm border border-slate-200/90 transition-all w-48 sm:w-72 lg:w-96 shadow-2xs group cursor-pointer"
         >
-          <Search size={16} className="text-slate-400 shrink-0" />
-          <span className="truncate text-xs sm:text-sm">Search students, classes, payments...</span>
-          <kbd className="hidden sm:inline-block ml-auto text-[10px] font-mono font-medium px-1.5 py-0.5 rounded bg-white border border-slate-300 text-slate-500 shadow-sm">
-            ⌘K
-          </kbd>
+          <Search size={15} className="text-slate-400 group-hover:text-slate-600 shrink-0 transition-colors" />
+          <span className="truncate text-xs font-normal text-slate-500">Search students, receipts, classes...</span>
+          <div className="hidden sm:flex items-center ml-auto space-x-1">
+            <kbd className="text-[10px] font-mono font-semibold px-1.5 py-0.5 rounded bg-white border border-slate-200 text-slate-500 shadow-2xs">
+              Ctrl
+            </kbd>
+            <kbd className="text-[10px] font-mono font-semibold px-1.5 py-0.5 rounded bg-white border border-slate-200 text-slate-500 shadow-2xs">
+              K
+            </kbd>
+          </div>
         </button>
       </div>
 
-      {/* Right: Quick actions, Role Switcher, Notifications, PWA */}
+      {/* Right: Operational Actions, Clock, User & Role Switcher */}
       <div className="flex items-center space-x-2 sm:space-x-3">
-        {/* Quick QR Attendance Launcher (Staff only) */}
+        {/* Live System Clock Widget (Desktop only) */}
+        {currentTime && (
+          <div className="hidden 2xl:flex items-center space-x-2 px-3 py-1.5 rounded-lg bg-slate-50 border border-slate-200/80 text-slate-600 text-xs">
+            <Clock size={13} className="text-slate-400 shrink-0" />
+            <span className="font-medium text-slate-500">{currentDate}</span>
+            <span className="font-mono font-semibold text-slate-800">{currentTime}</span>
+          </div>
+        )}
+
+        {/* Staff Quick Operational Actions */}
         {user?.role !== 'STUDENT' && user?.role !== 'PARENT' && (
-          <>
+          <div className="hidden sm:flex items-center space-x-2">
+            {/* Quick QR Attendance Scan */}
             <button
               onClick={onOpenQuickScan}
-              className="hidden md:flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 text-xs font-semibold transition-all shadow-sm"
-              title="Fast QR Camera Attendance"
+              className="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-emerald-50 text-emerald-800 hover:bg-emerald-100/80 border border-emerald-200 text-xs font-semibold transition-all shadow-2xs cursor-pointer active:scale-98"
+              title="Fast Gate QR Scanner"
             >
-              <QrCode size={15} />
-              <span>Quick Scan</span>
+              <QrCode size={14} className="text-emerald-700" />
+              <span>Gate Scan</span>
             </button>
 
-            {/* Quick Fee Collection Launcher */}
+            {/* Quick Fee Collection */}
             <button
               onClick={onOpenQuickPayment}
-              className="hidden md:flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-brand-50 text-brand-700 hover:bg-brand-100 border border-brand-200 text-xs font-semibold transition-all shadow-sm"
-              title="Collect Fee & Print Receipt"
+              className="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-brand-50 text-brand-800 hover:bg-brand-100/80 border border-brand-200 text-xs font-semibold transition-all shadow-2xs cursor-pointer active:scale-98"
+              title="Collect Tuition Fee & Print Receipt"
             >
-              <CreditCard size={15} />
+              <CreditCard size={14} className="text-brand-700" />
               <span>Collect Fee</span>
             </button>
 
-            {/* Clear Cache & Resync Button */}
+            {/* Synchronize / Clear Cache */}
             <button
               onClick={handleClearCache}
               disabled={clearingCache}
-              className="hidden sm:flex items-center space-x-1 px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold transition-all shadow-sm active:scale-95"
-              title="Clear Server Cache & Resync Data"
+              className="flex items-center space-x-1 px-2.5 py-1.5 rounded-lg bg-slate-50 hover:bg-slate-100 text-slate-700 hover:text-slate-900 border border-slate-200 text-xs font-medium transition-all shadow-2xs cursor-pointer active:scale-98"
+              title="Synchronize Database Cache"
             >
               <RefreshCw size={13} className={clearingCache ? 'animate-spin text-brand-600' : 'text-slate-500'} />
-              <span className="hidden xl:inline">{clearingCache ? 'Syncing...' : 'Clear Cache'}</span>
+              <span className="hidden xl:inline">{clearingCache ? 'Syncing...' : 'Sync'}</span>
             </button>
-          </>
+          </div>
         )}
 
         {/* PWA Install Button if available */}
         {deferredPrompt && (
           <button
             onClick={handleInstallPWA}
-            className="flex items-center space-x-1 px-2.5 py-1.5 rounded-lg bg-purple-50 text-purple-700 hover:bg-purple-100 border border-purple-200 text-xs font-medium transition-all"
-            title="Install App as PWA"
+            className="flex items-center space-x-1.5 px-2.5 py-1.5 rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-200 text-xs font-semibold transition-all cursor-pointer"
+            title="Install App as Desktop/Mobile PWA"
           >
-            <Download size={14} />
-            <span className="hidden sm:inline">Install App</span>
+            <Download size={13} />
+            <span className="hidden sm:inline">Install</span>
           </button>
         )}
 
-        {/* ROLE SWITCHER DROPDOWN (Allows immediate preview of all 7 roles) */}
+        {/* Notification Bell */}
         <div className="relative">
           <button
-            onClick={() => setRoleMenuOpen(!roleMenuOpen)}
-            className="flex items-center space-x-2 px-2.5 sm:px-3 py-1.5 rounded-xl bg-slate-900 text-white hover:bg-slate-800 text-xs font-medium transition-all shadow-sm"
-            title="Switch User Role"
+            onClick={() => setNotificationsOpen(!notificationsOpen)}
+            className="p-2 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-100 relative transition-colors cursor-pointer border border-transparent hover:border-slate-200"
+            title="System notifications"
           >
-            <Shield size={14} className="text-amber-400" />
-            <span className="font-semibold">{user?.role?.replace('_', ' ')}</span>
-            <ChevronDown size={14} className="text-slate-400" />
+            <Bell size={17} />
+            <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-emerald-500 ring-2 ring-white" />
           </button>
 
-          {roleMenuOpen && (
-            <div className="absolute right-0 mt-2 w-72 bg-white rounded-2xl shadow-2xl border border-slate-200 p-2 z-50 animate-in fade-in slide-in-from-top-2">
-              <div className="px-3 py-2 border-b border-slate-100 mb-1">
-                <p className="text-xs font-bold text-slate-800 uppercase tracking-wider">Switch Testing Role</p>
-                <p className="text-[11px] text-slate-500">Test portals & permission boundaries instantly</p>
-              </div>
-
-              <div className="space-y-1">
-                {availableRoles.map(item => (
-                  <button
-                    key={item.role}
-                    onClick={() => {
-                      switchRole(item.role);
-                      setRoleMenuOpen(false);
-                    }}
-                    className={`w-full text-left px-3 py-2 rounded-xl flex items-center space-x-3 transition-colors ${
-                      user?.role === item.role ? 'bg-slate-100 font-semibold' : 'hover:bg-slate-50'
-                    }`}
-                  >
-                    <span className={`w-2.5 h-2.5 rounded-full ${item.color} shrink-0`} />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs font-medium text-slate-900 leading-tight">{item.label}</p>
-                      <p className="text-[10px] text-slate-500 truncate">{item.desc}</p>
-                    </div>
-                    {user?.role === item.role && (
-                      <CheckCircle2 size={14} className="text-brand-600 shrink-0" />
-                    )}
-                  </button>
-                ))}
-
-                {/* Role Permissions Guide Button */}
-                <div className="pt-2 mt-2 border-t border-slate-100 space-y-1">
-                  <button
-                    onClick={() => {
-                      setRoleMenuOpen(false);
-                      setIsRoleGuideOpen(true);
-                    }}
-                    className="w-full text-left px-3 py-2 rounded-xl flex items-center space-x-2.5 text-indigo-700 bg-indigo-50/70 hover:bg-indigo-100 transition-colors font-semibold text-xs"
-                  >
-                    <ShieldCheck size={14} className="shrink-0 text-indigo-600" />
-                    <span>View Role Permissions Matrix</span>
-                  </button>
-
-                  <button
-                    onClick={() => {
-                      setRoleMenuOpen(false);
-                      setIsChangePasswordOpen(true);
-                    }}
-                    className="w-full text-left px-3 py-2 rounded-xl flex items-center space-x-2.5 text-purple-700 bg-purple-50/70 hover:bg-purple-100 transition-colors font-semibold text-xs"
-                  >
-                    <Key size={14} className="shrink-0 text-purple-600" />
-                    <span>Change My Password</span>
-                  </button>
-
-                  <button
-                    onClick={() => {
-                      setRoleMenuOpen(false);
-                      logout();
-                    }}
-                    className="w-full text-left px-3 py-2 rounded-xl flex items-center space-x-2.5 text-rose-600 hover:bg-rose-50 transition-colors font-semibold text-xs"
-                  >
-                    <LogOut size={14} className="shrink-0" />
-                    <span>Sign Out to Login Screen</span>
-                  </button>
+          {notificationsOpen && (
+            <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-white rounded-xl shadow-xl border border-slate-200 p-3.5 z-50 animate-in fade-in slide-in-from-top-1">
+              <div className="flex items-center justify-between pb-2.5 border-b border-slate-100 mb-2">
+                <div className="flex items-center space-x-2">
+                  <span className="text-xs font-bold text-slate-900 uppercase tracking-wider">System Activity</span>
+                  <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-600">3 New</span>
                 </div>
+                <button 
+                  onClick={() => setNotificationsOpen(false)}
+                  className="text-[11px] text-brand-600 font-medium hover:underline cursor-pointer"
+                >
+                  Mark all read
+                </button>
+              </div>
+              <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
+                {notifications.map(n => (
+                  <div key={n.id} className="p-2.5 rounded-lg bg-slate-50 hover:bg-slate-100/80 transition-colors text-left border border-slate-100">
+                    <div className="flex items-center justify-between">
+                      <p className="text-xs font-semibold text-slate-800">{n.title}</p>
+                      <span className="text-[10px] text-slate-400 font-mono">{n.time}</span>
+                    </div>
+                    <p className="text-xs text-slate-600 mt-1 leading-snug">{n.text}</p>
+                  </div>
+                ))}
               </div>
             </div>
           )}
         </div>
 
-        {/* Quick Sign Out Action Button */}
-        <button
-          onClick={logout}
-          className="p-2 rounded-xl text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors"
-          title="Sign Out to Login Screen"
-        >
-          <LogOut size={17} />
-        </button>
-
-        {/* In-App Notifications Drawer Toggle */}
+        {/* INSTITUTIONAL USER & ROLE MENU */}
         <div className="relative">
           <button
-            onClick={() => setNotificationsOpen(!notificationsOpen)}
-            className="p-2 rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-100 relative transition-colors"
-            title="Notifications"
+            onClick={() => setUserMenuOpen(!userMenuOpen)}
+            className="flex items-center space-x-2.5 pl-2 pr-2.5 py-1 rounded-lg bg-slate-100/90 hover:bg-slate-200/80 border border-slate-200/90 transition-all cursor-pointer shadow-2xs"
+            title="User Profile & Role Control"
           >
-            <Bell size={18} />
-            <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-rose-500 ring-2 ring-white" />
+            <div className="w-7 h-7 rounded-full bg-slate-900 text-white flex items-center justify-center font-bold text-xs ring-1 ring-slate-300">
+              {user?.name ? user.name.charAt(0).toUpperCase() : 'U'}
+            </div>
+            <div className="hidden md:flex flex-col text-left">
+              <span className="text-xs font-bold text-slate-800 leading-none truncate max-w-[120px]">
+                {user?.name?.split(' ')[0] || 'User'}
+              </span>
+              <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-tight leading-tight mt-0.5">
+                {user?.role?.replace('_', ' ')}
+              </span>
+            </div>
+            <ChevronDown size={14} className="text-slate-500 ml-0.5" />
           </button>
 
-          {notificationsOpen && (
-            <div className="absolute right-0 mt-2 w-80 bg-white rounded-2xl shadow-2xl border border-slate-200 p-3 z-50">
-              <div className="flex items-center justify-between pb-2 border-b border-slate-100 mb-2">
-                <span className="text-xs font-bold text-slate-800 uppercase tracking-wider">Notifications</span>
-                <span className="text-[11px] text-brand-600 font-medium cursor-pointer hover:underline">Mark all read</span>
-              </div>
-              <div className="space-y-2">
-                {notifications.map(n => (
-                  <div key={n.id} className="p-2.5 rounded-xl bg-slate-50 hover:bg-slate-100 transition-colors text-left">
-                    <div className="flex items-center justify-between">
-                      <p className="text-xs font-semibold text-slate-800">{n.title}</p>
-                      <span className="text-[10px] text-slate-400">{n.time}</span>
-                    </div>
-                    <p className="text-xs text-slate-600 mt-0.5">{n.text}</p>
+          {userMenuOpen && (
+            <div className="absolute right-0 mt-2 w-80 bg-white rounded-xl shadow-2xl border border-slate-200 p-2.5 z-50 animate-in fade-in slide-in-from-top-1">
+              {/* Account summary header */}
+              <div className="px-3 py-2.5 border-b border-slate-100 mb-2 bg-slate-50/70 rounded-lg">
+                <div className="flex items-center space-x-2.5">
+                  <div className="w-9 h-9 rounded-full bg-slate-900 text-white flex items-center justify-center font-bold text-sm">
+                    {user?.name ? user.name.charAt(0).toUpperCase() : 'U'}
                   </div>
-                ))}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-bold text-slate-900 truncate">{user?.name}</p>
+                    <p className="text-[11px] text-slate-500 truncate">{user?.email || user?.username || 'admin@apex.lk'}</p>
+                  </div>
+                </div>
+                <div className="mt-2 flex items-center justify-between text-[11px] text-slate-500">
+                  <span className="font-semibold text-slate-700">Active Role:</span>
+                  <span className="font-bold text-brand-700 bg-brand-50 border border-brand-200 px-2 py-0.5 rounded text-[10px] uppercase">
+                    {user?.role?.replace('_', ' ')}
+                  </span>
+                </div>
+              </div>
+
+              {/* Role preview switcher */}
+              <div className="px-2 pb-1.5">
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">
+                  Preview System Role
+                </p>
+                <div className="space-y-1 max-h-48 overflow-y-auto pr-1">
+                  {availableRoles.map(item => (
+                    <button
+                      key={item.role}
+                      onClick={() => {
+                        switchRole(item.role);
+                        setUserMenuOpen(false);
+                      }}
+                      className={`w-full text-left px-2.5 py-1.5 rounded-lg flex items-center justify-between transition-colors cursor-pointer text-xs ${
+                        user?.role === item.role 
+                          ? 'bg-slate-900 text-white font-semibold' 
+                          : 'text-slate-700 hover:bg-slate-100'
+                      }`}
+                    >
+                      <div className="flex items-center space-x-2 truncate">
+                        <span className={`w-2 h-2 rounded-full ${user?.role === item.role ? 'bg-emerald-400' : 'bg-slate-400'}`} />
+                        <span className="truncate">{item.label}</span>
+                      </div>
+                      {user?.role === item.role && (
+                        <Check size={13} className="text-emerald-400 shrink-0 ml-2" />
+                      )}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Account management buttons */}
+              <div className="pt-2 mt-2 border-t border-slate-100 space-y-1">
+                <button
+                  onClick={() => {
+                    setUserMenuOpen(false);
+                    setIsRoleGuideOpen(true);
+                  }}
+                  className="w-full text-left px-3 py-2 rounded-lg flex items-center space-x-2.5 text-slate-700 hover:bg-slate-100 transition-colors text-xs font-medium cursor-pointer"
+                >
+                  <ShieldCheck size={15} className="shrink-0 text-slate-500" />
+                  <span>Role Permissions Matrix</span>
+                </button>
+
+                <button
+                  onClick={() => {
+                    setUserMenuOpen(false);
+                    setIsChangePasswordOpen(true);
+                  }}
+                  className="w-full text-left px-3 py-2 rounded-lg flex items-center space-x-2.5 text-slate-700 hover:bg-slate-100 transition-colors text-xs font-medium cursor-pointer"
+                >
+                  <Key size={15} className="shrink-0 text-slate-500" />
+                  <span>Change Password</span>
+                </button>
+
+                <button
+                  onClick={() => {
+                    setUserMenuOpen(false);
+                    logout();
+                  }}
+                  className="w-full text-left px-3 py-2 rounded-lg flex items-center space-x-2.5 text-rose-600 hover:bg-rose-50 transition-colors text-xs font-semibold cursor-pointer"
+                >
+                  <LogOut size={15} className="shrink-0" />
+                  <span>Sign Out</span>
+                </button>
               </div>
             </div>
           )}

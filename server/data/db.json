@@ -957,7 +957,7 @@
       "isActive": true,
       "createdAt": "2026-09-25T09:48:43.755Z",
       "updatedAt": "2026-09-25T09:48:43.755Z",
-      "lastLogin": "2026-09-29T09:45:12.254Z",
+      "lastLogin": "2026-10-03T18:27:56.352Z",
       "studentId": null,
       "parentId": null,
       "teacherId": null
@@ -974,7 +974,7 @@
       "isActive": true,
       "createdAt": "2026-09-25T09:48:43.755Z",
       "updatedAt": "2026-09-25T09:48:43.755Z",
-      "lastLogin": "2026-09-29T09:54:28.650Z",
+      "lastLogin": "2026-10-04T04:19:29.459Z",
       "studentId": null,
       "parentId": null,
       "teacherId": null
@@ -1045,6 +1045,21 @@
       "updatedAt": "2026-09-25T09:48:43.755Z",
       "parentId": "par-001",
       "teacherId": null
+    },
+    {
+      "id": "bvxua2r-mutc24sz",
+      "username": "parent_777183981",
+      "email": "guardian.777183981@parent.cams.lk",
+      "passwordHash": "$2a$10$Mfh3V6r0PxhQVJxVKJXLt.5M3aQNCHuasspb8rhdwXIWIjnW/Y1QO",
+      "name": "Nilanga",
+      "roleId": "role-parent",
+      "phone": "777183981",
+      "avatar": "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80",
+      "parentId": "11gqjng-musqasb1",
+      "isActive": true,
+      "createdAt": "2026-10-04T04:40:54.606Z",
+      "updatedAt": "2026-10-04T04:40:54.606Z",
+      "lastLogin": "2026-10-04T04:40:54.606Z"
     }
   ],
   "parents": [
@@ -1057,6 +1072,23 @@
       "address": "No 12, Galle Road, Colombo",
       "createdAt": "2026-10-03T11:44:45.013Z",
       "updatedAt": "2026-10-03T11:44:45.013Z"
+    },
+    {
+      "id": "861a2cb-musq4c2a",
+      "name": "Gamini Bandara",
+      "phone": "0779876543",
+      "whatsapp": "0779876543",
+      "createdAt": "2026-10-03T18:26:45.394Z",
+      "updatedAt": "2026-10-03T18:26:45.394Z"
+    },
+    {
+      "id": "11gqjng-musqasb1",
+      "name": "Nilanga",
+      "phone": "777183981",
+      "whatsapp": "777183981",
+      "address": "wattala",
+      "createdAt": "2026-10-03T18:31:46.381Z",
+      "updatedAt": "2026-10-03T18:31:46.381Z"
     }
   ],
   "students": [
@@ -1082,6 +1114,55 @@
       "parentPhone": "0777654321",
       "createdAt": "2026-10-03T11:44:45.013Z",
       "updatedAt": "2026-10-03T11:44:45.013Z"
+    },
+    {
+      "id": "2klfr2x-musq4c2a",
+      "studentIdNumber": "STU-2026-0002",
+      "qrCodeToken": "CAMS-STU-01591413DAFA",
+      "fullName": "Nuwan Bandara",
+      "gender": "Other",
+      "school": "Ananda College",
+      "grade": "Grade 12",
+      "photo": "data:image/svg+xml;utf8,<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 120 120\" width=\"120\" height=\"120\"><defs><linearGradient id=\"bgM\" x1=\"0%\" y1=\"0%\" x2=\"100%\" y2=\"100%\"><stop offset=\"0%\" stop-color=\"%233b82f6\"/><stop offset=\"100%\" stop-color=\"%231d4ed8\"/></linearGradient></defs><rect width=\"120\" height=\"120\" rx=\"28\" fill=\"url(%23bgM)\"/><circle cx=\"60\" cy=\"46\" r=\"21\" fill=\"%23ffd1a9\"/><path d=\"M38 42 C38 24, 48 17, 60 17 C72 17, 82 24, 82 42 C76 34, 66 31, 60 31 C54 31, 44 34, 38 42 Z\" fill=\"%232d1c0c\"/><circle cx=\"53\" cy=\"46\" r=\"2.5\" fill=\"%231e293b\"/><circle cx=\"67\" cy=\"46\" r=\"2.5\" fill=\"%231e293b\"/><path d=\"M54 54 Q60 59 66 54\" stroke=\"%239a3412\" stroke-width=\"2\" fill=\"none\" stroke-linecap=\"round\"/><path d=\"M30 110 C30 84, 45 74, 60 74 C75 74, 90 84, 90 110 Z\" fill=\"%23ffffff\"/><polygon points=\"52,74 60,86 68,74 64,74 60,80 56,74\" fill=\"%23cbd5e1\"/><polygon points=\"57,84 63,84 64,106 60,112 56,106\" fill=\"%23ef4444\"/></svg>",
+      "phone": "0771234567",
+      "whatsapp": "0771234567",
+      "registrationDate": "2026-10-03T18:26:45.394Z",
+      "status": "ACTIVE",
+      "rfidTag": "0004928102",
+      "parentId": "861a2cb-musq4c2a",
+      "parentName": "Gamini Bandara",
+      "parentPhone": "0779876543",
+      "createdAt": "2026-10-03T18:26:45.394Z",
+      "updatedAt": "2026-10-03T18:26:45.394Z",
+      "registrationFee": 1500,
+      "registrationFeeStatus": "PAID",
+      "registrationReceiptNo": "REC-2026-0001"
+    },
+    {
+      "id": "rqe3r8i-musqasb1",
+      "studentIdNumber": "STU-2026-0003",
+      "qrCodeToken": "CAMS-STU-BEFF6DB142DD",
+      "fullName": "Akidu",
+      "dateOfBirth": "2015-09-15",
+      "gender": "Male",
+      "school": "wattala anthonus",
+      "grade": "Grade 12",
+      "address": "wattala",
+      "city": "Colombo",
+      "photo": "data:image/svg+xml;utf8,<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 120 120\" width=\"120\" height=\"120\"><defs><linearGradient id=\"bgM\" x1=\"0%\" y1=\"0%\" x2=\"100%\" y2=\"100%\"><stop offset=\"0%\" stop-color=\"%233b82f6\"/><stop offset=\"100%\" stop-color=\"%231d4ed8\"/></linearGradient></defs><rect width=\"120\" height=\"120\" rx=\"28\" fill=\"url(%23bgM)\"/><circle cx=\"60\" cy=\"46\" r=\"21\" fill=\"%23ffd1a9\"/><path d=\"M38 42 C38 24, 48 17, 60 17 C72 17, 82 24, 82 42 C76 34, 66 31, 60 31 C54 31, 44 34, 38 42 Z\" fill=\"%232d1c0c\"/><circle cx=\"53\" cy=\"46\" r=\"2.5\" fill=\"%231e293b\"/><circle cx=\"67\" cy=\"46\" r=\"2.5\" fill=\"%231e293b\"/><path d=\"M54 54 Q60 59 66 54\" stroke=\"%239a3412\" stroke-width=\"2\" fill=\"none\" stroke-linecap=\"round\"/><path d=\"M30 110 C30 84, 45 74, 60 74 C75 74, 90 84, 90 110 Z\" fill=\"%23ffffff\"/><polygon points=\"52,74 60,86 68,74 64,74 60,80 56,74\" fill=\"%23cbd5e1\"/><polygon points=\"57,84 63,84 64,106 60,112 56,106\" fill=\"%23ef4444\"/></svg>",
+      "phone": "777183981",
+      "whatsapp": "777183981",
+      "registrationDate": "2026-10-03T18:31:46.381Z",
+      "status": "ACTIVE",
+      "rfidTag": "0004928103",
+      "parentId": "11gqjng-musqasb1",
+      "parentName": "Nilanga",
+      "parentPhone": "777183981",
+      "createdAt": "2026-10-03T18:31:46.381Z",
+      "updatedAt": "2026-10-03T18:31:46.381Z",
+      "registrationFee": 1500,
+      "registrationFeeStatus": "PAID",
+      "registrationReceiptNo": "REC-2026-0002"
     }
   ],
   "teachers": [
@@ -1108,6 +1189,134 @@
       "category": "Advanced Level",
       "description": "G.C.E. Advanced Level Combined Mathematics (Pure & Applied)",
       "createdAt": "2026-10-03T11:44:45.009Z"
+    },
+    {
+      "id": "subj-phy",
+      "code": "PHY-AL",
+      "name": "Physics (A/L)",
+      "category": "A/L - Science & Mathematics",
+      "description": "G.C.E. Advanced Level Physics",
+      "createdAt": "2026-10-03T18:28:23.338Z"
+    },
+    {
+      "id": "subj-chem",
+      "code": "CHM-AL",
+      "name": "Chemistry (A/L)",
+      "category": "A/L - Science & Mathematics",
+      "description": "G.C.E. Advanced Level Chemistry",
+      "createdAt": "2026-10-03T18:28:23.338Z"
+    },
+    {
+      "id": "subj-bio",
+      "code": "BIO-AL",
+      "name": "Biology (A/L)",
+      "category": "A/L - Science & Mathematics",
+      "description": "G.C.E. Advanced Level Biology",
+      "createdAt": "2026-10-03T18:28:23.338Z"
+    },
+    {
+      "id": "subj-ict",
+      "code": "ICT-AL",
+      "name": "ICT (A/L & O/L)",
+      "category": "Languages & Technology",
+      "description": "Information & Communication Technology",
+      "createdAt": "2026-10-03T18:28:23.338Z"
+    },
+    {
+      "id": "subj-acc",
+      "code": "ACC-AL",
+      "name": "Accounting & Business (A/L)",
+      "category": "A/L - Commerce & Business",
+      "description": "Financial Accounting & Business Studies",
+      "createdAt": "2026-10-03T18:28:23.338Z"
+    },
+    {
+      "id": "subj-econ",
+      "code": "ECN-AL",
+      "name": "Economics (A/L)",
+      "category": "A/L - Commerce & Business",
+      "description": "Micro & Macro Economics",
+      "createdAt": "2026-10-03T18:28:23.338Z"
+    },
+    {
+      "id": "subj-eng",
+      "code": "ENG-OL",
+      "name": "English Language (O/L & General)",
+      "category": "Languages & Technology",
+      "description": "Grammar, Writing & Spoken English",
+      "createdAt": "2026-10-03T18:28:23.338Z"
+    },
+    {
+      "id": "subj-sec-math",
+      "code": "MTH-SEC",
+      "name": "Mathematics (Grade 6 - 11)",
+      "category": "Junior Secondary (Grades 6-9)",
+      "description": "Secondary school general mathematics",
+      "createdAt": "2026-10-03T18:28:23.338Z"
+    },
+    {
+      "id": "subj-sec-sci",
+      "code": "SCI-SEC",
+      "name": "Science (Grade 6 - 11)",
+      "category": "Junior Secondary (Grades 6-9)",
+      "description": "Integrated science curriculum",
+      "createdAt": "2026-10-03T18:28:23.338Z"
+    },
+    {
+      "id": "subj-sec-his",
+      "code": "HIS-SEC",
+      "name": "History (Grade 6 - 11)",
+      "category": "Junior Secondary (Grades 6-9)",
+      "description": "Sri Lankan and world history",
+      "createdAt": "2026-10-03T18:28:23.338Z"
+    },
+    {
+      "id": "subj-sec-com",
+      "code": "COM-OL",
+      "name": "Commerce & Entrepreneurship (O/L)",
+      "category": "Ordinary Level (O/L)",
+      "description": "Business & accounting basics",
+      "createdAt": "2026-10-03T18:28:23.338Z"
+    },
+    {
+      "id": "subj-scholarship",
+      "code": "SCH-G5",
+      "name": "Grade 5 Scholarship (ශිෂ්‍යත්වය)",
+      "category": "Primary (Grades 1-5)",
+      "description": "Scholarship exam questions, IQ & essays",
+      "createdAt": "2026-10-03T18:28:23.338Z"
+    },
+    {
+      "id": "subj-prim-math",
+      "code": "MTH-PRI",
+      "name": "Primary Mathematics (Grade 1 - 5)",
+      "category": "Primary (Grades 1-5)",
+      "description": "Early numeracy and mental math",
+      "createdAt": "2026-10-03T18:28:23.338Z"
+    },
+    {
+      "id": "subj-prim-eng",
+      "code": "ENG-PRI",
+      "name": "Primary English (Grade 1 - 5)",
+      "category": "Primary (Grades 1-5)",
+      "description": "Phonics, vocabulary and reading",
+      "createdAt": "2026-10-03T18:28:23.338Z"
+    },
+    {
+      "id": "subj-prim-sin",
+      "code": "SIN-PRI",
+      "name": "Primary Sinhala (Grade 1 - 5)",
+      "category": "Primary (Grades 1-5)",
+      "description": "Language and creative writing",
+      "createdAt": "2026-10-03T18:28:23.338Z"
+    },
+    {
+      "id": "subj-prim-env",
+      "code": "ENV-PRI",
+      "name": "Environmental Studies / පරිසරය (Grade 1 - 5)",
+      "category": "Primary (Grades 1-5)",
+      "description": "Science & environment discovery",
+      "createdAt": "2026-10-03T18:28:23.338Z"
     }
   ],
   "classes": [
@@ -1137,10 +1346,39 @@
       "studentId": "stu-001",
       "enrolledAt": "2026-10-03T11:44:45.013Z",
       "status": "ACTIVE"
+    },
+    {
+      "id": "onkjcu3-musqasb1",
+      "classId": "cls-001",
+      "studentId": "rqe3r8i-musqasb1",
+      "enrolledAt": "2026-10-03T18:31:46.381Z",
+      "status": "ACTIVE"
     }
   ],
-  "attendanceSessions": [],
-  "attendances": [],
+  "attendanceSessions": [
+    {
+      "id": "sess-cls-001-2026-10-03",
+      "classId": "cls-001",
+      "date": "2026-10-03",
+      "title": "Grade 11 Combined Mathematics (Masterclass) (2026-10-03)",
+      "startedAt": "2026-10-03T18:34:50.957Z",
+      "takenBy": "Sunil Jayawardena (Campus Admin)",
+      "createdAt": "2026-10-03T18:34:50.957Z"
+    }
+  ],
+  "attendances": [
+    {
+      "id": "18qs57b-musqeujd",
+      "sessionId": "sess-cls-001-2026-10-03",
+      "studentId": "rqe3r8i-musqasb1",
+      "classId": "cls-001",
+      "date": "2026-10-03",
+      "status": "PRESENT",
+      "scannedAt": "2026-10-03T18:34:55.897Z",
+      "method": "MANUAL",
+      "recordedBy": "Sunil Jayawardena (Campus Admin)"
+    }
+  ],
   "feeRecords": [
     {
       "id": "fee-001",
@@ -1157,127 +1395,595 @@
       "dueDate": "2026-10-15",
       "createdAt": "2026-10-03T11:44:45.013Z",
       "updatedAt": "2026-10-03T11:44:45.013Z"
+    },
+    {
+      "id": "upejrvy-musq4c2a",
+      "studentId": "2klfr2x-musq4c2a",
+      "classId": "REGISTRATION_FEE",
+      "month": "REGISTRATION",
+      "baseFee": 1500,
+      "discount": 0,
+      "previousBalance": 0,
+      "totalDue": 1500,
+      "paidAmount": 1500,
+      "remainingBalance": 0,
+      "status": "PAID",
+      "dueDate": "2026-10-03",
+      "createdAt": "2026-10-03T18:26:45.394Z",
+      "updatedAt": "2026-10-03T18:26:45.394Z"
+    },
+    {
+      "id": "9y71njv-musqasb1",
+      "studentId": "rqe3r8i-musqasb1",
+      "classId": "REGISTRATION_FEE",
+      "month": "REGISTRATION",
+      "baseFee": 1500,
+      "discount": 0,
+      "previousBalance": 0,
+      "totalDue": 1500,
+      "paidAmount": 1500,
+      "remainingBalance": 0,
+      "status": "PAID",
+      "dueDate": "2026-10-03",
+      "createdAt": "2026-10-03T18:31:46.381Z",
+      "updatedAt": "2026-10-03T18:31:46.381Z"
+    },
+    {
+      "id": "2xd28hq-musqasb1",
+      "studentId": "rqe3r8i-musqasb1",
+      "classId": "cls-001",
+      "month": "2026-10",
+      "baseFee": 2500,
+      "discount": 0,
+      "previousBalance": 0,
+      "totalDue": 2500,
+      "paidAmount": 2500,
+      "remainingBalance": 0,
+      "status": "PAID",
+      "dueDate": "2026-10-10",
+      "createdAt": "2026-10-03T18:31:46.381Z",
+      "updatedAt": "2026-10-03T18:32:56.473Z"
     }
   ],
-  "payments": [],
-  "paymentItems": [],
-  "income": [],
+  "payments": [
+    {
+      "id": "37mjv2u-musq4c2a",
+      "receiptNumber": "REC-2026-0001",
+      "studentId": "2klfr2x-musq4c2a",
+      "totalAmount": 1500,
+      "paymentMethod": "CASH",
+      "paymentDate": "2026-10-03T18:26:45.394Z",
+      "cashier": "Sunil Jayawardena (Campus Admin)",
+      "notes": "Counter Admission Cash",
+      "createdAt": "2026-10-03T18:26:45.394Z"
+    },
+    {
+      "id": "utwut6o-musqasb1",
+      "receiptNumber": "REC-2026-0002",
+      "studentId": "rqe3r8i-musqasb1",
+      "totalAmount": 1500,
+      "paymentMethod": "CASH",
+      "paymentDate": "2026-10-03T18:31:46.381Z",
+      "cashier": "Sunil Jayawardena (Campus Admin)",
+      "notes": "Student Admission & Registration Fee",
+      "createdAt": "2026-10-03T18:31:46.381Z"
+    },
+    {
+      "id": "z960te6-musqcae1",
+      "receiptNumber": "REC-2026-0003",
+      "studentId": "rqe3r8i-musqasb1",
+      "totalAmount": 2500,
+      "paymentMethod": "Cash",
+      "paymentDate": "2026-10-03T18:32:56.473Z",
+      "cashier": "Sunil Jayawardena (Campus Admin)",
+      "createdAt": "2026-10-03T18:32:56.473Z"
+    }
+  ],
+  "paymentItems": [
+    {
+      "id": "w876q95-musq4c2a",
+      "paymentId": "37mjv2u-musq4c2a",
+      "feeRecordId": "upejrvy-musq4c2a",
+      "amountPaid": 1500,
+      "balanceLeft": 0,
+      "description": "Student Admission & Registration Fee"
+    },
+    {
+      "id": "toff0hl-musqasb1",
+      "paymentId": "utwut6o-musqasb1",
+      "feeRecordId": "9y71njv-musqasb1",
+      "amountPaid": 1500,
+      "balanceLeft": 0,
+      "description": "Student Admission & Registration Fee"
+    },
+    {
+      "id": "wrgnfzy-musqcae1",
+      "paymentId": "z960te6-musqcae1",
+      "feeRecordId": "2xd28hq-musqasb1",
+      "amountPaid": 2500,
+      "balanceLeft": 0,
+      "description": "Grade 11 Combined Mathematics (Masterclass) (2026-10)"
+    }
+  ],
+  "income": [
+    {
+      "id": "cdswiuj-musq4c2a",
+      "category": "Registration Fees",
+      "amount": 1500,
+      "source": "Nuwan Bandara (STU-2026-0002)",
+      "paymentId": "37mjv2u-musq4c2a",
+      "receiptNo": "REC-2026-0001",
+      "date": "2026-10-03",
+      "description": "Student Admission & Registration Fee Receipt REC-2026-0001",
+      "receivedBy": "Sunil Jayawardena (Campus Admin)",
+      "createdAt": "2026-10-03T18:26:45.394Z"
+    },
+    {
+      "id": "n8wfykg-musqasb1",
+      "category": "Registration Fees",
+      "amount": 1500,
+      "source": "Akidu (STU-2026-0003)",
+      "paymentId": "utwut6o-musqasb1",
+      "receiptNo": "REC-2026-0002",
+      "date": "2026-10-03",
+      "description": "Student Admission & Registration Fee Receipt REC-2026-0002",
+      "receivedBy": "Sunil Jayawardena (Campus Admin)",
+      "createdAt": "2026-10-03T18:31:46.381Z"
+    },
+    {
+      "id": "8td8c90-musqcae1",
+      "category": "Student Fees",
+      "amount": 2500,
+      "source": "Akidu (STU-2026-0003)",
+      "paymentId": "z960te6-musqcae1",
+      "receiptNo": "REC-2026-0003",
+      "date": "2026-10-03",
+      "description": "Payment for receipt REC-2026-0003",
+      "receivedBy": "Sunil Jayawardena (Campus Admin)",
+      "createdAt": "2026-10-03T18:32:56.473Z"
+    }
+  ],
   "expenses": [],
   "teacherPayments": [],
   "exams": [],
   "examResults": [],
   "learningMaterials": [],
-  "smsLogs": [],
-  "whatsappLogs": [],
+  "smsLogs": [
+    {
+      "id": "c9smyuq-musq4dua",
+      "studentId": "2klfr2x-musq4c2a",
+      "recipient": "0779876543",
+      "message": "Welcome to Apex Higher Education Institute! Track Nuwan Bandara's live attendance, RFID check-in times & fee receipts on the Parent Portal PWA: http://localhost:3000/login?phone=0779876543&autoLogin=1 (Save to your phone home screen for 1-tap instant access)",
+      "type": "PARENT_PORTAL_WELCOME",
+      "status": "DELIVERED",
+      "sentAt": "2026-10-03T18:26:47.698Z"
+    }
+  ],
+  "whatsappLogs": [
+    {
+      "id": "5yakzuf-musqbs3h",
+      "studentId": "rqe3r8i-musqasb1",
+      "recipient": "777183981",
+      "templateName": "fee_reminder_template",
+      "message": "Reminder: Fee of Rs. 2,500 for Akidu (Grade 11 Combined Mathematics (Masterclass) - 2026-10) is pending. Please make the payment at the front desk. - Apex Institute",
+      "status": "DELIVERED",
+      "sentAt": "2026-10-03T18:32:32.765Z"
+    }
+  ],
   "notifications": [],
   "announcements": [],
   "documents": [],
-  "auditLogs": [],
+  "auditLogs": [
+    {
+      "id": "kdfts8t-mutc253n",
+      "userId": "bvxua2r-mutc24sz",
+      "userName": "Nilanga",
+      "userRole": "PARENT",
+      "action": "PARENT_LOGIN",
+      "details": "Parent/Guardian Nilanga logged in via 1-time phone auth (0777183981) for 1 student(s)",
+      "ipAddress": "127.0.0.1",
+      "userAgent": "Unknown Agent",
+      "createdAt": "2026-10-04T04:40:54.611Z"
+    },
+    {
+      "id": "qpp1wwz-mutbalkr",
+      "userId": "usr-accountant",
+      "userName": "Nalaka Wickramaratne (Chief Accountant)",
+      "userRole": "ACCOUNTANT",
+      "action": "LOGIN",
+      "details": "User accountant logged in successfully with role ACCOUNTANT",
+      "ipAddress": "127.0.0.1",
+      "userAgent": "Unknown Agent",
+      "createdAt": "2026-10-04T04:19:29.596Z"
+    },
+    {
+      "id": "buqecb6-musqeujf",
+      "userId": "usr-admin",
+      "userName": "Sunil Jayawardena (Campus Admin)",
+      "userRole": "ADMIN",
+      "action": "ATTENDANCE_BATCH",
+      "details": "Updated attendance for 1 students on 2026-10-03",
+      "ipAddress": "127.0.0.1",
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36",
+      "createdAt": "2026-10-03T18:34:55.899Z"
+    },
+    {
+      "id": "ieuqz8l-musqcae5",
+      "userId": "usr-admin",
+      "userName": "Sunil Jayawardena (Campus Admin)",
+      "userRole": "ADMIN",
+      "action": "PAYMENT_RECORD",
+      "details": "Processed payment of Rs. 2,500 for Akidu (Receipt: REC-2026-0003). Sent SMS/WhatsApp receipt to 777183981",
+      "ipAddress": "127.0.0.1",
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36",
+      "createdAt": "2026-10-03T18:32:56.477Z"
+    },
+    {
+      "id": "vq18zfc-musqbs3k",
+      "userId": "usr-admin",
+      "userName": "Sunil Jayawardena (Campus Admin)",
+      "userRole": "ADMIN",
+      "action": "FEE_REMINDER_SENT",
+      "details": "Sent WHATSAPP reminder to 777183981 for Akidu",
+      "ipAddress": "127.0.0.1",
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36",
+      "createdAt": "2026-10-03T18:32:32.768Z"
+    },
+    {
+      "id": "z24zk0i-musqasb3",
+      "userId": "usr-admin",
+      "userName": "Sunil Jayawardena (Campus Admin)",
+      "userRole": "ADMIN",
+      "action": "STUDENT_CREATE",
+      "details": "Registered student Akidu (STU-2026-0003) in Grade Grade 12. Sent Parent Portal SMS link to 777183981",
+      "ipAddress": "127.0.0.1",
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36",
+      "createdAt": "2026-10-03T18:31:46.383Z"
+    },
+    {
+      "id": "5j8rr60-musq9aj8",
+      "userId": "usr-admin",
+      "userName": "Sunil Jayawardena (Campus Admin)",
+      "userRole": "ADMIN",
+      "action": "SETTINGS_UPDATE",
+      "details": "Updated 27 system settings",
+      "ipAddress": "127.0.0.1",
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36",
+      "createdAt": "2026-10-03T18:30:36.692Z"
+    },
+    {
+      "id": "sbe12io-musq96fw",
+      "userId": "usr-admin",
+      "userName": "Sunil Jayawardena (Campus Admin)",
+      "userRole": "ADMIN",
+      "action": "SETTINGS_UPDATE",
+      "details": "Updated 1 system settings",
+      "ipAddress": "127.0.0.1",
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36",
+      "createdAt": "2026-10-03T18:30:31.388Z"
+    },
+    {
+      "id": "hj1kz79-musq94t0",
+      "userId": "usr-admin",
+      "userName": "Sunil Jayawardena (Campus Admin)",
+      "userRole": "ADMIN",
+      "action": "SETTINGS_UPDATE",
+      "details": "Updated 1 system settings",
+      "ipAddress": "127.0.0.1",
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36",
+      "createdAt": "2026-10-03T18:30:29.268Z"
+    },
+    {
+      "id": "akiun3q-musq8uak",
+      "userId": "usr-admin",
+      "userName": "Sunil Jayawardena (Campus Admin)",
+      "userRole": "ADMIN",
+      "action": "SETTINGS_UPDATE",
+      "details": "Updated 27 system settings",
+      "ipAddress": "127.0.0.1",
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36",
+      "createdAt": "2026-10-03T18:30:15.644Z"
+    },
+    {
+      "id": "whxcw3k-musq8tqe",
+      "userId": "usr-admin",
+      "userName": "Sunil Jayawardena (Campus Admin)",
+      "userRole": "ADMIN",
+      "action": "SETTINGS_UPDATE",
+      "details": "Updated 27 system settings",
+      "ipAddress": "127.0.0.1",
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36",
+      "createdAt": "2026-10-03T18:30:14.918Z"
+    },
+    {
+      "id": "phge15g-musq8sk4",
+      "userId": "usr-admin",
+      "userName": "Sunil Jayawardena (Campus Admin)",
+      "userRole": "ADMIN",
+      "action": "SETTINGS_UPDATE",
+      "details": "Updated 27 system settings",
+      "ipAddress": "127.0.0.1",
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36",
+      "createdAt": "2026-10-03T18:30:13.396Z"
+    },
+    {
+      "id": "or5sdwo-musq8rs4",
+      "userId": "usr-admin",
+      "userName": "Sunil Jayawardena (Campus Admin)",
+      "userRole": "ADMIN",
+      "action": "SETTINGS_UPDATE",
+      "details": "Updated 27 system settings",
+      "ipAddress": "127.0.0.1",
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36",
+      "createdAt": "2026-10-03T18:30:12.389Z"
+    },
+    {
+      "id": "sool685-musq8r3p",
+      "userId": "usr-admin",
+      "userName": "Sunil Jayawardena (Campus Admin)",
+      "userRole": "ADMIN",
+      "action": "SETTINGS_UPDATE",
+      "details": "Updated 27 system settings",
+      "ipAddress": "127.0.0.1",
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36",
+      "createdAt": "2026-10-03T18:30:11.509Z"
+    },
+    {
+      "id": "ob6k6pz-musq8o6r",
+      "userId": "usr-admin",
+      "userName": "Sunil Jayawardena (Campus Admin)",
+      "userRole": "ADMIN",
+      "action": "SETTINGS_UPDATE",
+      "details": "Updated 1 system settings",
+      "ipAddress": "127.0.0.1",
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36",
+      "createdAt": "2026-10-03T18:30:07.731Z"
+    },
+    {
+      "id": "rl6gsyb-musq8ncl",
+      "userId": "usr-admin",
+      "userName": "Sunil Jayawardena (Campus Admin)",
+      "userRole": "ADMIN",
+      "action": "SETTINGS_UPDATE",
+      "details": "Updated 1 system settings",
+      "ipAddress": "127.0.0.1",
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36",
+      "createdAt": "2026-10-03T18:30:06.645Z"
+    },
+    {
+      "id": "3oqtwt2-musq5utf",
+      "userId": "usr-admin",
+      "userName": "Sunil Jayawardena (Campus Admin)",
+      "userRole": "ADMIN",
+      "action": "LOGIN",
+      "details": "User admin logged in successfully with role ADMIN",
+      "ipAddress": "127.0.0.1",
+      "userAgent": "Unknown Agent",
+      "createdAt": "2026-10-03T18:27:56.355Z"
+    },
+    {
+      "id": "2opvlk0-musq4duc",
+      "userId": "usr-admin",
+      "userName": "Sunil Jayawardena (Campus Admin)",
+      "userRole": "ADMIN",
+      "action": "STUDENT_CREATE",
+      "details": "Registered student Nuwan Bandara (STU-2026-0002) in Grade Grade 12. Sent Parent Portal SMS link to 0779876543",
+      "ipAddress": "127.0.0.1",
+      "userAgent": "node",
+      "createdAt": "2026-10-03T18:26:47.701Z"
+    },
+    {
+      "id": "65lzt7m-musq4c1w",
+      "userId": "usr-admin",
+      "userName": "Sunil Jayawardena (Campus Admin)",
+      "userRole": "ADMIN",
+      "action": "LOGIN",
+      "details": "User admin logged in successfully with role ADMIN",
+      "ipAddress": "127.0.0.1",
+      "userAgent": "Unknown Agent",
+      "createdAt": "2026-10-03T18:26:45.380Z"
+    },
+    {
+      "id": "9eyk8hj-musq403r",
+      "userId": "usr-admin",
+      "userName": "Sunil Jayawardena (Campus Admin)",
+      "userRole": "ADMIN",
+      "action": "LOGIN",
+      "details": "User admin logged in successfully with role ADMIN",
+      "ipAddress": "127.0.0.1",
+      "userAgent": "Unknown Agent",
+      "createdAt": "2026-10-03T18:26:29.895Z"
+    }
+  ],
   "settings": [
     {
       "id": "st-1",
       "key": "INSTITUTE_NAME",
       "value": "Apex Higher Education Institute",
       "category": "BRANDING",
-      "updatedAt": "2026-09-26T10:40:08.884Z"
+      "updatedAt": "2026-10-03T18:30:36.690Z"
     },
     {
       "id": "st-2",
       "key": "INSTITUTE_TAGLINE",
       "value": "Excellence in Tuition & Academic Mentorship",
       "category": "BRANDING",
-      "updatedAt": "2026-09-26T10:40:08.884Z"
+      "updatedAt": "2026-10-03T18:30:36.690Z"
     },
     {
       "id": "st-3",
       "key": "ADDRESS",
       "value": "No. 45, Galle Road, Bambalapitiya, Colombo 03, Sri Lanka",
       "category": "GENERAL",
-      "updatedAt": "2026-09-26T10:40:08.884Z"
+      "updatedAt": "2026-10-03T18:30:36.690Z"
     },
     {
       "id": "st-4",
       "key": "PHONE",
       "value": "+94 11 234 5678 / +94 77 987 6543",
       "category": "GENERAL",
-      "updatedAt": "2026-09-26T10:40:08.884Z"
+      "updatedAt": "2026-10-03T18:30:36.690Z"
     },
     {
       "id": "st-5",
       "key": "EMAIL",
       "value": "info@apexeducation.lk",
       "category": "GENERAL",
-      "updatedAt": "2026-09-26T10:40:08.884Z"
+      "updatedAt": "2026-10-03T18:30:36.690Z"
     },
     {
       "id": "st-6",
       "key": "CURRENCY_CODE",
       "value": "LKR",
       "category": "FINANCIAL",
-      "updatedAt": "2026-09-26T10:40:08.884Z"
+      "updatedAt": "2026-10-03T18:30:36.690Z"
     },
     {
       "id": "st-7",
       "key": "CURRENCY_SYMBOL",
       "value": "Rs. ",
       "category": "FINANCIAL",
-      "updatedAt": "2026-09-26T10:40:08.884Z"
+      "updatedAt": "2026-10-03T18:30:36.690Z"
     },
     {
       "id": "st-8",
       "key": "ACADEMIC_YEAR",
       "value": "2026/2027",
       "category": "GENERAL",
-      "updatedAt": "2026-09-26T10:40:08.884Z"
+      "updatedAt": "2026-10-03T18:30:36.690Z"
     },
     {
       "id": "st-9",
       "key": "SMS_PROVIDER",
       "value": "text.lk",
       "category": "SMS",
-      "updatedAt": "2026-09-26T10:40:08.884Z"
+      "updatedAt": "2026-10-03T18:30:36.690Z"
     },
     {
       "id": "st-10",
       "key": "SMS_SENDER_ID",
       "value": "APEX-EDU",
       "category": "SMS",
-      "updatedAt": "2026-09-26T10:40:08.884Z"
+      "updatedAt": "2026-10-03T18:30:36.690Z"
     },
     {
       "id": "st-11",
       "key": "WHATSAPP_ENABLED",
       "value": "true",
       "category": "WHATSAPP",
-      "updatedAt": "2026-09-26T10:40:08.884Z"
+      "updatedAt": "2026-10-03T18:30:36.690Z"
     },
     {
       "id": "st-12",
       "key": "WHATSAPP_PHONE_NUMBER_ID",
       "value": "109283746592019",
       "category": "WHATSAPP",
-      "updatedAt": "2026-09-26T10:40:08.884Z"
+      "updatedAt": "2026-10-03T18:30:36.690Z"
     },
     {
       "id": "jqxvz3l-mugsrsp3",
       "key": "TEXTLK_SENDER_ID",
       "value": "TextLKDemo",
       "category": "GENERAL",
-      "updatedAt": "2026-09-26T10:40:08.884Z"
+      "updatedAt": "2026-10-03T18:30:36.690Z"
     },
     {
       "id": "3ez0vid-mugsrsp3",
       "key": "TEXTLK_API_TOKEN",
       "value": "7660|8rDCaz5U3bmMaOk51E1AQvheCnnDvNUyoFwWksTDb2003b13 ",
       "category": "GENERAL",
-      "updatedAt": "2026-09-26T10:40:08.884Z"
+      "updatedAt": "2026-10-03T18:30:36.690Z"
     },
     {
       "id": "swj5n8h-mugsrsp3",
       "key": "TEXTLK_ENDPOINT",
       "value": "https://app.text.lk/api/v3/sms/send",
       "category": "GENERAL",
-      "updatedAt": "2026-09-26T10:40:08.884Z"
+      "updatedAt": "2026-10-03T18:30:36.690Z"
+    },
+    {
+      "id": "w2hpxtf-musq8ncj",
+      "key": "SMS_PAYMENTS_ENABLED",
+      "value": "false",
+      "category": "GENERAL",
+      "updatedAt": "2026-10-03T18:30:36.690Z"
+    },
+    {
+      "id": "vx1fqii-musq8o6o",
+      "key": "SMS_WELCOME_ENABLED",
+      "value": "false",
+      "category": "GENERAL",
+      "updatedAt": "2026-10-03T18:30:36.690Z"
+    },
+    {
+      "id": "jzhk1n3-musq8r3m",
+      "key": "SMS_ENABLED",
+      "value": "true",
+      "category": "GENERAL",
+      "updatedAt": "2026-10-03T18:30:36.690Z"
+    },
+    {
+      "id": "ojzqv7z-musq8r3m",
+      "key": "SMS_ATTENDANCE_ENABLED",
+      "value": "false",
+      "category": "GENERAL",
+      "updatedAt": "2026-10-03T18:30:36.690Z"
+    },
+    {
+      "id": "rds3x50-musq8r3m",
+      "key": "WHATSAPP_ATTENDANCE_ENABLED",
+      "value": "true",
+      "category": "GENERAL",
+      "updatedAt": "2026-10-03T18:30:36.690Z"
+    },
+    {
+      "id": "x59oc9m-musq8r3m",
+      "key": "WHATSAPP_TEMPLATE_ATTENDANCE",
+      "value": "*{institute_name} ATTENDANCE CONFIRMATION*\n\nStudent: *{student_name}* ({student_id})\nClass: *{class_name}*\nStatus: Marked Present ✅\nCheck-in Time: {time}\nDate: {date}\n{fee_status}\n\nThank you for choosing {institute_name}!",
+      "category": "GENERAL",
+      "updatedAt": "2026-10-03T18:30:36.690Z"
+    },
+    {
+      "id": "1mquwbk-musq8r3m",
+      "key": "SMS_TEMPLATE_WELCOME",
+      "value": "Welcome to {institute_name}! Track {student_name}'s live attendance, RFID check-in times & fee receipts on the Parent Portal PWA: {portal_url} (Save to your phone home screen for 1-tap instant access)",
+      "category": "GENERAL",
+      "updatedAt": "2026-10-03T18:30:36.690Z"
+    },
+    {
+      "id": "x2bsy0c-musq8r3m",
+      "key": "SMS_TEMPLATE_PAYMENT",
+      "value": "Dear Parent, received Rs. {amount} for {student_name}. Receipt #{receipt_no}. Outstanding balance: Rs. {balance}. - {institute_name}",
+      "category": "GENERAL",
+      "updatedAt": "2026-10-03T18:30:36.690Z"
+    },
+    {
+      "id": "y3uu7gf-musq8r3m",
+      "key": "SMS_TEMPLATE_ATTENDANCE",
+      "value": "Dear Parent, your child {student_name} has been marked {status} for {class_name} today at {time}. - {institute_name}",
+      "category": "GENERAL",
+      "updatedAt": "2026-10-03T18:30:36.690Z"
+    },
+    {
+      "id": "isoafpq-musq8r3m",
+      "key": "SMS_TEMPLATE_REMINDER",
+      "value": "Reminder: Tuition fee of Rs. {balance} for {student_name} ({class_name} - {month}) remains pending. Kindly settle at the reception counter. - {institute_name}",
+      "category": "GENERAL",
+      "updatedAt": "2026-10-03T18:30:36.690Z"
+    },
+    {
+      "id": "622wuht-musq8r3m",
+      "key": "SMS_TEMPLATE_CANCEL",
+      "value": "Important Notice: The {class_name} scheduled for {date} at {time} has been postponed. Next session details will follow. - {institute_name}",
+      "category": "GENERAL",
+      "updatedAt": "2026-10-03T18:30:36.690Z"
+    },
+    {
+      "id": "q78qkx0-musq8r3m",
+      "key": "SMS_TEMPLATE_ANNOUNCE",
+      "value": "Notice from {institute_name}: {message}",
+      "category": "GENERAL",
+      "updatedAt": "2026-10-03T18:30:36.690Z"
     }
   ]
 }

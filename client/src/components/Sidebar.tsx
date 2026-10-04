@@ -17,10 +17,11 @@ import {
   ChevronLeft,
   ChevronRight,
   LogOut,
-  Sparkles,
   Radio,
   Coins,
-  UserCog
+  UserCog,
+  Building2,
+  CheckCircle2
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useSettings } from '../context/SettingsContext';
@@ -41,8 +42,7 @@ interface NavItemConfig {
   icon: any;
   roles: UserRole[];
   category: 'MAIN' | 'ACADEMICS' | 'FINANCE' | 'COMMUNICATIONS' | 'SYSTEM' | 'PORTAL';
-  gradient: string;
-  glow: string;
+  iconColor: string;
   badge?: string;
   badgeColor?: string;
 }
@@ -58,48 +58,44 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const { user, logout, hasRole } = useAuth();
   const { instituteName, instituteTagline } = useSettings();
 
-  // Navigation Items with Colorful Themes & Categories
+  // Navigation Items with Professional Institutional Styling
   const navItems: NavItemConfig[] = [
     // MAIN
     { 
       id: 'dashboard', 
-      label: 'Dashboard', 
+      label: 'Executive Dashboard', 
       icon: LayoutDashboard, 
       roles: ['SUPER_ADMIN', 'ADMIN', 'ACCOUNTANT', 'TEACHER', 'RECEPTIONIST'], 
       category: 'MAIN',
-      gradient: 'from-blue-500 to-indigo-600',
-      glow: 'shadow-blue-500/25'
+      iconColor: 'text-brand-400'
     },
 
     // ACADEMICS
     { 
       id: 'students', 
-      label: 'Students Directory', 
+      label: 'Student Directory', 
       icon: Users, 
       roles: ['SUPER_ADMIN', 'ADMIN', 'RECEPTIONIST', 'TEACHER'], 
       category: 'ACADEMICS',
-      gradient: 'from-violet-500 to-purple-600',
-      glow: 'shadow-purple-500/25'
+      iconColor: 'text-indigo-400'
     },
     { 
       id: 'classes', 
-      label: 'Tuition Classes', 
+      label: 'Tuition Batches & Classes', 
       icon: BookOpen, 
       roles: ['SUPER_ADMIN', 'ADMIN', 'TEACHER', 'RECEPTIONIST'], 
       category: 'ACADEMICS',
-      gradient: 'from-emerald-500 to-teal-600',
-      glow: 'shadow-emerald-500/25'
+      iconColor: 'text-blue-400'
     },
     { 
       id: 'attendance', 
-      label: 'Attendance (QR Scan)', 
+      label: 'Gate Attendance (QR/RFID)', 
       icon: QrCode, 
       roles: ['SUPER_ADMIN', 'ADMIN', 'TEACHER', 'RECEPTIONIST'], 
       category: 'ACADEMICS',
-      gradient: 'from-amber-500 to-orange-500',
-      glow: 'shadow-amber-500/25',
+      iconColor: 'text-emerald-400',
       badge: 'LIVE',
-      badgeColor: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
+      badgeColor: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
     },
     { 
       id: 'attendance-roster', 
@@ -107,10 +103,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
       icon: Users, 
       roles: ['SUPER_ADMIN', 'ADMIN', 'TEACHER', 'RECEPTIONIST'], 
       category: 'ACADEMICS',
-      gradient: 'from-emerald-500 to-teal-600',
-      glow: 'shadow-emerald-500/25',
+      iconColor: 'text-teal-400',
       badge: 'ROSTER',
-      badgeColor: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
+      badgeColor: 'bg-teal-500/20 text-teal-300 border-teal-500/40'
     },
     { 
       id: 'teachers', 
@@ -118,17 +113,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
       icon: GraduationCap, 
       roles: ['SUPER_ADMIN', 'ADMIN', 'TEACHER'], 
       category: 'ACADEMICS',
-      gradient: 'from-indigo-500 to-blue-600',
-      glow: 'shadow-indigo-500/25'
+      iconColor: 'text-sky-400'
     },
     { 
       id: 'assessments', 
-      label: 'Assessments & Tests', 
+      label: 'Assessments & Exams', 
       icon: FileText, 
       roles: ['SUPER_ADMIN', 'ADMIN', 'TEACHER'], 
       category: 'ACADEMICS',
-      gradient: 'from-orange-500 to-amber-600',
-      glow: 'shadow-orange-500/25'
+      iconColor: 'text-amber-400'
     },
     { 
       id: 'materials', 
@@ -136,50 +129,45 @@ export const Sidebar: React.FC<SidebarProps> = ({
       icon: FolderDown, 
       roles: ['SUPER_ADMIN', 'ADMIN', 'TEACHER', 'STUDENT', 'PARENT'], 
       category: 'ACADEMICS',
-      gradient: 'from-pink-500 to-rose-600',
-      glow: 'shadow-pink-500/25'
+      iconColor: 'text-slate-300'
     },
 
     // FINANCE
     { 
       id: 'daily-earnings', 
-      label: 'Daily Collection & Earnings', 
+      label: 'Daily Cash Desk Intake', 
       icon: Coins, 
       roles: ['SUPER_ADMIN', 'ADMIN', 'ACCOUNTANT', 'RECEPTIONIST'], 
       category: 'FINANCE',
-      gradient: 'from-amber-500 to-emerald-600',
-      glow: 'shadow-amber-500/25',
+      iconColor: 'text-emerald-400',
       badge: 'TODAY',
-      badgeColor: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
+      badgeColor: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
     },
     { 
       id: 'payments', 
-      label: 'Fee Cashier & Receipts', 
+      label: 'Counter Payments & POS', 
       icon: CreditCard, 
       roles: ['SUPER_ADMIN', 'ADMIN', 'ACCOUNTANT', 'RECEPTIONIST'], 
       category: 'FINANCE',
-      gradient: 'from-teal-500 to-emerald-600',
-      glow: 'shadow-teal-500/25'
+      iconColor: 'text-emerald-400'
     },
     { 
       id: 'pending-fees', 
-      label: 'Pending Defaulters', 
+      label: 'Outstanding Tuition Dues', 
       icon: AlertCircle, 
       roles: ['SUPER_ADMIN', 'ADMIN', 'ACCOUNTANT'], 
       category: 'FINANCE',
-      gradient: 'from-rose-500 to-red-600',
-      glow: 'shadow-rose-500/25',
+      iconColor: 'text-amber-400',
       badge: 'DUE',
-      badgeColor: 'bg-rose-500/20 text-rose-400 border-rose-500/30'
+      badgeColor: 'bg-amber-500/20 text-amber-300 border-amber-500/40'
     },
     { 
       id: 'accounting', 
-      label: 'Accounting & P&L', 
+      label: 'Accounting & P&L Statement', 
       icon: Calculator, 
       roles: ['SUPER_ADMIN', 'ADMIN', 'ACCOUNTANT'], 
       category: 'FINANCE',
-      gradient: 'from-cyan-500 to-blue-600',
-      glow: 'shadow-cyan-500/25'
+      iconColor: 'text-teal-400'
     },
 
     // COMMUNICATIONS
@@ -189,30 +177,27 @@ export const Sidebar: React.FC<SidebarProps> = ({
       icon: MessageSquare, 
       roles: ['SUPER_ADMIN', 'ADMIN', 'RECEPTIONIST'], 
       category: 'COMMUNICATIONS',
-      gradient: 'from-fuchsia-500 to-purple-600',
-      glow: 'shadow-fuchsia-500/25',
-      badge: 'text.lk',
-      badgeColor: 'bg-purple-500/20 text-purple-300 border-purple-500/30'
+      iconColor: 'text-purple-400',
+      badge: 'GATEWAY',
+      badgeColor: 'bg-purple-500/20 text-purple-300 border-purple-500/40'
     },
 
     // SYSTEM
     { 
       id: 'reports', 
-      label: 'Report Center', 
+      label: 'Operations & Audit Reports', 
       icon: BarChart3, 
       roles: ['SUPER_ADMIN', 'ADMIN', 'ACCOUNTANT'], 
       category: 'SYSTEM',
-      gradient: 'from-sky-500 to-indigo-600',
-      glow: 'shadow-sky-500/25'
+      iconColor: 'text-blue-400'
     },
     { 
       id: 'audit', 
-      label: 'Audit Trail', 
+      label: 'Security Audit Log', 
       icon: ShieldCheck, 
       roles: ['SUPER_ADMIN', 'ADMIN'], 
       category: 'SYSTEM',
-      gradient: 'from-slate-400 to-zinc-600',
-      glow: 'shadow-slate-500/25'
+      iconColor: 'text-slate-400'
     },
     { 
       id: 'users', 
@@ -220,33 +205,28 @@ export const Sidebar: React.FC<SidebarProps> = ({
       icon: UserCog, 
       roles: ['SUPER_ADMIN', 'ADMIN'], 
       category: 'SYSTEM',
-      gradient: 'from-blue-600 to-indigo-700',
-      glow: 'shadow-blue-500/25',
-      badge: 'Admin',
-      badgeColor: 'bg-indigo-500/20 text-indigo-300 border-indigo-500/30'
+      iconColor: 'text-indigo-400'
     },
     { 
       id: 'settings', 
-      label: 'System Settings', 
+      label: 'Institute & System Settings', 
       icon: Settings, 
       roles: ['SUPER_ADMIN', 'ADMIN'], 
       category: 'SYSTEM',
-      gradient: 'from-violet-600 to-indigo-800',
-      glow: 'shadow-purple-500/25'
+      iconColor: 'text-slate-300'
     }
   ];
 
-  // Dedicated Student Portal Nav
+  // Dedicated Student Portal Navigation
   if (user?.role === 'STUDENT') {
     navItems.splice(0, navItems.length,
       { 
         id: 'student-portal', 
-        label: 'Student Pass & Portal', 
+        label: 'Student Portal & QR Pass', 
         icon: LayoutDashboard, 
         roles: ['STUDENT'], 
         category: 'PORTAL',
-        gradient: 'from-sky-500 to-blue-600',
-        glow: 'shadow-sky-500/25'
+        iconColor: 'text-brand-400'
       },
       { 
         id: 'materials', 
@@ -254,13 +234,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
         icon: FolderDown, 
         roles: ['STUDENT'], 
         category: 'PORTAL',
-        gradient: 'from-pink-500 to-rose-600',
-        glow: 'shadow-pink-500/25'
+        iconColor: 'text-slate-300'
       }
     );
   }
 
-  // Dedicated Parent Portal Nav
+  // Dedicated Parent Portal Navigation
   if (user?.role === 'PARENT') {
     navItems.splice(0, navItems.length,
       { 
@@ -269,8 +248,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         icon: LayoutDashboard, 
         roles: ['PARENT'], 
         category: 'PORTAL',
-        gradient: 'from-teal-500 to-emerald-600',
-        glow: 'shadow-teal-500/25'
+        iconColor: 'text-emerald-400'
       },
       { 
         id: 'materials', 
@@ -278,8 +256,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         icon: FolderDown, 
         roles: ['PARENT'], 
         category: 'PORTAL',
-        gradient: 'from-pink-500 to-rose-600',
-        glow: 'shadow-pink-500/25'
+        iconColor: 'text-slate-300'
       }
     );
   }
@@ -288,12 +265,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
   // Category labels and order
   const categories: { key: NavItemConfig['category']; title: string }[] = [
-    { key: 'MAIN', title: 'OVERVIEW' },
+    { key: 'MAIN', title: 'OPERATIONS' },
     { key: 'ACADEMICS', title: 'ACADEMIC MANAGEMENT' },
-    { key: 'FINANCE', title: 'FINANCE & CASHIER' },
-    { key: 'COMMUNICATIONS', title: 'MESSAGING & ALERTS' },
-    { key: 'SYSTEM', title: 'MANAGEMENT & SETUP' },
-    { key: 'PORTAL', title: 'PORTAL DASHBOARD' }
+    { key: 'FINANCE', title: 'FINANCIAL COUNTER & POS' },
+    { key: 'COMMUNICATIONS', title: 'PARENT NOTIFICATIONS' },
+    { key: 'SYSTEM', title: 'ADMINISTRATION & SETUP' },
+    { key: 'PORTAL', title: 'PORTAL ACCESS' }
   ];
 
   const handleSelectTab = (id: string) => {
@@ -303,23 +280,22 @@ export const Sidebar: React.FC<SidebarProps> = ({
     }
   };
 
-  // Helper for role badge colors
   const getRoleBadgeStyle = (role?: string) => {
     switch (role) {
       case 'SUPER_ADMIN':
-        return 'bg-purple-500/20 text-purple-300 border-purple-500/40';
+        return 'bg-purple-950 text-purple-300 border-purple-800';
       case 'ADMIN':
-        return 'bg-blue-500/20 text-blue-300 border-blue-500/40';
+        return 'bg-blue-950 text-blue-300 border-blue-800';
       case 'ACCOUNTANT':
-        return 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40';
+        return 'bg-emerald-950 text-emerald-300 border-emerald-800';
       case 'TEACHER':
-        return 'bg-indigo-500/20 text-indigo-300 border-indigo-500/40';
+        return 'bg-indigo-950 text-indigo-300 border-indigo-800';
       case 'RECEPTIONIST':
-        return 'bg-amber-500/20 text-amber-300 border-amber-500/40';
+        return 'bg-amber-950 text-amber-300 border-amber-800';
       case 'PARENT':
-        return 'bg-teal-500/20 text-teal-300 border-teal-500/40';
+        return 'bg-teal-950 text-teal-300 border-teal-800';
       default:
-        return 'bg-sky-500/20 text-sky-300 border-sky-500/40';
+        return 'bg-slate-800 text-slate-300 border-slate-700';
     }
   };
 
@@ -328,38 +304,38 @@ export const Sidebar: React.FC<SidebarProps> = ({
       {/* Mobile Backdrop */}
       {isMobileOpen && (
         <div 
-          className="fixed inset-0 z-40 bg-slate-950/70 backdrop-blur-md lg:hidden transition-opacity"
+          className="fixed inset-0 z-40 bg-slate-950/80 backdrop-blur-sm lg:hidden transition-opacity"
           onClick={() => setIsMobileOpen(false)}
         />
       )}
 
-      {/* Sidebar Container */}
+      {/* Professional Sidebar Container */}
       <aside className={`
-        fixed top-0 bottom-0 left-0 z-50 flex flex-col bg-[#0c121e] text-slate-300 border-r border-slate-800/90 shadow-2xl transition-all duration-300 ease-in-out
+        fixed top-0 bottom-0 left-0 z-50 flex flex-col bg-slate-900 text-slate-300 border-r border-slate-800 shadow-xl transition-all duration-300 ease-in-out select-none
         ${collapsed ? 'w-20' : 'w-64'}
         ${isMobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
       `}>
         {/* Brand / Logo Header */}
-        <div className="flex items-center justify-between h-18 px-4 border-b border-slate-800/80 bg-slate-950/50 backdrop-blur-sm">
+        <div className="flex items-center justify-between h-18 px-4 border-b border-slate-800 bg-slate-950/70">
           <div 
             className="flex items-center space-x-3 overflow-hidden cursor-pointer group" 
             onClick={() => handleSelectTab('dashboard')}
           >
-            {/* Glowing multi-color brand logo badge */}
-            <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-violet-600 via-indigo-600 to-pink-500 p-[1.5px] shadow-lg shadow-indigo-600/30 group-hover:scale-105 transition-transform shrink-0">
-              <div className="w-full h-full bg-[#0d1424] rounded-[14px] flex items-center justify-center">
-                <Sparkles className="w-5 h-5 text-indigo-400 group-hover:text-pink-400 transition-colors" />
-              </div>
+            {/* Institutional Shield Badge (Professional, no AI rainbow gradients) */}
+            <div className="w-10 h-10 rounded-2xl bg-slate-800 border border-slate-700 text-white flex items-center justify-center shrink-0 group-hover:border-slate-500 transition-colors shadow-sm">
+              <Building2 className="w-5 h-5 text-brand-400" />
             </div>
 
             {!collapsed && (
-              <div className="flex flex-col truncate max-w-[150px]">
+              <div className="flex flex-col truncate max-w-[155px]">
                 <div className="flex items-center gap-1.5">
-                  <span className="font-black text-white text-base tracking-tight leading-tight truncate">{instituteName || 'Apex CAMS'}</span>
+                  <span className="font-extrabold text-white text-sm tracking-tight truncate uppercase">
+                    {instituteName || 'Apex Academy'}
+                  </span>
                   <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0" />
                 </div>
-                <span className="text-[10px] uppercase font-bold tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-violet-400 via-indigo-300 to-pink-400 truncate">
-                  {instituteTagline || 'Tuition ERP 2.0'}
+                <span className="text-[10px] font-semibold text-slate-400 truncate uppercase tracking-wider">
+                  {instituteTagline || 'Class Accounting ERP'}
                 </span>
               </div>
             )}
@@ -367,7 +343,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           
           <button
             onClick={() => setCollapsed(!collapsed)}
-            className="hidden lg:flex p-1.5 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800/80 transition-colors"
+            className="hidden lg:flex p-1.5 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
             title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
           >
             {collapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
@@ -384,9 +360,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
               <div key={cat.key} className="space-y-1">
                 {/* Category Section Header */}
                 {!collapsed && (
-                  <div className="px-3 pt-2 pb-1 text-[10px] font-black uppercase tracking-wider text-slate-500 flex items-center justify-between">
+                  <div className="px-3 pt-2.5 pb-1 text-[10px] font-black uppercase tracking-wider text-slate-500 flex items-center justify-between">
                     <span>{cat.title}</span>
-                    <span className="w-8 h-[1px] bg-slate-800" />
+                    <span className="w-6 h-[1px] bg-slate-800" />
                   </div>
                 )}
 
@@ -400,37 +376,32 @@ export const Sidebar: React.FC<SidebarProps> = ({
                         key={item.id}
                         onClick={() => handleSelectTab(item.id)}
                         className={`
-                          w-full flex items-center space-x-3 px-2.5 py-2 rounded-2xl text-xs font-semibold transition-all group relative
+                          w-full flex items-center space-x-3 px-3 py-2 rounded-xl text-xs font-semibold transition-all group relative cursor-pointer
                           ${isActive 
-                            ? 'bg-slate-800/90 text-white shadow-lg border border-slate-700/80' 
-                            : 'text-slate-400 hover:text-slate-100 hover:bg-slate-800/50'}
+                            ? 'bg-slate-800 text-white font-bold border-l-4 border-brand-500 shadow-sm' 
+                            : 'text-slate-400 hover:text-white hover:bg-slate-800/60'}
                         `}
                         title={collapsed ? item.label : undefined}
                       >
-                        {/* Active vertical glow indicator bar */}
-                        {isActive && (
-                          <div className={`absolute left-0 top-1/2 -translate-y-1/2 w-1 h-5 rounded-r-full bg-gradient-to-b ${item.gradient}`} />
-                        )}
-
-                        {/* Colorful Gradient Icon Box */}
+                        {/* Icon Container with subtle institutional styling */}
                         <div className={`
-                          w-8 h-8 rounded-xl flex items-center justify-center shrink-0 transition-all duration-200
+                          w-7 h-7 rounded-lg flex items-center justify-center shrink-0 transition-colors
                           ${isActive 
-                            ? `bg-gradient-to-tr ${item.gradient} text-white shadow-md ${item.glow} scale-105` 
-                            : `bg-slate-800/80 text-slate-300 group-hover:bg-gradient-to-tr group-hover:${item.gradient} group-hover:text-white group-hover:scale-105`}
+                            ? 'bg-slate-700/80 text-white' 
+                            : `bg-slate-800/80 ${item.iconColor} group-hover:bg-slate-700 group-hover:text-white`}
                         `}>
-                          <Icon size={16} />
+                          <Icon size={15} />
                         </div>
 
                         {/* Label & Badges */}
                         {!collapsed && (
-                          <span className={`truncate flex-1 text-left ${isActive ? 'text-white font-bold' : 'group-hover:text-white'}`}>
+                          <span className={`truncate flex-1 text-left ${isActive ? 'text-white' : 'text-slate-300 group-hover:text-white'}`}>
                             {item.label}
                           </span>
                         )}
 
                         {!collapsed && item.badge && (
-                          <span className={`px-2 py-0.5 text-[9px] font-bold rounded-full border flex items-center gap-1 ${
+                          <span className={`px-2 py-0.5 text-[9px] font-mono font-bold rounded-md border flex items-center gap-1 ${
                             item.badgeColor || 'bg-slate-800 text-slate-300 border-slate-700'
                           }`}>
                             {item.badge === 'LIVE' && <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping inline-block" />}
@@ -447,15 +418,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </div>
 
         {/* Footer User Profile & Logout */}
-        <div className="p-3 border-t border-slate-800/80 bg-slate-950/60 backdrop-blur-sm">
-          <div className={`flex items-center ${collapsed ? 'justify-center' : 'space-x-3'} p-2 rounded-2xl bg-slate-900/90 border border-slate-800/90 shadow-sm`}>
+        <div className="p-3 border-t border-slate-800 bg-slate-950/70">
+          <div className={`flex items-center ${collapsed ? 'justify-center' : 'space-x-3'} p-2 rounded-2xl bg-slate-900 border border-slate-800 shadow-xs`}>
             <div className="relative shrink-0">
               <img 
                 src={user?.avatar || "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&auto=format&fit=crop&q=80"} 
                 alt={user?.name} 
-                className="w-9 h-9 rounded-xl object-cover ring-2 ring-indigo-500/40"
+                className="w-9 h-9 rounded-xl object-cover ring-2 ring-slate-700"
               />
-              <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-400 ring-2 ring-slate-950" />
+              <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-400 ring-2 ring-slate-900" />
             </div>
 
             {!collapsed && (
@@ -472,7 +443,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             {!collapsed && (
               <button 
                 onClick={logout}
-                className="p-2 text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 rounded-xl transition-colors"
+                className="p-2 text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 rounded-xl transition-colors cursor-pointer"
                 title="Log out"
               >
                 <LogOut size={16} />

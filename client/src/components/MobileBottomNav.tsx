@@ -16,8 +16,8 @@ import {
   ShieldCheck, 
   Settings, 
   LogOut,
-  Sparkles,
-  Coins
+  Coins,
+  Building2
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
@@ -71,7 +71,7 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
       {/* Fixed Mobile Bottom Bar (visible on < md) */}
       <nav 
         aria-label="Mobile Bottom Navigation"
-        className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-[#0c121e]/95 backdrop-blur-lg border-t border-slate-800/90 shadow-2xl px-2 py-1.5 pb-[max(0.375rem,env(safe-area-inset-bottom))] flex items-center justify-around"
+        className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-slate-900/98 backdrop-blur-md border-t border-slate-800 shadow-2xl px-2 py-1.5 pb-[max(0.375rem,env(safe-area-inset-bottom))] flex items-center justify-around select-none"
       >
         {/* STUDENT DEDICATED BOTTOM BAR */}
         {isStudent && (
@@ -79,18 +79,18 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
             {/* 1. Student Home */}
             <button
               onClick={() => onNavigate('student-portal')}
-              className={`flex flex-col items-center justify-center min-w-[56px] min-h-[48px] py-1 px-2 rounded-2xl transition-all ${
-                currentTab === 'student-portal' ? 'text-indigo-400 font-bold' : 'text-slate-400 hover:text-slate-200'
+              className={`flex flex-col items-center justify-center min-w-[56px] min-h-[48px] py-1 px-2 rounded-xl transition-all cursor-pointer ${
+                currentTab === 'student-portal' ? 'text-brand-400 font-bold' : 'text-slate-400 hover:text-slate-200'
               }`}
             >
-              <LayoutDashboard size={20} className={currentTab === 'student-portal' ? 'text-indigo-400' : 'text-slate-400'} />
+              <LayoutDashboard size={20} className={currentTab === 'student-portal' ? 'text-brand-400' : 'text-slate-400'} />
               <span className="text-[10px] mt-0.5 tracking-tight">Home</span>
             </button>
 
             {/* 2. My Fees & Receipts */}
             <button
               onClick={() => onNavigate('student-portal')}
-              className={`flex flex-col items-center justify-center min-w-[56px] min-h-[48px] py-1 px-2 rounded-2xl transition-all ${
+              className={`flex flex-col items-center justify-center min-w-[56px] min-h-[48px] py-1 px-2 rounded-xl transition-all cursor-pointer ${
                 currentTab === 'student-portal' ? 'text-emerald-400 font-bold' : 'text-slate-400 hover:text-slate-200'
               }`}
               title="My Fee Records & Receipts"
@@ -108,32 +108,30 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
                   onNavigate('student-portal');
                 }
               }}
-              className="flex flex-col items-center justify-center -mt-6 group focus:outline-none"
+              className="flex flex-col items-center justify-center -mt-6 group focus:outline-none cursor-pointer"
               title="My Student QR Pass"
             >
-              <div className="w-14 h-14 rounded-full bg-gradient-to-tr from-sky-500 via-indigo-600 to-purple-600 p-[2.5px] shadow-lg shadow-indigo-500/40 active:scale-95 transition-transform flex items-center justify-center">
-                <div className="w-full h-full rounded-full bg-[#0d1424] flex items-center justify-center text-sky-300">
-                  <QrCode size={26} className="animate-pulse" />
-                </div>
+              <div className="w-13 h-13 rounded-full bg-slate-800 border-2 border-brand-500 text-brand-400 shadow-lg active:scale-95 transition-transform flex items-center justify-center">
+                <QrCode size={24} />
               </div>
-              <span className="text-[10px] font-bold text-sky-400 mt-0.5">My Pass</span>
+              <span className="text-[10px] font-bold text-brand-400 mt-0.5">My Pass</span>
             </button>
 
             {/* 4. Study Materials */}
             <button
               onClick={() => onNavigate('materials')}
-              className={`flex flex-col items-center justify-center min-w-[56px] min-h-[48px] py-1 px-2 rounded-2xl transition-all ${
-                currentTab === 'materials' ? 'text-pink-400 font-bold' : 'text-slate-400 hover:text-slate-200'
+              className={`flex flex-col items-center justify-center min-w-[56px] min-h-[48px] py-1 px-2 rounded-xl transition-all cursor-pointer ${
+                currentTab === 'materials' ? 'text-brand-400 font-bold' : 'text-slate-400 hover:text-slate-200'
               }`}
             >
-              <FolderDown size={20} className={currentTab === 'materials' ? 'text-pink-400' : 'text-slate-400'} />
+              <FolderDown size={20} className={currentTab === 'materials' ? 'text-brand-400' : 'text-slate-400'} />
               <span className="text-[10px] mt-0.5 tracking-tight">Materials</span>
             </button>
 
             {/* 5. Logout */}
             <button
               onClick={() => logout()}
-              className="flex flex-col items-center justify-center min-w-[56px] min-h-[48px] py-1 px-2 rounded-2xl text-rose-400/80 hover:text-rose-300 transition-all"
+              className="flex flex-col items-center justify-center min-w-[56px] min-h-[48px] py-1 px-2 rounded-xl text-rose-400 hover:text-rose-300 transition-all cursor-pointer"
             >
               <LogOut size={20} />
               <span className="text-[10px] mt-0.5 tracking-tight">Logout</span>
@@ -147,7 +145,7 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
             {/* 1. Parent Home */}
             <button
               onClick={() => onNavigate('parent-portal')}
-              className={`flex flex-col items-center justify-center min-w-[56px] min-h-[48px] py-1 px-2 rounded-2xl transition-all ${
+              className={`flex flex-col items-center justify-center min-w-[56px] min-h-[48px] py-1 px-2 rounded-xl transition-all cursor-pointer ${
                 currentTab === 'parent-portal' ? 'text-teal-400 font-bold' : 'text-slate-400 hover:text-slate-200'
               }`}
             >
@@ -158,13 +156,13 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
             {/* 2. Child Fees & Receipts */}
             <button
               onClick={() => onNavigate('parent-portal')}
-              className={`flex flex-col items-center justify-center min-w-[56px] min-h-[48px] py-1 px-2 rounded-2xl transition-all ${
+              className={`flex flex-col items-center justify-center min-w-[56px] min-h-[48px] py-1 px-2 rounded-xl transition-all cursor-pointer ${
                 currentTab === 'parent-portal' ? 'text-emerald-400 font-bold' : 'text-slate-400 hover:text-slate-200'
               }`}
               title="Child's Fee Records & Receipts"
             >
               <CreditCard size={20} className="text-emerald-400" />
-              <span className="text-[10px] mt-0.5 tracking-tight">Fees & Pay</span>
+              <span className="text-[10px] mt-0.5 tracking-tight">Fees</span>
             </button>
 
             {/* 3. Center Action: Child's QR Pass */}
@@ -176,13 +174,11 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
                   onNavigate('parent-portal');
                 }
               }}
-              className="flex flex-col items-center justify-center -mt-6 group focus:outline-none"
+              className="flex flex-col items-center justify-center -mt-6 group focus:outline-none cursor-pointer"
               title="Child's QR ID Card"
             >
-              <div className="w-14 h-14 rounded-full bg-gradient-to-tr from-teal-500 via-emerald-600 to-indigo-600 p-[2.5px] shadow-lg shadow-emerald-500/40 active:scale-95 transition-transform flex items-center justify-center">
-                <div className="w-full h-full rounded-full bg-[#0d1424] flex items-center justify-center text-teal-300">
-                  <QrCode size={26} className="animate-pulse" />
-                </div>
+              <div className="w-13 h-13 rounded-full bg-slate-800 border-2 border-teal-500 text-teal-400 shadow-lg active:scale-95 transition-transform flex items-center justify-center">
+                <QrCode size={24} />
               </div>
               <span className="text-[10px] font-bold text-teal-400 mt-0.5">ID Pass</span>
             </button>
@@ -190,18 +186,18 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
             {/* 4. Study Materials */}
             <button
               onClick={() => onNavigate('materials')}
-              className={`flex flex-col items-center justify-center min-w-[56px] min-h-[48px] py-1 px-2 rounded-2xl transition-all ${
-                currentTab === 'materials' ? 'text-pink-400 font-bold' : 'text-slate-400 hover:text-slate-200'
+              className={`flex flex-col items-center justify-center min-w-[56px] min-h-[48px] py-1 px-2 rounded-xl transition-all cursor-pointer ${
+                currentTab === 'materials' ? 'text-teal-400 font-bold' : 'text-slate-400 hover:text-slate-200'
               }`}
             >
-              <FolderDown size={20} className={currentTab === 'materials' ? 'text-pink-400' : 'text-slate-400'} />
+              <FolderDown size={20} className={currentTab === 'materials' ? 'text-teal-400' : 'text-slate-400'} />
               <span className="text-[10px] mt-0.5 tracking-tight">Materials</span>
             </button>
 
             {/* 5. Logout */}
             <button
               onClick={() => logout()}
-              className="flex flex-col items-center justify-center min-w-[56px] min-h-[48px] py-1 px-2 rounded-2xl text-rose-400/80 hover:text-rose-300 transition-all"
+              className="flex flex-col items-center justify-center min-w-[56px] min-h-[48px] py-1 px-2 rounded-xl text-rose-400 hover:text-rose-300 transition-all cursor-pointer"
             >
               <LogOut size={20} />
               <span className="text-[10px] mt-0.5 tracking-tight">Logout</span>
@@ -215,54 +211,52 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
             {/* 1. Home / Dashboard */}
             <button
               onClick={() => handleTabClick('dashboard')}
-              className={`flex flex-col items-center justify-center min-w-[56px] min-h-[48px] py-1 px-2 rounded-2xl transition-all ${
-                currentTab === 'dashboard' ? 'text-indigo-400 font-bold' : 'text-slate-400 hover:text-slate-200'
+              className={`flex flex-col items-center justify-center min-w-[56px] min-h-[48px] py-1 px-2 rounded-xl transition-all cursor-pointer ${
+                currentTab === 'dashboard' ? 'text-white font-bold' : 'text-slate-400 hover:text-slate-200'
               }`}
             >
-              <LayoutDashboard size={20} className={currentTab === 'dashboard' ? 'text-indigo-400' : 'text-slate-400'} />
+              <LayoutDashboard size={20} className={currentTab === 'dashboard' ? 'text-white' : 'text-slate-400'} />
               <span className="text-[10px] mt-0.5 tracking-tight">Home</span>
             </button>
 
             {/* 2. Students */}
             <button
               onClick={() => handleTabClick('students')}
-              className={`flex flex-col items-center justify-center min-w-[56px] min-h-[48px] py-1 px-2 rounded-2xl transition-all ${
-                currentTab === 'students' ? 'text-purple-400 font-bold' : 'text-slate-400 hover:text-slate-200'
+              className={`flex flex-col items-center justify-center min-w-[56px] min-h-[48px] py-1 px-2 rounded-xl transition-all cursor-pointer ${
+                currentTab === 'students' ? 'text-white font-bold' : 'text-slate-400 hover:text-slate-200'
               }`}
             >
-              <Users size={20} className={currentTab === 'students' ? 'text-purple-400' : 'text-slate-400'} />
+              <Users size={20} className={currentTab === 'students' ? 'text-white' : 'text-slate-400'} />
               <span className="text-[10px] mt-0.5 tracking-tight">Students</span>
             </button>
 
-            {/* 3. High-Priority Center Action: Attendance (QR / Barcode Scanner) */}
+            {/* 3. High-Priority Center Action: Attendance (QR Gate Scanner) */}
             <button
               onClick={() => handleTabClick('attendance')}
-              className="flex flex-col items-center justify-center -mt-6 group focus:outline-none"
+              className="flex flex-col items-center justify-center -mt-6 group focus:outline-none cursor-pointer"
             >
-              <div className="w-14 h-14 rounded-full bg-gradient-to-tr from-amber-500 via-orange-500 to-amber-400 p-[2.5px] shadow-lg shadow-orange-500/40 active:scale-95 transition-transform flex items-center justify-center">
-                <div className="w-full h-full rounded-full bg-[#0d1424] flex items-center justify-center text-amber-300">
-                  <QrCode size={26} className="animate-pulse" />
-                </div>
+              <div className="w-13 h-13 rounded-full bg-emerald-600 hover:bg-emerald-500 border-2 border-slate-900 text-white shadow-lg active:scale-95 transition-transform flex items-center justify-center">
+                <QrCode size={24} />
               </div>
-              <span className="text-[10px] font-bold text-amber-400 mt-0.5">Attend</span>
+              <span className="text-[10px] font-bold text-emerald-400 mt-0.5">Scan</span>
             </button>
 
             {/* 4. Payments */}
             <button
               onClick={() => handleTabClick('payments')}
-              className={`flex flex-col items-center justify-center min-w-[56px] min-h-[48px] py-1 px-2 rounded-2xl transition-all ${
-                currentTab === 'payments' ? 'text-emerald-400 font-bold' : 'text-slate-400 hover:text-slate-200'
+              className={`flex flex-col items-center justify-center min-w-[56px] min-h-[48px] py-1 px-2 rounded-xl transition-all cursor-pointer ${
+                currentTab === 'payments' ? 'text-white font-bold' : 'text-slate-400 hover:text-slate-200'
               }`}
             >
-              <CreditCard size={20} className={currentTab === 'payments' ? 'text-emerald-400' : 'text-slate-400'} />
+              <CreditCard size={20} className={currentTab === 'payments' ? 'text-white' : 'text-slate-400'} />
               <span className="text-[10px] mt-0.5 tracking-tight">Payments</span>
             </button>
 
             {/* 5. More Sheet Trigger */}
             <button
               onClick={() => setIsMoreOpen(true)}
-              className={`flex flex-col items-center justify-center min-w-[56px] min-h-[48px] py-1 px-2 rounded-2xl transition-all ${
-                isMoreOpen ? 'text-white' : 'text-slate-400 hover:text-slate-200'
+              className={`flex flex-col items-center justify-center min-w-[56px] min-h-[48px] py-1 px-2 rounded-xl transition-all cursor-pointer ${
+                isMoreOpen ? 'text-white font-bold' : 'text-slate-400 hover:text-slate-200'
               }`}
             >
               <Menu size={20} className={isMoreOpen ? 'text-white' : 'text-slate-400'} />
@@ -274,22 +268,22 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
 
       {/* Slide-Up "More" Sheet on Mobile */}
       {isMoreOpen && (
-        <div className="md:hidden fixed inset-0 z-50 flex items-end bg-slate-950/80 backdrop-blur-md animate-in fade-in duration-200">
-          <div className="w-full bg-[#0c121e] border-t border-slate-800 rounded-t-3xl max-h-[85vh] overflow-y-auto p-5 pb-8 space-y-5 animate-in slide-in-from-bottom duration-300">
+        <div className="md:hidden fixed inset-0 z-50 flex items-end bg-slate-950/80 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="w-full bg-slate-900 border-t border-slate-800 rounded-t-2xl max-h-[85vh] overflow-y-auto p-5 pb-8 space-y-5 animate-in slide-in-from-bottom duration-300">
             {/* Header */}
             <div className="flex items-center justify-between pb-3 border-b border-slate-800">
               <div className="flex items-center space-x-2.5">
-                <div className="w-9 h-9 rounded-xl bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center text-indigo-400">
-                  <Sparkles size={18} />
+                <div className="w-9 h-9 rounded-xl bg-slate-800 border border-slate-700 flex items-center justify-center text-slate-300">
+                  <Building2 size={18} />
                 </div>
                 <div>
-                  <h3 className="font-bold text-sm text-white">All Modules</h3>
+                  <h3 className="font-bold text-sm text-white">System Navigation</h3>
                   <p className="text-[10px] text-slate-400">Class Accounting Management System</p>
                 </div>
               </div>
               <button 
                 onClick={() => setIsMoreOpen(false)}
-                className="p-1.5 rounded-xl bg-slate-800 text-slate-300 hover:text-white"
+                className="p-1.5 rounded-lg bg-slate-800 text-slate-300 hover:text-white cursor-pointer"
               >
                 <X size={18} />
               </button>
@@ -302,10 +296,10 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
                   onOpenQuickScan();
                   setIsMoreOpen(false);
                 }}
-                className="p-3 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs font-bold flex items-center gap-2"
+                className="p-3 rounded-xl bg-emerald-950/60 border border-emerald-700/60 text-emerald-300 text-xs font-bold flex items-center gap-2 cursor-pointer"
               >
                 <QrCode size={18} />
-                <span>QR Scanner</span>
+                <span>QR Gate Scanner</span>
               </button>
 
               <button
@@ -313,7 +307,7 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
                   onOpenQuickPayment();
                   setIsMoreOpen(false);
                 }}
-                className="p-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs font-bold flex items-center gap-2"
+                className="p-3 rounded-xl bg-blue-950/60 border border-blue-700/60 text-blue-300 text-xs font-bold flex items-center gap-2 cursor-pointer"
               >
                 <CreditCard size={18} />
                 <span>Collect Fee</span>
@@ -322,7 +316,7 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
 
             {/* Grid of Other Modules */}
             <div>
-              <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2.5">System Navigation</p>
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2.5">All Modules</p>
               <div className="grid grid-cols-2 gap-2">
                 {moreMenuItems.map(item => {
                   const Icon = item.icon;
@@ -331,14 +325,14 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
                     <button
                       key={item.id}
                       onClick={() => handleTabClick(item.id)}
-                      className={`p-3 rounded-2xl text-left flex items-center space-x-2.5 border transition-all ${
+                      className={`p-3 rounded-xl text-left flex items-center space-x-2.5 border transition-all cursor-pointer ${
                         isActive
-                          ? 'bg-slate-800 text-white border-slate-700 shadow-md'
-                          : 'bg-slate-900/60 text-slate-300 border-slate-800/80 hover:bg-slate-800/50'
+                          ? 'bg-slate-800 text-white border-slate-600 font-bold shadow-xs'
+                          : 'bg-slate-800/60 text-slate-300 border-slate-700/60 hover:bg-slate-800 hover:text-white'
                       }`}
                     >
-                      <Icon size={16} className="text-indigo-400 shrink-0" />
-                      <span className="text-xs font-semibold truncate">{item.label}</span>
+                      <Icon size={16} className="text-slate-400 shrink-0" />
+                      <span className="text-xs truncate">{item.label}</span>
                     </button>
                   );
                 })}
@@ -348,14 +342,12 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
             {/* User Profile and Logout */}
             <div className="pt-3 border-t border-slate-800 flex items-center justify-between">
               <div className="flex items-center space-x-3">
-                <img 
-                  src={user?.avatar || "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=80"} 
-                  alt="" 
-                  className="w-9 h-9 rounded-xl object-cover ring-2 ring-indigo-500/30"
-                />
+                <div className="w-9 h-9 rounded-full bg-slate-800 text-white font-bold flex items-center justify-center text-sm border border-slate-700">
+                  {user?.name ? user.name.charAt(0).toUpperCase() : 'U'}
+                </div>
                 <div>
                   <p className="text-xs font-bold text-white leading-tight">{user?.name}</p>
-                  <p className="text-[10px] text-indigo-400 font-mono">{user?.role}</p>
+                  <p className="text-[10px] text-slate-400 font-mono">{user?.role?.replace('_', ' ')}</p>
                 </div>
               </div>
 
@@ -364,7 +356,7 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
                   setIsMoreOpen(false);
                   logout();
                 }}
-                className="px-3.5 py-2 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 text-xs font-bold flex items-center gap-1.5 transition-colors"
+                className="px-3.5 py-2 rounded-xl bg-rose-950/60 hover:bg-rose-900/60 text-rose-300 border border-rose-800/60 text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
               >
                 <LogOut size={14} />
                 <span>Log Out</span>

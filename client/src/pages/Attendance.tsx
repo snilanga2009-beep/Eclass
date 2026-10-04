@@ -43,70 +43,70 @@ import { useSettings } from '../context/SettingsContext';
 
 const CLASS_THEMES = [
   {
-    gradient: 'from-blue-600 via-indigo-600 to-violet-600',
-    headerBg: 'bg-gradient-to-r from-blue-500/10 via-indigo-500/10 to-violet-500/10',
-    border: 'border-indigo-200/80',
-    badge: 'bg-indigo-50 text-indigo-700 border-indigo-200',
-    pillActive: 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white ring-2 ring-indigo-400 ring-offset-1',
-    pillInactive: 'bg-indigo-50/70 text-indigo-800 hover:bg-indigo-100/70 border border-indigo-200/60',
+    gradient: 'from-slate-800 to-slate-900',
+    headerBg: 'bg-slate-50',
+    border: 'border-slate-200',
+    badge: 'bg-slate-100 text-slate-800 border-slate-200',
+    pillActive: 'bg-slate-900 text-white font-bold',
+    pillInactive: 'bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-200',
     countBadge: 'bg-white/20 text-white',
-    countBadgeInactive: 'bg-indigo-200/60 text-indigo-900',
-    ring: 'ring-indigo-400'
+    countBadgeInactive: 'bg-slate-200 text-slate-800',
+    ring: 'ring-slate-400'
   },
   {
-    gradient: 'from-emerald-600 via-teal-600 to-cyan-600',
-    headerBg: 'bg-gradient-to-r from-emerald-500/10 via-teal-500/10 to-cyan-500/10',
-    border: 'border-emerald-200/80',
-    badge: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-    pillActive: 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white ring-2 ring-emerald-400 ring-offset-1',
-    pillInactive: 'bg-emerald-50/70 text-emerald-800 hover:bg-emerald-100/70 border border-emerald-200/60',
+    gradient: 'from-emerald-700 to-emerald-900',
+    headerBg: 'bg-emerald-50/60',
+    border: 'border-emerald-200',
+    badge: 'bg-emerald-50 text-emerald-800 border-emerald-200',
+    pillActive: 'bg-emerald-700 text-white font-bold',
+    pillInactive: 'bg-emerald-50 text-emerald-800 hover:bg-emerald-100 border border-emerald-200',
     countBadge: 'bg-white/20 text-white',
-    countBadgeInactive: 'bg-emerald-200/60 text-emerald-900',
+    countBadgeInactive: 'bg-emerald-200 text-emerald-900',
     ring: 'ring-emerald-400'
   },
   {
-    gradient: 'from-purple-600 via-fuchsia-600 to-pink-600',
-    headerBg: 'bg-gradient-to-r from-purple-500/10 via-fuchsia-500/10 to-pink-500/10',
-    border: 'border-purple-200/80',
-    badge: 'bg-purple-50 text-purple-700 border-purple-200',
-    pillActive: 'bg-gradient-to-r from-purple-600 to-pink-600 text-white ring-2 ring-purple-400 ring-offset-1',
-    pillInactive: 'bg-purple-50/70 text-purple-800 hover:bg-purple-100/70 border border-purple-200/60',
+    gradient: 'from-blue-700 to-blue-900',
+    headerBg: 'bg-blue-50/60',
+    border: 'border-blue-200',
+    badge: 'bg-blue-50 text-blue-800 border-blue-200',
+    pillActive: 'bg-blue-700 text-white font-bold',
+    pillInactive: 'bg-blue-50 text-blue-800 hover:bg-blue-100 border border-blue-200',
     countBadge: 'bg-white/20 text-white',
-    countBadgeInactive: 'bg-purple-200/60 text-purple-900',
-    ring: 'ring-purple-400'
+    countBadgeInactive: 'bg-blue-200 text-blue-900',
+    ring: 'ring-blue-400'
   },
   {
-    gradient: 'from-amber-500 via-orange-500 to-red-500',
-    headerBg: 'bg-gradient-to-r from-amber-500/10 via-orange-500/10 to-red-500/10',
-    border: 'border-amber-200/80',
-    badge: 'bg-amber-50 text-amber-700 border-amber-200',
-    pillActive: 'bg-gradient-to-r from-amber-500 to-orange-600 text-white ring-2 ring-amber-400 ring-offset-1',
-    pillInactive: 'bg-amber-50/70 text-amber-800 hover:bg-amber-100/70 border border-amber-200/60',
+    gradient: 'from-indigo-700 to-indigo-900',
+    headerBg: 'bg-indigo-50/60',
+    border: 'border-indigo-200',
+    badge: 'bg-indigo-50 text-indigo-800 border-indigo-200',
+    pillActive: 'bg-indigo-700 text-white font-bold',
+    pillInactive: 'bg-indigo-50 text-indigo-800 hover:bg-indigo-100 border border-indigo-200',
     countBadge: 'bg-white/20 text-white',
-    countBadgeInactive: 'bg-amber-200/60 text-amber-900',
-    ring: 'ring-amber-400'
+    countBadgeInactive: 'bg-indigo-200 text-indigo-900',
+    ring: 'ring-indigo-400'
   },
   {
-    gradient: 'from-rose-600 via-pink-600 to-red-600',
-    headerBg: 'bg-gradient-to-r from-rose-500/10 via-pink-500/10 to-red-500/10',
-    border: 'border-rose-200/80',
-    badge: 'bg-rose-50 text-rose-700 border-rose-200',
-    pillActive: 'bg-gradient-to-r from-rose-600 to-pink-600 text-white ring-2 ring-rose-400 ring-offset-1',
-    pillInactive: 'bg-rose-50/70 text-rose-800 hover:bg-rose-100/70 border border-rose-200/60',
+    gradient: 'from-teal-700 to-teal-900',
+    headerBg: 'bg-teal-50/60',
+    border: 'border-teal-200',
+    badge: 'bg-teal-50 text-teal-800 border-teal-200',
+    pillActive: 'bg-teal-700 text-white font-bold',
+    pillInactive: 'bg-teal-50 text-teal-800 hover:bg-teal-100 border border-teal-200',
     countBadge: 'bg-white/20 text-white',
-    countBadgeInactive: 'bg-rose-200/60 text-rose-900',
-    ring: 'ring-rose-400'
+    countBadgeInactive: 'bg-teal-200 text-teal-900',
+    ring: 'ring-teal-400'
   },
   {
-    gradient: 'from-cyan-600 via-teal-600 to-blue-600',
-    headerBg: 'bg-gradient-to-r from-cyan-500/10 via-teal-500/10 to-blue-500/10',
-    border: 'border-cyan-200/80',
-    badge: 'bg-cyan-50 text-cyan-700 border-cyan-200',
-    pillActive: 'bg-gradient-to-r from-cyan-600 to-blue-600 text-white ring-2 ring-cyan-400 ring-offset-1',
-    pillInactive: 'bg-cyan-50/70 text-cyan-800 hover:bg-cyan-100/70 border border-cyan-200/60',
+    gradient: 'from-slate-700 to-slate-900',
+    headerBg: 'bg-slate-50/60',
+    border: 'border-slate-300',
+    badge: 'bg-slate-100 text-slate-800 border-slate-300',
+    pillActive: 'bg-slate-800 text-white font-bold',
+    pillInactive: 'bg-slate-100 text-slate-800 hover:bg-slate-200 border border-slate-200',
     countBadge: 'bg-white/20 text-white',
-    countBadgeInactive: 'bg-cyan-200/60 text-cyan-900',
-    ring: 'ring-cyan-400'
+    countBadgeInactive: 'bg-slate-300 text-slate-900',
+    ring: 'ring-slate-400'
   }
 ];
 
@@ -681,17 +681,17 @@ export const Attendance: React.FC<AttendanceProps> = ({
             </button>
             <button
               onClick={() => setMode('ROSTER')}
-              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shrink-0 ${
+              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shrink-0 cursor-pointer ${
                 mode === 'ROSTER' 
-                  ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-sm font-extrabold' 
-                  : 'text-slate-700 hover:text-emerald-700 hover:bg-emerald-50'
+                  ? 'bg-slate-900 text-white shadow-sm font-bold' 
+                  : 'text-slate-700 hover:text-slate-900 hover:bg-slate-200/60'
               }`}
             >
-              <Sparkles size={14} className={mode === 'ROSTER' ? 'text-white' : 'text-emerald-500'} />
-              <span>Today's Attendance Roster &amp; Attended Classes</span>
+              <Users size={14} className={mode === 'ROSTER' ? 'text-emerald-400' : 'text-slate-500'} />
+              <span>Today's Attendance Roster &amp; Classes</span>
               {rosterData?.stats?.totalAttended > 0 && (
                 <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono font-bold ${
-                  mode === 'ROSTER' ? 'bg-white/25 text-white' : 'bg-emerald-100 text-emerald-800'
+                  mode === 'ROSTER' ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40' : 'bg-slate-200 text-slate-800'
                 }`}>
                   {rosterData.stats.totalAttended}
                 </span>
@@ -1334,95 +1334,98 @@ export const Attendance: React.FC<AttendanceProps> = ({
             </div>
           </div>
 
-          {/* COLORFUL STATS & SUMMARY KPI CARDS */}
+          {/* STATS & SUMMARY KPI CARDS */}
           <div className="grid grid-cols-2 lg:grid-cols-5 gap-3.5 sm:gap-4">
             {/* 1. Total Attended */}
-            <div className="p-4 sm:p-5 rounded-3xl bg-gradient-to-br from-emerald-600 to-teal-700 text-white shadow-lg shadow-emerald-600/20 relative overflow-hidden flex flex-col justify-between">
-              <div className="absolute right-[-10px] bottom-[-10px] w-20 h-20 bg-white/10 rounded-full blur-xl pointer-events-none" />
+            <div className="p-4 sm:p-5 rounded-2xl bg-white border border-slate-200 shadow-xs flex flex-col justify-between">
               <div className="flex items-center justify-between">
-                <span className="text-[10px] font-black uppercase tracking-wider text-emerald-100">Headcount</span>
-                <Users size={18} className="text-emerald-200" />
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Headcount</span>
+                <div className="w-7 h-7 rounded-lg bg-emerald-50 text-emerald-700 flex items-center justify-center border border-emerald-100">
+                  <Users size={15} />
+                </div>
               </div>
               <div className="mt-3">
-                <p className="text-2xl sm:text-3xl font-black text-white leading-none">
+                <p className="text-2xl sm:text-3xl font-black text-slate-900 leading-none">
                   {rosterData?.stats?.totalAttended || 0}
                 </p>
-                <p className="text-[11px] font-bold text-emerald-100 mt-1">Total Attended Students</p>
-                <p className="text-[10px] text-emerald-200/80 mt-0.5 truncate">Across all tuition classes</p>
+                <p className="text-[11px] font-bold text-slate-700 mt-1">Total Attended Students</p>
+                <p className="text-[10px] text-slate-400 mt-0.5 truncate">Across all tuition classes</p>
               </div>
             </div>
 
             {/* 2. Active Classes */}
-            <div className="p-4 sm:p-5 rounded-3xl bg-gradient-to-br from-indigo-600 to-violet-700 text-white shadow-lg shadow-indigo-600/20 relative overflow-hidden flex flex-col justify-between">
-              <div className="absolute right-[-10px] bottom-[-10px] w-20 h-20 bg-white/10 rounded-full blur-xl pointer-events-none" />
+            <div className="p-4 sm:p-5 rounded-2xl bg-white border border-slate-200 shadow-xs flex flex-col justify-between">
               <div className="flex items-center justify-between">
-                <span className="text-[10px] font-black uppercase tracking-wider text-indigo-100">Sessions</span>
-                <BookOpen size={18} className="text-indigo-200" />
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Sessions</span>
+                <div className="w-7 h-7 rounded-lg bg-blue-50 text-blue-700 flex items-center justify-center border border-blue-100">
+                  <BookOpen size={15} />
+                </div>
               </div>
               <div className="mt-3">
-                <p className="text-2xl sm:text-3xl font-black text-white leading-none">
+                <p className="text-2xl sm:text-3xl font-black text-slate-900 leading-none">
                   {rosterData?.stats?.uniqueClassesCount || 0}
                 </p>
-                <p className="text-[11px] font-bold text-indigo-100 mt-1">Classes Conducted</p>
-                <p className="text-[10px] text-indigo-200/80 mt-0.5 truncate">Subject lectures active</p>
+                <p className="text-[11px] font-bold text-slate-700 mt-1">Classes Conducted</p>
+                <p className="text-[10px] text-slate-400 mt-0.5 truncate">Subject lectures active</p>
               </div>
             </div>
 
             {/* 3. On-Time Rate */}
-            <div className="p-4 sm:p-5 rounded-3xl bg-gradient-to-br from-cyan-600 to-blue-700 text-white shadow-lg shadow-cyan-600/20 relative overflow-hidden flex flex-col justify-between">
-              <div className="absolute right-[-10px] bottom-[-10px] w-20 h-20 bg-white/10 rounded-full blur-xl pointer-events-none" />
+            <div className="p-4 sm:p-5 rounded-2xl bg-white border border-slate-200 shadow-xs flex flex-col justify-between">
               <div className="flex items-center justify-between">
-                <span className="text-[10px] font-black uppercase tracking-wider text-cyan-100">Punctuality</span>
-                <Clock size={18} className="text-cyan-200" />
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Punctuality</span>
+                <div className="w-7 h-7 rounded-lg bg-teal-50 text-teal-700 flex items-center justify-center border border-teal-100">
+                  <Clock size={15} />
+                </div>
               </div>
               <div className="mt-3">
-                <p className="text-2xl sm:text-3xl font-black text-white leading-none">
+                <p className="text-2xl sm:text-3xl font-black text-slate-900 leading-none">
                   {rosterData?.stats?.onTimeRate || 100}%
                 </p>
-                <p className="text-[11px] font-bold text-cyan-100 mt-1">On-Time Arrival Rate</p>
-                <p className="text-[10px] text-cyan-200/80 mt-0.5 truncate">
+                <p className="text-[11px] font-bold text-slate-700 mt-1">On-Time Arrival Rate</p>
+                <p className="text-[10px] text-slate-400 mt-0.5 truncate">
                   {rosterData?.stats?.presentCount || 0} Present • {rosterData?.stats?.lateCount || 0} Late
                 </p>
               </div>
             </div>
 
             {/* 4. Tuition Fee Clearance */}
-            <div className="p-4 sm:p-5 rounded-3xl bg-gradient-to-br from-amber-600 to-rose-700 text-white shadow-lg shadow-amber-600/20 relative overflow-hidden flex flex-col justify-between">
-              <div className="absolute right-[-10px] bottom-[-10px] w-20 h-20 bg-white/10 rounded-full blur-xl pointer-events-none" />
+            <div className="p-4 sm:p-5 rounded-2xl bg-white border border-slate-200 shadow-xs flex flex-col justify-between">
               <div className="flex items-center justify-between">
-                <span className="text-[10px] font-black uppercase tracking-wider text-amber-100">Fee Status</span>
-                <CreditCard size={18} className="text-amber-200" />
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Fee Status</span>
+                <div className="w-7 h-7 rounded-lg bg-amber-50 text-amber-700 flex items-center justify-center border border-amber-100">
+                  <CreditCard size={15} />
+                </div>
               </div>
               <div className="mt-3">
-                <p className="text-2xl sm:text-3xl font-black text-white leading-none">
-                  {rosterData?.stats?.feesPaidCount || 0} <span className="text-xs font-normal text-amber-100">Paid</span>
+                <p className="text-2xl sm:text-3xl font-black text-slate-900 leading-none">
+                  {rosterData?.stats?.feesPaidCount || 0} <span className="text-xs font-semibold text-emerald-600">Paid</span>
                 </p>
-                <p className="text-[11px] font-bold text-amber-100 mt-1">Fees Paid vs Pending</p>
-                <p className="text-[10px] text-amber-200/90 mt-0.5 truncate font-mono">
+                <p className="text-[11px] font-bold text-slate-700 mt-1">Fees Paid vs Pending</p>
+                <p className="text-[10px] text-slate-400 mt-0.5 truncate font-mono">
                   {rosterData?.stats?.feesPendingCount || 0} Due: {formatLKR(rosterData?.stats?.feesPendingAmount || 0)}
                 </p>
               </div>
             </div>
 
             {/* 5. Hardware Scan Methods */}
-            <div className="col-span-2 lg:col-span-1 p-4 sm:p-5 rounded-3xl bg-gradient-to-br from-purple-600 to-pink-700 text-white shadow-lg shadow-purple-600/20 relative overflow-hidden flex flex-col justify-between">
-              <div className="absolute right-[-10px] bottom-[-10px] w-20 h-20 bg-white/10 rounded-full blur-xl pointer-events-none" />
+            <div className="col-span-2 lg:col-span-1 p-4 sm:p-5 rounded-2xl bg-slate-900 text-white shadow-xs flex flex-col justify-between">
               <div className="flex items-center justify-between">
-                <span className="text-[10px] font-black uppercase tracking-wider text-purple-100">Hardware POS</span>
-                <Zap size={18} className="text-purple-200" />
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Hardware POS</span>
+                <Zap size={15} className="text-amber-400" />
               </div>
               <div className="mt-3 space-y-1">
-                <div className="flex items-center justify-between text-[11px] font-bold">
-                  <span className="flex items-center gap-1"><Zap size={10} /> Barcode Gun:</span>
-                  <span className="font-mono bg-white/20 px-1.5 py-0.2 rounded">{rosterData?.stats?.methodsBreakdown?.BARCODE || 0}</span>
+                <div className="flex items-center justify-between text-[11px]">
+                  <span className="flex items-center gap-1 text-slate-300"><Zap size={10} className="text-amber-400" /> Barcode:</span>
+                  <span className="font-mono bg-slate-800 px-1.5 py-0.2 rounded font-bold">{rosterData?.stats?.methodsBreakdown?.BARCODE || 0}</span>
                 </div>
-                <div className="flex items-center justify-between text-[11px] font-bold">
-                  <span className="flex items-center gap-1"><QrCode size={10} /> QR Pass:</span>
-                  <span className="font-mono bg-white/20 px-1.5 py-0.2 rounded">{rosterData?.stats?.methodsBreakdown?.QR_CODE || 0}</span>
+                <div className="flex items-center justify-between text-[11px]">
+                  <span className="flex items-center gap-1 text-slate-300"><QrCode size={10} className="text-emerald-400" /> QR Pass:</span>
+                  <span className="font-mono bg-slate-800 px-1.5 py-0.2 rounded font-bold">{rosterData?.stats?.methodsBreakdown?.QR_CODE || 0}</span>
                 </div>
-                <div className="flex items-center justify-between text-[11px] font-bold">
-                  <span className="flex items-center gap-1"><Radio size={10} /> 125kHz RFID:</span>
-                  <span className="font-mono bg-white/20 px-1.5 py-0.2 rounded">{rosterData?.stats?.methodsBreakdown?.RFID || 0}</span>
+                <div className="flex items-center justify-between text-[11px]">
+                  <span className="flex items-center gap-1 text-slate-300"><Radio size={10} className="text-sky-400" /> 125kHz RFID:</span>
+                  <span className="font-mono bg-slate-800 px-1.5 py-0.2 rounded font-bold">{rosterData?.stats?.methodsBreakdown?.RFID || 0}</span>
                 </div>
               </div>
             </div>

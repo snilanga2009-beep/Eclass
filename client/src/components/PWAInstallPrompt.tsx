@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Download, Share2, PlusSquare, X, Check, Smartphone, Sparkles } from 'lucide-react';
+import { Download, Share2, PlusSquare, X, Check, Smartphone, Building2 } from 'lucide-react';
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
@@ -81,73 +81,71 @@ export const PWAInstallPrompt: React.FC = () => {
       {/* Sleek Floating Install Banner */}
       <aside 
         aria-label="PWA Installation Prompt"
-        className="fixed bottom-20 md:bottom-6 left-4 right-4 md:left-auto md:right-6 md:w-96 z-40 p-4 rounded-3xl bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white border border-indigo-500/40 shadow-2xl shadow-indigo-950/60 backdrop-blur-md animate-in slide-in-from-bottom duration-300"
+        className="fixed bottom-20 md:bottom-6 left-4 right-4 md:left-auto md:right-6 md:w-96 z-40 p-4 rounded-2xl bg-slate-900 text-white border border-slate-700 shadow-2xl backdrop-blur-md animate-in slide-in-from-bottom duration-300 select-none"
       >
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-violet-600 to-indigo-600 p-[1.5px] shrink-0 shadow-md">
-              <div className="w-full h-full bg-[#0d1424] rounded-[14px] flex items-center justify-center">
-                <Smartphone className="w-6 h-6 text-indigo-400" />
-              </div>
+            <div className="w-10 h-10 rounded-xl bg-slate-800 border border-slate-700 text-brand-400 flex items-center justify-center shrink-0">
+              <Smartphone className="w-5 h-5" />
             </div>
             <div>
               <div className="flex items-center gap-1.5">
-                <h4 className="font-bold text-xs text-white">Install Class Accounting App</h4>
-                <span className="px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-400 text-[9px] font-bold">PWA</span>
+                <h4 className="font-bold text-xs text-white">Install Campus Portal</h4>
+                <span className="px-1.5 py-0.5 rounded bg-brand-500/20 text-brand-400 text-[9px] font-bold">PWA</span>
               </div>
               <p className="text-[11px] text-slate-300 mt-0.5 leading-snug">
                 {isIOS 
-                  ? 'Add to iPhone / iPad Home Screen for full offline & camera scanner access.'
-                  : 'Fast 1-click install for Android & Desktop without app stores.'}
+                  ? 'Add to iOS Home Screen for instant offline & camera access.'
+                  : 'Fast 1-click install for Android & Windows desktop.'}
               </p>
             </div>
           </div>
 
           <button
             onClick={() => setDismissed(true)}
-            className="p-1 rounded-lg text-slate-400 hover:text-white transition-colors"
+            className="p-1 rounded-lg text-slate-400 hover:text-white transition-colors cursor-pointer"
             title="Dismiss"
           >
             <X size={16} />
           </button>
         </div>
 
-        <div className="mt-3 pt-3 border-t border-slate-800/80 flex items-center justify-between gap-2">
-          <span className="text-[10px] text-slate-400">Works 100% offline</span>
+        <div className="mt-3 pt-3 border-t border-slate-800 flex items-center justify-between gap-2">
+          <span className="text-[10px] text-slate-400 font-medium">Offline capable</span>
           <button
             onClick={handleInstallClick}
-            className="px-4 py-2 rounded-xl bg-gradient-to-r from-indigo-500 to-violet-600 hover:from-indigo-400 hover:to-violet-500 text-white text-xs font-bold flex items-center gap-1.5 shadow-lg shadow-indigo-600/30 transition-all shrink-0"
+            className="px-3 py-1.5 rounded-lg bg-brand-600 hover:bg-brand-500 text-white text-xs font-semibold flex items-center gap-1.5 shadow-sm transition-all shrink-0 cursor-pointer active:scale-98"
           >
-            <Download size={14} />
-            <span>{isIOS ? 'How to Install on iPhone' : 'Install App'}</span>
+            <Download size={13} />
+            <span>{isIOS ? 'Install on iPhone' : 'Install App'}</span>
           </button>
         </div>
       </aside>
 
       {/* iOS Safari Home Screen Installation Modal */}
       {showIOSModal && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-in fade-in duration-200">
-          <div className="w-full max-w-sm bg-slate-900 border border-slate-800 rounded-3xl p-6 text-white shadow-2xl space-y-4">
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-slate-950/80 backdrop-blur-xs animate-in fade-in duration-200">
+          <div className="w-full max-w-sm bg-slate-900 border border-slate-800 rounded-2xl p-6 text-white shadow-2xl space-y-4">
             <div className="flex items-center justify-between pb-2 border-b border-slate-800">
               <div className="flex items-center gap-2">
-                <Sparkles size={18} className="text-indigo-400" />
+                <Building2 size={18} className="text-brand-400" />
                 <h3 className="font-bold text-sm text-white">Install on iPhone / iPad</h3>
               </div>
               <button 
                 onClick={() => setShowIOSModal(false)}
-                className="p-1 text-slate-400 hover:text-white"
+                className="p-1 text-slate-400 hover:text-white cursor-pointer"
               >
                 <X size={18} />
               </button>
             </div>
 
             <p className="text-xs text-slate-300">
-              Apple Safari does not require the App Store. You can add Class Accounting directly to your iPhone Home Screen in 3 quick steps:
+              Add the Class Accounting Portal to your iOS Home Screen in 3 simple steps:
             </p>
 
-            <div className="space-y-3 bg-slate-950/60 p-4 rounded-2xl border border-slate-800/80 text-xs">
+            <div className="space-y-3 bg-slate-950/70 p-4 rounded-xl border border-slate-800 text-xs">
               <div className="flex items-start gap-3">
-                <span className="w-6 h-6 rounded-full bg-indigo-600/30 border border-indigo-500/40 text-indigo-300 font-bold flex items-center justify-center shrink-0 text-[11px]">1</span>
+                <span className="w-5 h-5 rounded-full bg-slate-800 text-brand-400 font-bold flex items-center justify-center shrink-0 text-[10px] border border-slate-700">1</span>
                 <div>
                   <p className="font-bold text-white flex items-center gap-1.5">
                     <span>Tap Share Button</span>
@@ -158,33 +156,33 @@ export const PWAInstallPrompt: React.FC = () => {
               </div>
 
               <div className="flex items-start gap-3">
-                <span className="w-6 h-6 rounded-full bg-indigo-600/30 border border-indigo-500/40 text-indigo-300 font-bold flex items-center justify-center shrink-0 text-[11px]">2</span>
+                <span className="w-5 h-5 rounded-full bg-slate-800 text-brand-400 font-bold flex items-center justify-center shrink-0 text-[10px] border border-slate-700">2</span>
                 <div>
                   <p className="font-bold text-white flex items-center gap-1.5">
                     <span>Select 'Add to Home Screen'</span>
-                    <PlusSquare size={13} className="text-purple-400" />
+                    <PlusSquare size={13} className="text-slate-300" />
                   </p>
-                  <p className="text-[11px] text-slate-400">Scroll down the share sheet and tap the plus icon.</p>
+                  <p className="text-[11px] text-slate-400">Scroll down and tap 'Add to Home Screen'.</p>
                 </div>
               </div>
 
               <div className="flex items-start gap-3">
-                <span className="w-6 h-6 rounded-full bg-indigo-600/30 border border-indigo-500/40 text-indigo-300 font-bold flex items-center justify-center shrink-0 text-[11px]">3</span>
+                <span className="w-5 h-5 rounded-full bg-slate-800 text-emerald-400 font-bold flex items-center justify-center shrink-0 text-[10px] border border-slate-700">3</span>
                 <div>
                   <p className="font-bold text-white flex items-center gap-1.5">
-                    <span>Tap 'Add' at top right</span>
+                    <span>Tap 'Add'</span>
                     <Check size={13} className="text-emerald-400" />
                   </p>
-                  <p className="text-[11px] text-slate-400">The app icon will immediately appear on your home screen!</p>
+                  <p className="text-[11px] text-slate-400">The app icon is now available on your home screen.</p>
                 </div>
               </div>
             </div>
 
             <button
               onClick={() => setShowIOSModal(false)}
-              className="w-full py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs transition-colors"
+              className="w-full py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-white font-semibold text-xs transition-colors cursor-pointer"
             >
-              Got It
+              Close
             </button>
           </div>
         </div>
