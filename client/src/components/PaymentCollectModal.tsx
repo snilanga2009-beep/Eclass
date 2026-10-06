@@ -8,8 +8,13 @@ import {
   Smartphone, 
   CheckCircle2, 
   Plus, 
-  Trash2,
-  Clock
+  Trash2, 
+  Clock,
+  Search,
+  User,
+  ChevronRight,
+  Phone,
+  UserCheck
 } from 'lucide-react';
 import { apiRequest, formatLKR } from '../api';
 import confetti from 'canvas-confetti';
@@ -87,6 +92,7 @@ export const PaymentCollectModal: React.FC<PaymentCollectModalProps> = ({
   const [students, setStudents] = useState<any[]>([]);
   const [selectedStudentId, setSelectedStudentId] = useState<string>('');
   const [isChangingStudent, setIsChangingStudent] = useState(false);
+  const [studentSearchQuery, setStudentSearchQuery] = useState('');
   const [studentDetails, setStudentDetails] = useState<any>(null);
   const [allClasses, setAllClasses] = useState<any[]>([]);
   const [paymentMethod, setPaymentMethod] = useState('Cash');
@@ -95,6 +101,36 @@ export const PaymentCollectModal: React.FC<PaymentCollectModalProps> = ({
   const [feeInputs, setFeeInputs] = useState<{ [feeId: string]: { amount: number; discount: number } }>({});
   const [manualFeeItems, setManualFeeItems] = useState<ManualFeeItem[]>([]);
   
+  // Dynamic student search filtering: matches name, student ID, phone, grade, barcode/RFID
+  const filteredStudents = React.useMemo(() => {
+    const q = studentSearchQuery.trim().toLowerCase();
+    if (!q) {
+      return students.slice(0, 10);
+    }
+    return students.filter(s => {
+      const name = (s.fullName || '').toLowerCase();
+      const idNum = (s.studentIdNumber || '').toLowerCase();
+      const phone = (s.phone || '');
+      const parentPhone = (s.parentPhone || '');
+      const grade = (s.grade || '').toLowerCase();
+      const rfid = (s.rfidTag || '').toLowerCase();
+      return (
+        name.includes(q) ||
+        idNum.includes(q) ||
+        phone.includes(q) ||
+        parentPhone.includes(q) ||
+        grade.includes(q) ||
+        rfid.includes(q)
+      );
+    }).slice(0, 25);
+  }, [students, studentSearchQuery]);
+
+  const handleSelectStudent = (s: any) => {
+    setSelectedStudentId(s.id);
+    setIsChangingStudent(false);
+    setStudentSearchQuery('');
+  };
+
   // Manual month selection state
   const monthList = generateMonthList();
   const currentMonthObj = monthList.find(m => m.isCurrent) || monthList[6];
@@ -111,23 +147,22 @@ export const PaymentCollectModal: React.FC<PaymentCollectModalProps> = ({
   // Fetch initial student list and full class directory
   useEffect(() => {
     if (isOpen) {
-      setIsChangingStudent(false);
       setManualFeeItems([]);
       setShowManualMonthPicker(false);
+      setStudentSearchQuery('');
 
       const effectiveStudentId = isStudentOrParent ? (user?.studentId || preselectedStudentId) : preselectedStudentId;
-      if (isStudentOrParent && effectiveStudentId) {
+      if (effectiveStudentId) {
         setSelectedStudentId(effectiveStudentId);
+        setIsChangingStudent(false);
       } else {
-        apiRequest<any[]>('/students?status=ACTIVE').then(res => {
-          setStudents(res || []);
-          if (effectiveStudentId) {
-            setSelectedStudentId(effectiveStudentId);
-          } else if (res && res.length > 0) {
-            setSelectedStudentId(res[0].id);
-          }
-        });
+        setSelectedStudentId('');
+        setIsChangingStudent(true);
       }
+
+      apiRequest<any[]>('/students?status=ACTIVE').then(res => {
+        setStudents(res || []);
+      });
 
       apiRequest<any[]>('/classes').then(res => {
         setAllClasses(res || []);
@@ -279,6 +314,11 @@ export const PaymentCollectModal: React.FC<PaymentCollectModalProps> = ({
     e.preventDefault();
     setError(null);
 
+    if (!selectedStudentId) {
+      setError('Please search and select a student first.');
+      return;
+    }
+
     const itemsToPay = Object.keys(feeInputs)
       .filter(feeId => Number(feeInputs[feeId]?.amount) > 0)
       .map(feeId => {
@@ -378,66 +418,162 @@ export const PaymentCollectModal: React.FC<PaymentCollectModalProps> = ({
           )}
 
           {/* Student Selector / Targeted Student View */}
-          {(isStudentOrParent || (preselectedStudentId && !isChangingStudent)) && studentDetails ? (
+          {(isStudentOrParent || (selectedStudentId && studentDetails && !isChangingStudent)) ? (
             <div className="p-3.5 rounded-2xl bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200 flex items-center justify-between shadow-sm">
               <div className="flex items-center space-x-3 min-w-0">
                 <img 
                   src={getStudentAvatar(studentDetails)} 
                   alt="" 
-                  className="w-11 h-11 rounded-2xl object-cover ring-2 ring-emerald-500/30 shrink-0 bg-slate-100" 
+                  className="w-12 h-12 rounded-2xl object-cover ring-2 ring-emerald-500/30 shrink-0 bg-slate-100" 
                 />
                 <div className="min-w-0">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-700 block">
-                    {isStudentOrParent ? 'My Student Account' : 'Student Selected'}
-                  </span>
-                  <h4 className="font-extrabold text-sm text-slate-900 truncate">{studentDetails.fullName}</h4>
-                  <p className="text-xs font-mono text-slate-600 truncate">{studentDetails.studentIdNumber} • {studentDetails.grade}</p>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-700 bg-emerald-100/80 px-2 py-0.5 rounded-md">
+                      {isStudentOrParent ? 'My Student Account' : 'Student Selected'}
+                    </span>
+                    <span className="text-xs font-mono font-bold text-slate-700">
+                      {studentDetails.studentIdNumber}
+                    </span>
+                  </div>
+                  <h4 className="font-extrabold text-sm sm:text-base text-slate-900 truncate mt-0.5">{studentDetails.fullName}</h4>
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-slate-600 mt-0.5">
+                    <span className="font-medium text-slate-700">{studentDetails.grade}</span>
+                    {(studentDetails.phone || studentDetails.parentPhone) && (
+                      <span className="flex items-center gap-1 text-slate-500 font-mono text-[11px]">
+                        <Phone size={12} className="text-slate-400" />
+                        {studentDetails.phone || studentDetails.parentPhone}
+                      </span>
+                    )}
+                  </div>
                 </div>
               </div>
               {!isStudentOrParent && (
                 <button
                   type="button"
-                  onClick={() => setIsChangingStudent(true)}
-                  className="text-xs font-bold text-slate-600 hover:text-slate-900 bg-white px-2.5 py-1.5 rounded-xl border border-slate-200 shadow-sm transition-all shrink-0 ml-2"
+                  onClick={() => {
+                    setIsChangingStudent(true);
+                    setStudentSearchQuery('');
+                  }}
+                  className="text-xs font-bold text-slate-700 hover:text-slate-900 bg-white hover:bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-300 shadow-sm transition-all shrink-0 ml-3"
                 >
-                  Change
+                  Change Student
                 </button>
               )}
             </div>
           ) : !isStudentOrParent ? (
-            <div>
-              <div className="flex items-center justify-between mb-1.5">
-                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">Select Student</label>
-                {preselectedStudentId && isChangingStudent && (
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
+                  <User size={14} className="text-brand-600" />
+                  <span>Search &amp; Select Student</span>
+                </label>
+                {selectedStudentId && studentDetails && (
                   <button
                     type="button"
-                    onClick={() => {
-                      setSelectedStudentId(preselectedStudentId);
-                      setIsChangingStudent(false);
-                    }}
-                    className="text-[11px] font-bold text-brand-600 hover:underline"
+                    onClick={() => setIsChangingStudent(false)}
+                    className="text-[11px] font-bold text-slate-500 hover:text-slate-800"
                   >
-                    Back to Scanned Student
+                    Keep Current ({studentDetails.fullName})
                   </button>
                 )}
               </div>
-              <select
-                value={selectedStudentId}
-                onChange={(e) => setSelectedStudentId(e.target.value)}
-                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 bg-white"
-              >
-                {students.map(s => (
-                  <option key={s.id} value={s.id}>
-                    {s.fullName} ({s.studentIdNumber}) - {s.grade}
-                  </option>
-                ))}
-              </select>
+
+              {/* Instant Search Input */}
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                  <Search size={16} />
+                </div>
+                <input
+                  type="text"
+                  autoFocus
+                  value={studentSearchQuery}
+                  onChange={(e) => setStudentSearchQuery(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      if (filteredStudents.length > 0) {
+                        handleSelectStudent(filteredStudents[0]);
+                      }
+                    }
+                  }}
+                  placeholder="Type student name, ID (e.g. STU-001), phone, or grade..."
+                  className="w-full pl-10 pr-9 py-2.5 rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 bg-white shadow-sm transition-all"
+                />
+                {studentSearchQuery && (
+                  <button
+                    type="button"
+                    onClick={() => setStudentSearchQuery('')}
+                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600"
+                  >
+                    <X size={15} />
+                  </button>
+                )}
+              </div>
+
+              {/* Instant Filtered Students Dropdown / Results */}
+              <div className="max-h-56 overflow-y-auto rounded-xl border border-slate-200 bg-white divide-y divide-slate-100 shadow-sm">
+                {filteredStudents.length > 0 ? (
+                  filteredStudents.map((s) => (
+                    <button
+                      key={s.id}
+                      type="button"
+                      onClick={() => handleSelectStudent(s)}
+                      className={`w-full text-left px-3.5 py-2.5 flex items-center justify-between hover:bg-brand-50/70 transition-colors group ${
+                        selectedStudentId === s.id ? 'bg-brand-50 border-l-4 border-l-brand-600' : ''
+                      }`}
+                    >
+                      <div className="flex items-center space-x-3 min-w-0">
+                        <img
+                          src={getStudentAvatar(s)}
+                          alt=""
+                          className="w-8 h-8 rounded-lg object-cover bg-slate-100 shrink-0 ring-1 ring-slate-200"
+                        />
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className="font-bold text-xs sm:text-sm text-slate-900 group-hover:text-brand-700 truncate">
+                              {s.fullName}
+                            </span>
+                            <span className="text-[10px] font-mono font-bold text-slate-600 bg-slate-100 px-1.5 py-0.5 rounded">
+                              {s.studentIdNumber}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2 text-[11px] text-slate-500 mt-0.5 truncate">
+                            <span>{s.grade}</span>
+                            {(s.phone || s.parentPhone) && (
+                              <>
+                                <span>•</span>
+                                <span className="font-mono">{s.phone || s.parentPhone}</span>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex items-center space-x-1 text-slate-400 group-hover:text-brand-600 shrink-0 ml-2">
+                        <span className="text-[11px] font-bold hidden sm:inline">Select</span>
+                        <ChevronRight size={16} />
+                      </div>
+                    </button>
+                  ))
+                ) : (
+                  <div className="py-6 text-center text-xs text-slate-400">
+                    No students found matching "{studentSearchQuery}".
+                  </div>
+                )}
+              </div>
             </div>
           ) : null}
 
-          {/* Loading state */}
+          {/* Loading state / Empty State */}
           {loading ? (
             <div className="text-center py-6 text-xs text-slate-400">Loading student details &amp; fee records...</div>
+          ) : !selectedStudentId ? (
+            <div className="p-8 rounded-2xl border-2 border-dashed border-slate-200 text-center bg-slate-50/50">
+              <UserCheck size={36} className="mx-auto text-slate-300 mb-2" />
+              <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wider">No Student Selected</h4>
+              <p className="text-xs text-slate-500 mt-1 max-w-sm mx-auto">
+                Type in the search bar above to instantly find a student by Name, Student ID (e.g. STU-001), Phone, or Grade.
+              </p>
+            </div>
           ) : studentDetails ? (
             <div className="space-y-4">
               {/* SECTION: CHECK LAST MONTH STATUS BANNER */}
@@ -790,7 +926,7 @@ export const PaymentCollectModal: React.FC<PaymentCollectModalProps> = ({
               </button>
               <button
                 type="submit"
-                disabled={submitting || grandTotal === 0}
+                disabled={submitting || !selectedStudentId || grandTotal === 0}
                 className="flex-1 sm:flex-none px-5 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-700 disabled:opacity-50 text-white text-xs font-bold shadow-lg shadow-brand-600/30 transition-all flex items-center justify-center gap-1.5 active:scale-95"
               >
                 <Check size={16} />
