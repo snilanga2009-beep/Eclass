@@ -163,7 +163,7 @@ router.get('/export/:reportId', authenticateToken, (req: AuthRequest, res: Respo
 
 // GET /api/reports/teacher-commissions - Teacher Commission & Academy Net Profit with Daily, Weekly, Monthly filters
 router.get('/teacher-commissions', authenticateToken, (req: AuthRequest, res: Response) => {
-  const { teacherId, period } = req.query;
+  const { teacherId, period, classId, subject } = req.query;
 
   const now = new Date();
   const todayStr = now.toISOString().substring(0, 10);
@@ -184,7 +184,27 @@ router.get('/teacher-commissions', authenticateToken, (req: AuthRequest, res: Re
 
       if (!teacher || !cls) return;
 
+      // Filter by teacher if specified
       if (teacherId && teacherId !== 'ALL' && teacher.id !== teacherId) return;
+
+      // Filter by class if specified
+      if (classId && classId !== 'ALL' && cls.id !== classId) return;
+
+      // Resolve subject name for the class
+      let subjectName = 'General';
+      if (cls.subjectId) {
+        const sub = db.data.subjects.find(s => s.id === cls.subjectId);
+        if (sub && sub.name) subjectName = sub.name;
+      }
+      if (subjectName === 'General' && (cls as any).subject) {
+        subjectName = (cls as any).subject;
+      }
+      if (subjectName === 'General' && teacher.courses && teacher.courses.length === 1) {
+        subjectName = teacher.courses[0];
+      }
+
+      // Filter by subject if specified
+      if (subject && subject !== 'ALL' && subjectName.toLowerCase() !== String(subject).toLowerCase()) return;
 
       const collectedAmount = item.amountPaid || 0;
       let commissionRate = 70;
@@ -219,6 +239,7 @@ router.get('/teacher-commissions', authenticateToken, (req: AuthRequest, res: Re
         studentIdNumber: student?.studentIdNumber || '',
         classId: cls.id,
         className: cls.name,
+        subject: subjectName,
         teacherId: teacher.id,
         teacherName: teacher.name,
         teacherPhone: teacher.phone,
@@ -261,23 +282,133 @@ router.get('/teacher-commissions', authenticateToken, (req: AuthRequest, res: Re
     activeStats = allStats;
   }
 
+  // Calculate Breakdown by Class
+  const classMap: Record<string, any> = {};
+  activeRecords.forEach(r => {
+    if (!classMap[r.classId]) {
+      classMap[r.classId] = {
+        classId: r.classId,
+        className: r.className,
+        subject: r.subject,
+        studentIds: new Set<string>(),
+        totalCollected: 0,
+        teacherEarnings: 0,
+        academyProfit: 0,
+        transactionCount: 0
+      };
+    }
+    classMap[r.classId].studentIds.add(r.studentId);
+    classMap[r.classId].totalCollected += r.collectedAmount;
+    classMap[r.classId].teacherEarnings += r.teacherEarning;
+    classMap[r.classId].academyProfit += r.academyProfit;
+    classMap[r.classId].transactionCount += 1;
+  });
+
+  const breakdownByClass = Object.values(classMap).map(c => ({
+    classId: c.classId,
+    className: c.className,
+    subject: c.subject,
+    studentCount: c.studentIds.size,
+    totalCollected: c.totalCollected,
+    teacherEarnings: c.teacherEarnings,
+    academyProfit: c.academyProfit,
+    transactionCount: c.transactionCount
+  }));
+
+  // Calculate Breakdown by Subject / Course
+  const subjectMap: Record<string, any> = {};
+  activeRecords.forEach(r => {
+    const sub = r.subject || 'General';
+    if (!subjectMap[sub]) {
+      subjectMap[sub] = {
+        subject: sub,
+        studentIds: new Set<string>(),
+        totalCollected: 0,
+        teacherEarnings: 0,
+        academyProfit: 0,
+        transactionCount: 0
+      };
+    }
+    subjectMap[sub].studentIds.add(r.studentId);
+    subjectMap[sub].totalCollected += r.collectedAmount;
+    subjectMap[sub].teacherEarnings += r.teacherEarning;
+    subjectMap[sub].academyProfit += r.academyProfit;
+    subjectMap[sub].transactionCount += 1;
+  });
+
+  const breakdownBySubject = Object.values(subjectMap).map(s => ({
+    subject: s.subject,
+    studentCount: s.studentIds.size,
+    totalCollected: s.totalCollected,
+    teacherEarnings: s.teacherEarnings,
+    academyProfit: s.academyProfit,
+    transactionCount: s.transactionCount
+  }));
+
   const teachersList = db.data.teachers.map(t => ({
     id: t.id,
     name: t.name,
     phone: t.phone,
     paymentMethod: t.paymentMethod,
-    paymentRate: t.paymentRate
+    paymentRate: t.paymentRate,
+    courses: t.courses || []
   }));
+
+  // Available classes for filtering
+  let candidateClasses = db.data.classes;
+  if (teacherId && teacherId !== 'ALL') {
+    candidateClasses = db.data.classes.filter(c => c.teacherId === teacherId);
+  }
+  const availableClasses = candidateClasses.map(c => {
+    let subName = 'General';
+    if (c.subjectId) {
+      const sub = db.data.subjects.find(s => s.id === c.subjectId);
+      if (sub && sub.name) subName = sub.name;
+    }
+    return {
+      id: c.id,
+      name: c.name,
+      teacherId: c.teacherId,
+      subject: subName
+    };
+  });
+
+  // Available subjects for filtering
+  const subjectSet = new Set<string>();
+  if (teacherId && teacherId !== 'ALL') {
+    const chosenTeacher = db.data.teachers.find(t => t.id === teacherId);
+    if (chosenTeacher?.courses) {
+      chosenTeacher.courses.forEach(c => subjectSet.add(c.trim()));
+    }
+    candidateClasses.forEach(c => {
+      if (c.subjectId) {
+        const sub = db.data.subjects.find(s => s.id === c.subjectId);
+        if (sub?.name) subjectSet.add(sub.name.trim());
+      }
+    });
+  } else {
+    db.data.subjects.forEach(s => subjectSet.add(s.name.trim()));
+    db.data.teachers.forEach(t => {
+      if (t.courses) t.courses.forEach(c => subjectSet.add(c.trim()));
+    });
+  }
+  const availableSubjects = Array.from(subjectSet).filter(Boolean).sort();
 
   return res.json({
     period: period || 'monthly',
     selectedTeacherId: teacherId || 'ALL',
+    selectedClassId: classId || 'ALL',
+    selectedSubject: subject || 'ALL',
     teachers: teachersList,
+    availableClasses,
+    availableSubjects,
     dailyStats,
     weeklyStats,
     monthlyStats,
     allStats,
     activeStats,
+    breakdownByClass,
+    breakdownBySubject,
     records: activeRecords
   });
 });

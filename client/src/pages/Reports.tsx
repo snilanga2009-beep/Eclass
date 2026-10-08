@@ -19,7 +19,10 @@ import {
   Clock,
   ArrowUpRight,
   Filter,
-  Check
+  Check,
+  BookOpen,
+  Layers,
+  RotateCcw
 } from 'lucide-react';
 import { apiRequest, formatLKR } from '../api';
 import { useSettings } from '../context/SettingsContext';
@@ -31,6 +34,8 @@ export const Reports: React.FC = () => {
 
   // Teacher Commission & Remuneration State
   const [selectedTeacherId, setSelectedTeacherId] = useState<string>('ALL');
+  const [selectedSubject, setSelectedSubject] = useState<string>('ALL');
+  const [selectedClassId, setSelectedClassId] = useState<string>('ALL');
   const [period, setPeriod] = useState<'daily' | 'weekly' | 'monthly' | 'all'>('monthly');
   const [commissionData, setCommissionData] = useState<any>(null);
   const [commissionLoading, setCommissionLoading] = useState(false);
@@ -47,10 +52,17 @@ export const Reports: React.FC = () => {
     apiRequest('/reports/dashboard').then(res => setReportData(res));
   }, []);
 
-  // Fetch Teacher Commissions Report
+  // Fetch Teacher Commissions Report with multi-course & class filters
   const fetchCommissionReport = () => {
     setCommissionLoading(true);
-    apiRequest(`/reports/teacher-commissions?teacherId=${selectedTeacherId}&period=${period}`)
+    const query = new URLSearchParams({
+      teacherId: selectedTeacherId,
+      period,
+      subject: selectedSubject,
+      classId: selectedClassId
+    }).toString();
+
+    apiRequest(`/reports/teacher-commissions?${query}`)
       .then(res => setCommissionData(res))
       .catch(err => console.error('Failed to load commission report:', err))
       .finally(() => setCommissionLoading(false));
@@ -58,7 +70,7 @@ export const Reports: React.FC = () => {
 
   useEffect(() => {
     fetchCommissionReport();
-  }, [selectedTeacherId, period]);
+  }, [selectedTeacherId, period, selectedSubject, selectedClassId]);
 
   // Fetch Master Export Table
   useEffect(() => {
@@ -75,6 +87,14 @@ export const Reports: React.FC = () => {
     const teacherName = selectedTeacherId === 'ALL' 
       ? 'All Faculty Teachers (Institute Summary)' 
       : (commissionData.teachers?.find((t: any) => t.id === selectedTeacherId)?.name || 'Teacher');
+
+    const selectedClassName = selectedClassId === 'ALL'
+      ? null
+      : commissionData.availableClasses?.find((c: any) => c.id === selectedClassId)?.name;
+
+    const courseScopeLines = (selectedSubject !== 'ALL' || selectedClassName)
+      ? `${selectedSubject !== 'ALL' ? `📚 *Subject / Course:* ${selectedSubject}\n` : ''}${selectedClassName ? `🏫 *Class / Batch:* ${selectedClassName}\n` : ''}`
+      : '';
     
     const periodLabel = period === 'daily' 
       ? `Today (${new Date().toLocaleDateString('en-GB')})` 
@@ -95,7 +115,7 @@ export const Reports: React.FC = () => {
 `📊 *${instituteName.toUpperCase()} - REMUNERATION & PROFIT REPORT*
 ━━━━━━━━━━━━━━━━━━━━━━━━━━
 👤 *Teacher:* ${teacherName}
-📅 *Period:* ${periodLabel}
+${courseScopeLines}📅 *Period:* ${periodLabel}
 ━━━━━━━━━━━━━━━━━━━━━━━━━━
 💰 *Total Fees Collected:* Rs. ${totalCollected.toLocaleString()}
 👨‍🏫 *Teacher Earnings (Commission):* Rs. ${teacherEarnings.toLocaleString()}
@@ -129,12 +149,13 @@ export const Reports: React.FC = () => {
   // CSV Export for Commissions
   const handleDownloadCommissionCSV = () => {
     if (!commissionData?.records || commissionData.records.length === 0) return;
-    const headers = ['Date', 'Receipt No', 'Student Name', 'Student ID', 'Class Name', 'Teacher Name', 'Commission Rate', 'Collected Amount (Rs)', 'Teacher Earning (Rs)', 'Academy Profit (Rs)'];
+    const headers = ['Date', 'Receipt No', 'Student Name', 'Student ID', 'Subject / Course', 'Class Name', 'Teacher Name', 'Commission Rate', 'Collected Amount (Rs)', 'Teacher Earning (Rs)', 'Academy Profit (Rs)'];
     const rows = commissionData.records.map((r: any) => [
       `"${r.date}"`,
       `"${r.receiptNo}"`,
       `"${r.studentName}"`,
       `"${r.studentIdNumber}"`,
+      `"${r.subject || 'General'}"`,
       `"${r.className}"`,
       `"${r.teacherName}"`,
       `"${r.commissionRate}%"`,
@@ -357,81 +378,186 @@ export const Reports: React.FC = () => {
       {/* TAB 1: TEACHER COMMISSION & ACADEMY PROFIT HUB */}
       {activeView === 'commission-hub' && (
         <div className="space-y-6">
-          {/* Controls Bar: Teacher Filter & Period Buttons */}
-          <div className="p-4 rounded-3xl bg-white border border-slate-200/80 shadow-sm flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
-            {/* Teacher Selection */}
-            <div className="flex-1 flex flex-col sm:flex-row sm:items-center gap-2.5">
-              <label className="text-xs font-extrabold text-slate-700 uppercase tracking-wider flex items-center gap-1.5 shrink-0">
-                <Filter size={14} className="text-brand-600" />
-                <span>Select Teacher:</span>
-              </label>
-              <select
-                value={selectedTeacherId}
-                onChange={(e) => setSelectedTeacherId(e.target.value)}
-                className="w-full sm:max-w-md px-3.5 py-2.5 rounded-2xl border border-slate-300 text-xs font-bold text-slate-900 bg-white focus:outline-none focus:ring-2 focus:ring-brand-500"
-              >
-                <option value="ALL">All Faculty Teachers (Institute Wide)</option>
-                {commissionData?.teachers?.map((t: any) => (
-                  <option key={t.id} value={t.id}>
-                    {t.name} ({t.paymentMethod} {t.paymentRate ? `• ${t.paymentRate}%` : ''})
-                  </option>
-                ))}
-              </select>
+          {/* Controls Bar: Multi-Filter by Teacher, Subject/Course, Class and Period */}
+          <div className="p-4 sm:p-5 rounded-3xl bg-white border border-slate-200/80 shadow-sm space-y-3.5">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              {/* Filter 1: Teacher Selection */}
+              <div className="space-y-1">
+                <label className="text-[10px] font-black text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
+                  <Filter size={13} className="text-brand-600" />
+                  <span>Select Teacher:</span>
+                </label>
+                <select
+                  value={selectedTeacherId}
+                  onChange={(e) => {
+                    setSelectedTeacherId(e.target.value);
+                    setSelectedSubject('ALL');
+                    setSelectedClassId('ALL');
+                  }}
+                  className="w-full px-3.5 py-2.5 rounded-2xl border border-slate-300 text-xs font-bold text-slate-900 bg-white focus:outline-none focus:ring-2 focus:ring-brand-500 transition-all"
+                >
+                  <option value="ALL">All Faculty Teachers (Institute Wide)</option>
+                  {commissionData?.teachers?.map((t: any) => (
+                    <option key={t.id} value={t.id}>
+                      {t.name} ({t.paymentMethod} {t.paymentRate ? `• ${t.paymentRate}%` : ''} {t.courses?.length > 0 ? `• ${t.courses.length} courses` : ''})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Filter 2: Subject / Course Selection */}
+              <div className="space-y-1">
+                <label className="text-[10px] font-black text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
+                  <BookOpen size={13} className="text-purple-600" />
+                  <span>Filter Subject / Course:</span>
+                </label>
+                <select
+                  value={selectedSubject}
+                  onChange={(e) => {
+                    setSelectedSubject(e.target.value);
+                    setSelectedClassId('ALL');
+                  }}
+                  className={`w-full px-3.5 py-2.5 rounded-2xl border text-xs font-bold transition-all focus:outline-none focus:ring-2 ${
+                    selectedSubject !== 'ALL'
+                      ? 'border-purple-400 bg-purple-50/50 text-purple-950 focus:ring-purple-500'
+                      : 'border-slate-300 bg-white text-slate-900 focus:ring-brand-500'
+                  }`}
+                >
+                  <option value="ALL">All Courses &amp; Subjects</option>
+                  {commissionData?.availableSubjects?.map((sub: string) => (
+                    <option key={sub} value={sub}>
+                      {sub}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Filter 3: Class / Batch Selection */}
+              <div className="space-y-1">
+                <label className="text-[10px] font-black text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
+                  <Layers size={13} className="text-teal-600" />
+                  <span>Filter Class / Batch:</span>
+                </label>
+                <select
+                  value={selectedClassId}
+                  onChange={(e) => setSelectedClassId(e.target.value)}
+                  className={`w-full px-3.5 py-2.5 rounded-2xl border text-xs font-bold transition-all focus:outline-none focus:ring-2 ${
+                    selectedClassId !== 'ALL'
+                      ? 'border-teal-400 bg-teal-50/50 text-teal-950 focus:ring-teal-500'
+                      : 'border-slate-300 bg-white text-slate-900 focus:ring-brand-500'
+                  }`}
+                >
+                  <option value="ALL">All Classes &amp; Batches</option>
+                  {commissionData?.availableClasses
+                    ?.filter((c: any) => selectedSubject === 'ALL' || c.subject.toLowerCase() === selectedSubject.toLowerCase())
+                    ?.map((c: any) => (
+                      <option key={c.id} value={c.id}>
+                        {c.name} ({c.subject})
+                      </option>
+                    ))}
+                </select>
+              </div>
             </div>
 
-            {/* Daily, Weekly, Monthly Filter Chips */}
-            <div className="flex items-center gap-1.5 bg-slate-100 p-1.5 rounded-2xl border border-slate-200 self-start sm:self-auto overflow-x-auto">
-              <button
-                type="button"
-                onClick={() => setPeriod('daily')}
-                className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
-                  period === 'daily' 
-                    ? 'bg-emerald-600 text-white shadow-sm' 
-                    : 'text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                <Clock size={13} />
-                <span>Daily (Today)</span>
-              </button>
+            {/* Second Row: Period Selector & Quick Reset Controls */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2 border-t border-slate-100">
+              {/* Daily, Weekly, Monthly Filter Chips */}
+              <div className="flex items-center gap-1.5 bg-slate-100 p-1.5 rounded-2xl border border-slate-200 self-start sm:self-auto overflow-x-auto">
+                <button
+                  type="button"
+                  onClick={() => setPeriod('daily')}
+                  className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
+                    period === 'daily' 
+                      ? 'bg-emerald-600 text-white shadow-sm' 
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  <Clock size={13} />
+                  <span>Daily (Today)</span>
+                </button>
 
-              <button
-                type="button"
-                onClick={() => setPeriod('weekly')}
-                className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
-                  period === 'weekly' 
-                    ? 'bg-emerald-600 text-white shadow-sm' 
-                    : 'text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                <Calendar size={13} />
-                <span>Weekly</span>
-              </button>
+                <button
+                  type="button"
+                  onClick={() => setPeriod('weekly')}
+                  className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
+                    period === 'weekly' 
+                      ? 'bg-emerald-600 text-white shadow-sm' 
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  <Calendar size={13} />
+                  <span>Weekly (7D)</span>
+                </button>
 
-              <button
-                type="button"
-                onClick={() => setPeriod('monthly')}
-                className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
-                  period === 'monthly' 
-                    ? 'bg-emerald-600 text-white shadow-sm' 
-                    : 'text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                <BarChart3 size={13} />
-                <span>Monthly</span>
-              </button>
+                <button
+                  type="button"
+                  onClick={() => setPeriod('monthly')}
+                  className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
+                    period === 'monthly' 
+                      ? 'bg-emerald-600 text-white shadow-sm' 
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  <BarChart3 size={13} />
+                  <span>Monthly</span>
+                </button>
 
-              <button
-                type="button"
-                onClick={() => setPeriod('all')}
-                className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all ${
-                  period === 'all' 
-                    ? 'bg-slate-900 text-white shadow-sm' 
-                    : 'text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                All Time
-              </button>
+                <button
+                  type="button"
+                  onClick={() => setPeriod('all')}
+                  className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                    period === 'all' 
+                      ? 'bg-slate-900 text-white shadow-sm' 
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  All Time
+                </button>
+              </div>
+
+              {/* Reset Filters Pill */}
+              {(selectedTeacherId !== 'ALL' || selectedSubject !== 'ALL' || selectedClassId !== 'ALL') && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedTeacherId('ALL');
+                    setSelectedSubject('ALL');
+                    setSelectedClassId('ALL');
+                  }}
+                  className="px-3 py-1.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-bold border border-rose-200 flex items-center gap-1.5 transition-colors self-start sm:self-auto shrink-0"
+                >
+                  <RotateCcw size={13} />
+                  <span>Reset All Filters</span>
+                </button>
+              )}
             </div>
+
+            {/* Active Scope Indicator Badge */}
+            {(selectedTeacherId !== 'ALL' || selectedSubject !== 'ALL' || selectedClassId !== 'ALL') && (
+              <div className="p-2.5 rounded-2xl bg-slate-50 border border-slate-200/80 flex flex-wrap items-center gap-2 text-xs">
+                <span className="text-[10px] font-black uppercase tracking-wider text-slate-500">Active Audit Scope:</span>
+                {selectedTeacherId !== 'ALL' && (
+                  <span className="px-2.5 py-1 rounded-xl bg-purple-100 text-purple-800 font-bold flex items-center gap-1 text-[11px]">
+                    <GraduationCap size={13} />
+                    <span>{commissionData?.teachers?.find((t: any) => t.id === selectedTeacherId)?.name || 'Teacher'}</span>
+                  </span>
+                )}
+                {selectedSubject !== 'ALL' && (
+                  <span className="px-2.5 py-1 rounded-xl bg-indigo-100 text-indigo-800 font-bold flex items-center gap-1 text-[11px]">
+                    <BookOpen size={13} />
+                    <span>{selectedSubject}</span>
+                    <button onClick={() => setSelectedSubject('ALL')} className="hover:text-indigo-950 ml-0.5">✕</button>
+                  </span>
+                )}
+                {selectedClassId !== 'ALL' && (
+                  <span className="px-2.5 py-1 rounded-xl bg-teal-100 text-teal-800 font-bold flex items-center gap-1 text-[11px]">
+                    <Layers size={13} />
+                    <span>{commissionData?.availableClasses?.find((c: any) => c.id === selectedClassId)?.name || 'Class'}</span>
+                    <button onClick={() => setSelectedClassId('ALL')} className="hover:text-teal-950 ml-0.5">✕</button>
+                  </span>
+                )}
+              </div>
+            )}
           </div>
 
           {/* SPLIT VISUAL COMPARISON (Two Sides: Teacher Earnings vs Academy Profit) */}
@@ -452,6 +578,15 @@ export const Reports: React.FC = () => {
                   {period === 'daily' ? 'DAILY' : period === 'weekly' ? 'WEEKLY' : period === 'monthly' ? 'MONTHLY' : 'ALL TIME'}
                 </span>
               </div>
+
+              {/* Dynamic Scope Tag */}
+              {(selectedTeacherId !== 'ALL' || selectedSubject !== 'ALL' || selectedClassId !== 'ALL') && (
+                <div className="px-3 py-1.5 rounded-xl bg-purple-500/15 border border-purple-400/20 text-[11px] text-purple-200 font-medium">
+                  Auditing: <span className="font-bold text-white">{selectedTeacherId !== 'ALL' ? (commissionData?.teachers?.find((t: any) => t.id === selectedTeacherId)?.name || 'Teacher') : 'All Faculty'}</span>
+                  {selectedSubject !== 'ALL' && <span className="font-bold text-purple-300"> • {selectedSubject}</span>}
+                  {selectedClassId !== 'ALL' && <span className="font-bold text-teal-300"> • {commissionData?.availableClasses?.find((c: any) => c.id === selectedClassId)?.name}</span>}
+                </div>
+              )}
 
               <div className="p-4 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-between">
                 <div>
@@ -500,6 +635,15 @@ export const Reports: React.FC = () => {
                 </span>
               </div>
 
+              {/* Dynamic Scope Tag */}
+              {(selectedTeacherId !== 'ALL' || selectedSubject !== 'ALL' || selectedClassId !== 'ALL') && (
+                <div className="px-3 py-1.5 rounded-xl bg-teal-500/15 border border-teal-400/20 text-[11px] text-teal-200 font-medium">
+                  Academy Net Surplus From: <span className="font-bold text-white">{selectedTeacherId !== 'ALL' ? (commissionData?.teachers?.find((t: any) => t.id === selectedTeacherId)?.name || 'Teacher') : 'All Faculty'}</span>
+                  {selectedSubject !== 'ALL' && <span className="font-bold text-purple-300"> • {selectedSubject}</span>}
+                  {selectedClassId !== 'ALL' && <span className="font-bold text-teal-300"> • {commissionData?.availableClasses?.find((c: any) => c.id === selectedClassId)?.name}</span>}
+                </div>
+              )}
+
               <div className="p-4 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-between">
                 <div>
                   <span className="text-xs text-slate-300 font-medium">Net Profit Retained by Academy:</span>
@@ -528,6 +672,145 @@ export const Reports: React.FC = () => {
                   <span className="font-mono font-bold text-white text-xs mt-0.5 block">{formatLKR(monthlyStats.academyProfit || 0)}</span>
                 </div>
               </div>
+            </div>
+          </div>
+
+          {/* COURSE & CLASS PERFORMANCE DISTRIBUTION (Multi-Course Breakdown) */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+            {/* Subject / Course Breakdown */}
+            <div className="p-5 rounded-3xl bg-white border border-slate-200/80 shadow-sm space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <div className="w-8 h-8 rounded-xl bg-purple-500/10 text-purple-600 flex items-center justify-center">
+                    <BookOpen size={16} />
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-black text-slate-900 uppercase tracking-wider">Courses / Subjects Breakdown</h4>
+                    <p className="text-[10px] text-slate-500">Tap any subject chip to instantly filter earnings report</p>
+                  </div>
+                </div>
+                {selectedSubject !== 'ALL' && (
+                  <button
+                    type="button"
+                    onClick={() => setSelectedSubject('ALL')}
+                    className="text-[10px] font-bold text-rose-600 hover:text-rose-700 bg-rose-50 px-2 py-0.5 rounded-lg border border-rose-200"
+                  >
+                    Clear Filter
+                  </button>
+                )}
+              </div>
+
+              {commissionData?.breakdownBySubject?.length > 0 ? (
+                <div className="space-y-2 max-h-[300px] overflow-y-auto pr-1">
+                  {commissionData.breakdownBySubject.map((sub: any) => {
+                    const isSelected = selectedSubject === sub.subject;
+                    return (
+                      <div
+                        key={sub.subject}
+                        onClick={() => setSelectedSubject(isSelected ? 'ALL' : sub.subject)}
+                        className={`p-3 rounded-2xl border transition-all cursor-pointer flex items-center justify-between ${
+                          isSelected
+                            ? 'bg-purple-50/90 border-purple-400 ring-2 ring-purple-500/20'
+                            : 'bg-slate-50/70 border-slate-200/70 hover:bg-slate-100/80'
+                        }`}
+                      >
+                        <div className="min-w-0 mr-2">
+                          <div className="flex items-center space-x-1.5">
+                            <span className="font-bold text-xs text-slate-900 truncate">{sub.subject}</span>
+                            <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-200/70 text-slate-700 font-medium shrink-0">
+                              {sub.studentCount} Students
+                            </span>
+                          </div>
+                          <p className="text-[10px] text-slate-500 mt-0.5">
+                            Total: <span className="font-mono font-bold text-slate-800">{formatLKR(sub.totalCollected)}</span>
+                          </p>
+                        </div>
+
+                        <div className="flex items-center space-x-3 text-right shrink-0">
+                          <div>
+                            <span className="text-[9px] font-black uppercase text-purple-700 block">Teacher</span>
+                            <span className="text-xs font-black font-mono text-purple-700">{formatLKR(sub.teacherEarnings)}</span>
+                          </div>
+                          <div className="border-l border-slate-200 pl-3">
+                            <span className="text-[9px] font-black uppercase text-teal-700 block">Academy</span>
+                            <span className="text-xs font-black font-mono text-teal-700">{formatLKR(sub.academyProfit)}</span>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <p className="text-xs text-slate-400 py-4 text-center">No subject breakdown available for this selection.</p>
+              )}
+            </div>
+
+            {/* Class / Batch Breakdown */}
+            <div className="p-5 rounded-3xl bg-white border border-slate-200/80 shadow-sm space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <div className="w-8 h-8 rounded-xl bg-teal-500/10 text-teal-600 flex items-center justify-center">
+                    <Layers size={16} />
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-black text-slate-900 uppercase tracking-wider">Class Batches Breakdown</h4>
+                    <p className="text-[10px] text-slate-500">Tap any class batch to filter its specific earnings</p>
+                  </div>
+                </div>
+                {selectedClassId !== 'ALL' && (
+                  <button
+                    type="button"
+                    onClick={() => setSelectedClassId('ALL')}
+                    className="text-[10px] font-bold text-rose-600 hover:text-rose-700 bg-rose-50 px-2 py-0.5 rounded-lg border border-rose-200"
+                  >
+                    Clear Filter
+                  </button>
+                )}
+              </div>
+
+              {commissionData?.breakdownByClass?.length > 0 ? (
+                <div className="space-y-2 max-h-[300px] overflow-y-auto pr-1">
+                  {commissionData.breakdownByClass.map((cls: any) => {
+                    const isSelected = selectedClassId === cls.classId;
+                    return (
+                      <div
+                        key={cls.classId}
+                        onClick={() => setSelectedClassId(isSelected ? 'ALL' : cls.classId)}
+                        className={`p-3 rounded-2xl border transition-all cursor-pointer flex items-center justify-between ${
+                          isSelected
+                            ? 'bg-teal-50/90 border-teal-400 ring-2 ring-teal-500/20'
+                            : 'bg-slate-50/70 border-slate-200/70 hover:bg-slate-100/80'
+                        }`}
+                      >
+                        <div className="min-w-0 mr-2">
+                          <div className="flex items-center space-x-1.5">
+                            <span className="font-bold text-xs text-slate-900 truncate">{cls.className}</span>
+                            <span className="text-[9px] px-1.5 py-0.5 rounded bg-purple-100 text-purple-700 font-bold truncate max-w-[100px] shrink-0">
+                              {cls.subject}
+                            </span>
+                          </div>
+                          <p className="text-[10px] text-slate-500 mt-0.5">
+                            {cls.studentCount} Students • Total: <span className="font-mono font-bold text-slate-800">{formatLKR(cls.totalCollected)}</span>
+                          </p>
+                        </div>
+
+                        <div className="flex items-center space-x-3 text-right shrink-0">
+                          <div>
+                            <span className="text-[9px] font-black uppercase text-purple-700 block">Teacher</span>
+                            <span className="text-xs font-black font-mono text-purple-700">{formatLKR(cls.teacherEarnings)}</span>
+                          </div>
+                          <div className="border-l border-slate-200 pl-3">
+                            <span className="text-[9px] font-black uppercase text-teal-700 block">Academy</span>
+                            <span className="text-xs font-black font-mono text-teal-700">{formatLKR(cls.academyProfit)}</span>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <p className="text-xs text-slate-400 py-4 text-center">No class breakdown available for this selection.</p>
+              )}
             </div>
           </div>
 
@@ -565,7 +848,8 @@ export const Reports: React.FC = () => {
                     <tr>
                       <th className="py-3 px-3.5">Date / Receipt</th>
                       <th className="py-3 px-3.5">Student</th>
-                      <th className="py-3 px-3.5">Class / Subject</th>
+                      <th className="py-3 px-3.5">Subject / Course</th>
+                      <th className="py-3 px-3.5">Class / Batch</th>
                       <th className="py-3 px-3.5">Teacher &amp; Rate</th>
                       <th className="py-3 px-3.5 text-right">Fee Collected</th>
                       <th className="py-3 px-3.5 text-right font-black text-purple-700">Teacher Commission</th>
@@ -584,7 +868,22 @@ export const Reports: React.FC = () => {
                           <span className="font-mono text-[10px] text-slate-400">{r.studentIdNumber}</span>
                         </td>
                         <td className="py-3 px-3.5 whitespace-nowrap">
-                          <p className="font-semibold text-slate-800">{r.className}</p>
+                          <span 
+                            onClick={() => setSelectedSubject(r.subject || 'General')}
+                            className="px-2 py-0.5 rounded-lg text-[10px] font-bold bg-purple-50 text-purple-700 border border-purple-200 cursor-pointer hover:bg-purple-100 transition-colors"
+                            title="Click to filter by this subject"
+                          >
+                            {r.subject || 'General'}
+                          </span>
+                        </td>
+                        <td className="py-3 px-3.5 whitespace-nowrap">
+                          <span 
+                            onClick={() => setSelectedClassId(r.classId)}
+                            className="font-semibold text-slate-800 hover:text-teal-700 cursor-pointer transition-colors"
+                            title="Click to filter by this class"
+                          >
+                            {r.className}
+                          </span>
                         </td>
                         <td className="py-3 px-3.5 whitespace-nowrap">
                           <p className="font-bold text-slate-900">{r.teacherName}</p>
@@ -606,7 +905,7 @@ export const Reports: React.FC = () => {
                   </tbody>
                   <tfoot className="bg-slate-50 border-t-2 border-slate-300 font-bold sticky bottom-0">
                     <tr>
-                      <td colSpan={4} className="py-3 px-3.5 text-slate-800 uppercase text-[11px]">
+                      <td colSpan={5} className="py-3 px-3.5 text-slate-800 uppercase text-[11px]">
                         Period Total ({period.toUpperCase()})
                       </td>
                       <td className="py-3 px-3.5 text-right font-mono text-slate-900 font-black">
@@ -623,7 +922,7 @@ export const Reports: React.FC = () => {
                 </table>
               ) : (
                 <div className="py-16 text-center text-xs text-slate-400">
-                  No payment records found for the selected teacher and period.
+                  No payment records found for the selected teacher, subject, class, and period.
                 </div>
               )}
             </div>
