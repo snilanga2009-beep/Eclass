@@ -21,7 +21,11 @@ import {
   RefreshCw,
   CreditCard,
   QrCode,
-  MessageCircle
+  MessageCircle,
+  Upload,
+  AlertTriangle,
+  ShieldAlert,
+  X
 } from 'lucide-react';
 import { apiRequest, clearAppCache } from '../api';
 import { useSettings, DEFAULT_SMS_TEMPLATES } from '../context/SettingsContext';
@@ -40,6 +44,16 @@ export const Settings: React.FC = () => {
   const [clearingCache, setClearingCache] = useState(false);
   const [cacheNotice, setCacheNotice] = useState<string | null>(null);
   const [selectedTemplateKey, setSelectedTemplateKey] = useState<string>('SMS_TEMPLATE_WELCOME');
+
+  // Database Restore State
+  const restoreFileInputRef = React.useRef<HTMLInputElement>(null);
+  const [restoreModalOpen, setRestoreModalOpen] = useState(false);
+  const [restoreFile, setRestoreFile] = useState<File | null>(null);
+  const [restoreParsedData, setRestoreParsedData] = useState<any>(null);
+  const [restoreError, setRestoreError] = useState<string | null>(null);
+  const [restoring, setRestoring] = useState(false);
+  const [restoreSuccess, setRestoreSuccess] = useState<any>(null);
+  const [restoreConfirmText, setRestoreConfirmText] = useState('');
 
   const handleClearServerCache = async () => {
     setClearingCache(true);
@@ -151,6 +165,77 @@ export const Settings: React.FC = () => {
       a.click();
     } catch (err) {
       alert('Failed to generate backup');
+    }
+  };
+
+  const handleOpenRestorePicker = () => {
+    setRestoreError(null);
+    setRestoreSuccess(null);
+    setRestoreConfirmText('');
+    restoreFileInputRef.current?.click();
+  };
+
+  const handleRestoreFileSelected = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setRestoreFile(file);
+    setRestoreError(null);
+    setRestoreSuccess(null);
+    setRestoreConfirmText('');
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const text = event.target?.result as string;
+        const parsed = JSON.parse(text);
+
+        if (!parsed || typeof parsed !== 'object') {
+          throw new Error('File does not contain valid JSON data.');
+        }
+
+        if (!Array.isArray(parsed.students) && !Array.isArray(parsed.users)) {
+          throw new Error('This JSON file does not appear to be a valid CAMS database backup. Missing student and user records.');
+        }
+
+        setRestoreParsedData(parsed);
+        setRestoreModalOpen(true);
+      } catch (err: any) {
+        alert(err.message || 'Failed to read or parse JSON backup file.');
+      }
+    };
+    reader.onerror = () => {
+      alert('Failed to read the selected file.');
+    };
+    reader.readAsText(file);
+
+    // Reset input so user can pick the same file again if needed
+    if (e.target) e.target.value = '';
+  };
+
+  const handleConfirmRestore = async () => {
+    if (restoreConfirmText.trim().toUpperCase() !== 'RESTORE') {
+      setRestoreError('Please type "RESTORE" exactly to confirm.');
+      return;
+    }
+
+    if (!restoreParsedData) return;
+
+    setRestoring(true);
+    setRestoreError(null);
+
+    try {
+      const res = await apiRequest('/settings/restore', {
+        method: 'POST',
+        body: restoreParsedData
+      });
+
+      setRestoreSuccess(res.summary || res);
+      await refreshSettings();
+    } catch (err: any) {
+      setRestoreError(err.message || 'Failed to restore database from backup file.');
+    } finally {
+      setRestoring(false);
     }
   };
 
@@ -911,28 +996,57 @@ export const Settings: React.FC = () => {
           </div>
         </div>
 
-        {/* Database Backup & Export */}
+        {/* Database Backup & Disaster Recovery */}
         <div className="p-6 rounded-3xl bg-white border border-slate-200/80 shadow-sm space-y-4 flex flex-col justify-between">
           <div>
-            <h3 className="font-bold text-sm text-slate-900 flex items-center gap-2">
-              <Database size={16} className="text-amber-600" />
-              <span>Database Backups & Disaster Recovery</span>
-            </h3>
+            <div className="flex items-center justify-between">
+              <h3 className="font-bold text-sm text-slate-900 flex items-center gap-2">
+                <Database size={16} className="text-amber-600" />
+                <span>Database Backups &amp; Disaster Recovery</span>
+              </h3>
+              <span className="px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 text-[10px] font-bold">
+                PostgreSQL &amp; JSON Sync
+              </span>
+            </div>
             <p className="text-xs text-slate-500 mt-2">
-              Generate a snapshot JSON file containing all students, classes, attendance records, fee payments, and accounting ledger items.
+              Generate a full system snapshot JSON backup file or restore a previous database backup into the active system with automatic PostgreSQL synchronization.
             </p>
           </div>
 
-          <div className="pt-4 border-t border-slate-100 flex items-center justify-between">
-            <span className="text-xs text-slate-400">Total Entities: 26 Normalized Tables</span>
-            <button
-              type="button"
-              onClick={handleDownloadBackup}
-              className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-brand-50 text-brand-700 text-xs font-bold flex items-center gap-1.5 transition-colors"
-            >
-              <Download size={14} />
-              <span>Download Snapshot</span>
-            </button>
+          {/* Hidden File Input for Backup File Selection */}
+          <input
+            type="file"
+            ref={restoreFileInputRef}
+            accept=".json,application/json"
+            onChange={handleRestoreFileSelected}
+            className="hidden"
+          />
+
+          <div className="pt-4 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2.5">
+            <span className="text-xs text-slate-400">Total Entities: 27 Normalized Tables</span>
+            
+            <div className="flex items-center space-x-2">
+              {/* Restore Backup File Button */}
+              <button
+                type="button"
+                onClick={handleOpenRestorePicker}
+                className="px-3.5 py-2 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-700 text-xs font-bold flex items-center gap-1.5 border border-amber-500/30 transition-all active:scale-95"
+                title="Upload and restore a previous JSON backup file to the system"
+              >
+                <Upload size={14} className="text-amber-600" />
+                <span>Restore Backup File</span>
+              </button>
+
+              {/* Download Snapshot Button */}
+              <button
+                type="button"
+                onClick={handleDownloadBackup}
+                className="px-3.5 py-2 rounded-xl bg-brand-600 hover:bg-brand-500 text-white text-xs font-bold flex items-center gap-1.5 shadow-md shadow-brand-600/20 transition-all active:scale-95"
+              >
+                <Download size={14} />
+                <span>Download Snapshot</span>
+              </button>
+            </div>
           </div>
         </div>
 
@@ -986,6 +1100,211 @@ export const Settings: React.FC = () => {
           </button>
         </div>
       </form>
+
+      {/* RESTORE DATABASE BACKUP MODAL */}
+      {restoreModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="relative w-full max-w-lg bg-white rounded-3xl shadow-2xl border border-slate-200 overflow-hidden text-slate-900">
+            
+            {/* Modal Header */}
+            <div className="p-5 border-b border-slate-100 flex items-center justify-between bg-gradient-to-r from-amber-500/10 via-rose-500/5 to-transparent">
+              <div className="flex items-center space-x-3">
+                <div className="w-10 h-10 rounded-2xl bg-amber-500/20 text-amber-700 flex items-center justify-center border border-amber-500/30">
+                  <ShieldAlert size={20} />
+                </div>
+                <div>
+                  <h3 className="font-extrabold text-sm text-slate-900">Restore Database Backup</h3>
+                  <p className="text-[11px] text-slate-500">Verify backup contents before applying to live system</p>
+                </div>
+              </div>
+
+              {!restoring && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setRestoreModalOpen(false);
+                    setRestoreParsedData(null);
+                    setRestoreSuccess(null);
+                    setRestoreError(null);
+                  }}
+                  className="p-1.5 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
+                >
+                  <X size={18} />
+                </button>
+              )}
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-5 space-y-4 max-h-[75vh] overflow-y-auto">
+              {restoreSuccess ? (
+                /* Success View */
+                <div className="p-5 rounded-2xl bg-emerald-50 border border-emerald-200 text-center space-y-3 animate-in zoom-in-95 duration-200">
+                  <div className="w-12 h-12 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto border border-emerald-200">
+                    <CheckCircle2 size={24} />
+                  </div>
+                  <div>
+                    <h4 className="font-black text-sm text-emerald-900">Database Restored Successfully!</h4>
+                    <p className="text-xs text-emerald-700 mt-1">
+                      All tables have been refreshed and synchronized with PostgreSQL.
+                    </p>
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-2 pt-2 text-center text-xs">
+                    <div className="p-2 rounded-xl bg-white border border-emerald-100">
+                      <span className="text-[10px] text-slate-400 block font-bold">STUDENTS</span>
+                      <span className="font-mono font-black text-slate-800 text-sm">{restoreSuccess.studentsCount || 0}</span>
+                    </div>
+                    <div className="p-2 rounded-xl bg-white border border-emerald-100">
+                      <span className="text-[10px] text-slate-400 block font-bold">CLASSES</span>
+                      <span className="font-mono font-black text-slate-800 text-sm">{restoreSuccess.classesCount || 0}</span>
+                    </div>
+                    <div className="p-2 rounded-xl bg-white border border-emerald-100">
+                      <span className="text-[10px] text-slate-400 block font-bold">PAYMENTS</span>
+                      <span className="font-mono font-black text-slate-800 text-sm">{restoreSuccess.paymentsCount || 0}</span>
+                    </div>
+                  </div>
+
+                  <div className="pt-2">
+                    <button
+                      type="button"
+                      onClick={() => window.location.reload()}
+                      className="w-full py-2.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-md shadow-emerald-600/30 transition-all flex items-center justify-center gap-1.5"
+                    >
+                      <RefreshCw size={14} />
+                      <span>Reload Application Now</span>
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                /* Confirmation View */
+                <>
+                  {/* File Metadata Card */}
+                  <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/80 flex items-center justify-between">
+                    <div>
+                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Selected Backup File</span>
+                      <p className="text-xs font-black text-slate-800 mt-0.5 truncate max-w-[240px] sm:max-w-xs">
+                        {restoreFile?.name || 'database_backup.json'}
+                      </p>
+                    </div>
+                    <span className="px-2.5 py-1 rounded-xl bg-white border border-slate-200 text-slate-600 text-[11px] font-mono font-bold shrink-0">
+                      {restoreFile ? `${Math.round(restoreFile.size / 1024)} KB` : ''}
+                    </span>
+                  </div>
+
+                  {/* Backup Entities Counts Grid */}
+                  <div>
+                    <label className="text-[10px] font-black uppercase tracking-wider text-slate-500 block mb-2">
+                      Detected Backup Records
+                    </label>
+                    <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                      <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200/80 text-center">
+                        <span className="text-[10px] text-slate-400 font-bold block">STUDENTS</span>
+                        <span className="font-mono font-black text-slate-800 text-sm">{restoreParsedData?.students?.length || 0}</span>
+                      </div>
+                      <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200/80 text-center">
+                        <span className="text-[10px] text-slate-400 font-bold block">CLASSES</span>
+                        <span className="font-mono font-black text-slate-800 text-sm">{restoreParsedData?.classes?.length || 0}</span>
+                      </div>
+                      <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200/80 text-center">
+                        <span className="text-[10px] text-slate-400 font-bold block">TEACHERS</span>
+                        <span className="font-mono font-black text-slate-800 text-sm">{restoreParsedData?.teachers?.length || 0}</span>
+                      </div>
+                      <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200/80 text-center">
+                        <span className="text-[10px] text-slate-400 font-bold block">PAYMENTS</span>
+                        <span className="font-mono font-black text-slate-800 text-sm">{restoreParsedData?.payments?.length || 0}</span>
+                      </div>
+                      <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200/80 text-center">
+                        <span className="text-[10px] text-slate-400 font-bold block">FEES</span>
+                        <span className="font-mono font-black text-slate-800 text-sm">{restoreParsedData?.feeRecords?.length || 0}</span>
+                      </div>
+                      <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200/80 text-center">
+                        <span className="text-[10px] text-slate-400 font-bold block">ATTENDANCE</span>
+                        <span className="font-mono font-black text-slate-800 text-sm">{restoreParsedData?.attendances?.length || 0}</span>
+                      </div>
+                      <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200/80 text-center">
+                        <span className="text-[10px] text-slate-400 font-bold block">USERS</span>
+                        <span className="font-mono font-black text-slate-800 text-sm">{restoreParsedData?.users?.length || 0}</span>
+                      </div>
+                      <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200/80 text-center">
+                        <span className="text-[10px] text-slate-400 font-bold block">SETTINGS</span>
+                        <span className="font-mono font-black text-slate-800 text-sm">{restoreParsedData?.settings?.length || 0}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Warning Box */}
+                  <div className="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-900 text-xs flex items-start gap-2.5">
+                    <AlertTriangle size={18} className="text-amber-600 shrink-0 mt-0.5" />
+                    <div>
+                      <p className="font-bold text-amber-900">Safety Notice: System Database Overwrite</p>
+                      <p className="text-[11px] text-amber-800/90 mt-0.5">
+                        Restoring will overwrite existing records with data from this file. A safety copy of your current database will be saved to <code className="bg-amber-100 px-1 rounded font-mono text-[10px]">server/data/backups/</code> prior to applying changes.
+                      </p>
+                    </div>
+                  </div>
+
+                  {restoreError && (
+                    <div className="p-3 rounded-2xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-bold flex items-center gap-2">
+                      <AlertCircle size={15} className="shrink-0" />
+                      <span>{restoreError}</span>
+                    </div>
+                  )}
+
+                  {/* Confirmation Input */}
+                  <div className="space-y-1.5 pt-1">
+                    <label className="text-[11px] font-black text-slate-700 block">
+                      To confirm, type <span className="font-mono text-rose-600 font-black">RESTORE</span> below:
+                    </label>
+                    <input
+                      type="text"
+                      value={restoreConfirmText}
+                      onChange={(e) => setRestoreConfirmText(e.target.value)}
+                      placeholder="Type RESTORE to confirm"
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs font-mono font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-rose-500 uppercase"
+                    />
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div className="flex items-center justify-end gap-2.5 pt-2 border-t border-slate-100">
+                    <button
+                      type="button"
+                      disabled={restoring}
+                      onClick={() => {
+                        setRestoreModalOpen(false);
+                        setRestoreParsedData(null);
+                        setRestoreError(null);
+                      }}
+                      className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition-colors"
+                    >
+                      Cancel
+                    </button>
+
+                    <button
+                      type="button"
+                      disabled={restoreConfirmText.trim().toUpperCase() !== 'RESTORE' || restoring}
+                      onClick={handleConfirmRestore}
+                      className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 disabled:opacity-40 disabled:hover:bg-rose-600 text-white text-xs font-black shadow-md shadow-rose-600/30 flex items-center gap-1.5 transition-all"
+                    >
+                      {restoring ? (
+                        <>
+                          <RefreshCw size={13} className="animate-spin" />
+                          <span>Restoring Database...</span>
+                        </>
+                      ) : (
+                        <>
+                          <RotateCcw size={13} />
+                          <span>Confirm &amp; Restore Database</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+
+          </div>
+        </div>
+      )}
     </div>
   );
 };
