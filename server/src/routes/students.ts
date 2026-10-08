@@ -422,21 +422,38 @@ router.post('/', authenticateToken, requireRoles(['SUPER_ADMIN', 'ADMIN', 'RECEP
     // Generate secure random QR token
     const qrCodeToken = `CAMS-STU-${crypto.randomBytes(6).toString('hex').toUpperCase()}`;
 
-    // Handle Parent
+    // Handle Parent (Supports multiple students under the same parent phone number)
     let parentId: string | null = null;
     if (parentPhone) {
-      let existingParent = db.data.parents.find(p => p.phone === parentPhone.trim());
+      const pRaw = parentPhone.trim();
+      const pDigits = pRaw.replace(/\D/g, '');
+      const last9 = pDigits.slice(-9);
+
+      let existingParent = db.data.parents.find(p => {
+        if (!p.phone) return false;
+        const existDigits = p.phone.replace(/\D/g, '');
+        return p.phone.trim() === pRaw || (last9.length >= 7 && existDigits.endsWith(last9));
+      });
+
       if (!existingParent) {
         existingParent = {
           id: db.generateId(),
           name: parentName || `${fullName}'s Guardian`,
-          phone: parentPhone.trim(),
-          whatsapp: whatsapp || parentPhone.trim(),
+          phone: pRaw,
+          whatsapp: whatsapp || pRaw,
           address: address || undefined,
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString()
         };
         db.data.parents.push(existingParent);
+      } else {
+        // Update parent name if provided and previous was generic
+        if (parentName && (!existingParent.name || existingParent.name.includes("'s Guardian"))) {
+          existingParent.name = parentName.trim();
+        }
+        if (address && !existingParent.address) {
+          existingParent.address = address.trim();
+        }
       }
       parentId = existingParent.id;
     }
@@ -864,9 +881,16 @@ router.put('/:id', authenticateToken, requireRoles(['SUPER_ADMIN', 'ADMIN', 'REC
       student.parentPhone = cleanParentPhone;
 
       if (cleanParentPhone) {
+        const pDigits = cleanParentPhone.replace(/\D/g, '');
+        const last9 = pDigits.slice(-9);
+
         let parent = student.parentId ? db.data.parents.find(p => p.id === student.parentId) : null;
         if (!parent) {
-          parent = db.data.parents.find(p => p.phone === cleanParentPhone);
+          parent = db.data.parents.find(p => {
+            if (!p.phone) return false;
+            const existDigits = p.phone.replace(/\D/g, '');
+            return p.phone.trim() === cleanParentPhone || (last9.length >= 7 && existDigits.endsWith(last9));
+          });
         }
 
         if (parent) {

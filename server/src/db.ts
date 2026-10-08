@@ -91,6 +91,7 @@ export interface Teacher {
   qualifications?: string;
   paymentRate: number; // e.g. 70 (%) or flat fee
   paymentMethod: 'Percentage' | 'FlatRate' | 'PerStudent' | 'Hourly' | 'Other' | string;
+  courses?: string[]; // Multiple courses / subjects taught e.g. ["Mathematics", "Combined Maths", "Physics"]
   status: 'ACTIVE' | 'INACTIVE';
   createdAt: string;
   updatedAt: string;

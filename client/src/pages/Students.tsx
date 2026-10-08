@@ -178,7 +178,17 @@ export const Students: React.FC<StudentsProps> = ({ onOpenProfile, onOpenIDCard,
     setClassesLoading(true);
     try {
       const res = await apiRequest<any[]>('/classes');
-      setClasses(res || []);
+      const loadedClasses = res || [];
+      setClasses(loadedClasses);
+      if (isAddModalOpen && loadedClasses.length > 0) {
+        setFormData(prev => {
+          if (prev.enrolledClassIds.length === 0) {
+            const matchIds = loadedClasses.filter((c: any) => c.grade === prev.grade).map((c: any) => c.id);
+            return { ...prev, enrolledClassIds: matchIds };
+          }
+          return prev;
+        });
+      }
     } catch (err) {
       console.error('Failed to load classes:', err);
     } finally {
@@ -200,12 +210,18 @@ export const Students: React.FC<StudentsProps> = ({ onOpenProfile, onOpenIDCard,
     return () => window.removeEventListener('cams-data-changed', handleDataChanged);
   }, [gradeFilter, statusFilter, classFilter, search]);
 
-  // When Add Modal is opened, ensure fresh classes are fetched
+  // When Add Modal is opened, ensure fresh classes are fetched & filtered to selected grade
   useEffect(() => {
     if (isAddModalOpen) {
       fetchClasses();
       setClassSearch('');
-      setClassGradeFilter('ALL');
+      setClassGradeFilter('MATCH_STUDENT');
+      if (classes.length > 0) {
+        const matchIds = classes.filter(c => c.grade === formData.grade).map(c => c.id);
+        if (matchIds.length > 0 && formData.enrolledClassIds.length === 0) {
+          setFormData(prev => ({ ...prev, enrolledClassIds: matchIds }));
+        }
+      }
     }
   }, [isAddModalOpen]);
 
@@ -1000,7 +1016,13 @@ export const Students: React.FC<StudentsProps> = ({ onOpenProfile, onOpenIDCard,
                   <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Grade *</label>
                   <select
                     value={formData.grade}
-                    onChange={(e) => setFormData({ ...formData, grade: e.target.value })}
+                    onChange={(e) => {
+                      const newGrade = e.target.value;
+                      setClassGradeFilter('MATCH_STUDENT');
+                      const matchingClassIds = classes.filter(c => c.grade === newGrade).map(c => c.id);
+                      const combined = Array.from(new Set([...formData.enrolledClassIds, ...matchingClassIds]));
+                      setFormData(prev => ({ ...prev, grade: newGrade, enrolledClassIds: combined }));
+                    }}
                     className="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-xs bg-white font-semibold text-slate-800"
                   >
                     <optgroup label="Primary (Grades 1 to 5)">

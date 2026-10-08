@@ -297,16 +297,21 @@ router.get('/parent-children', authenticateToken, async (req: AuthRequest, res: 
     }
 
     const uDigits = (user.phone || '').replace(/\D/g, '');
-    const last9 = uDigits.slice(-9);
+    const userLast9 = uDigits.slice(-9);
+
+    const parent = user.parentId ? db.data.parents.find(p => p.id === user.parentId) : null;
+    const parentDigits = (parent?.phone || '').replace(/\D/g, '');
+    const parentLast9 = parentDigits.slice(-9);
 
     const children = db.data.students.filter(s => {
       if (user.parentId && s.parentId === user.parentId) return true;
       const pDigits = (s.parentPhone || '').replace(/\D/g, '');
       const sDigits = (s.phone || '').replace(/\D/g, '');
-      return (
-        (last9.length >= 7 && pDigits.endsWith(last9)) ||
-        (last9.length >= 7 && sDigits.endsWith(last9))
-      );
+
+      const matchesUserPhone = userLast9.length >= 7 && (pDigits.endsWith(userLast9) || sDigits.endsWith(userLast9));
+      const matchesParentPhone = parentLast9.length >= 7 && (pDigits.endsWith(parentLast9) || sDigits.endsWith(parentLast9));
+
+      return matchesUserPhone || matchesParentPhone;
     });
 
     return res.json(children);

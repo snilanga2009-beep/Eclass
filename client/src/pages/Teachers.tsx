@@ -27,13 +27,33 @@ import { useAuth } from '../context/AuthContext';
 export const Teachers: React.FC = () => {
   const { user } = useAuth();
   const [teachers, setTeachers] = useState<any[]>([]);
+  const [allClasses, setAllClasses] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedPayoutFilter, setSelectedPayoutFilter] = useState('ALL');
   const [selectedStatusFilter, setSelectedStatusFilter] = useState('ALL');
 
+  // Suggested courses/subjects for quick-add
+  const SUGGESTED_COURSES = [
+    'Mathematics',
+    'Science',
+    'English Language',
+    'Physics',
+    'Chemistry',
+    'Biology',
+    'Combined Mathematics',
+    'Information Technology (ICT)',
+    'Accounting',
+    'Business Studies',
+    'Economics',
+    'Sinhala',
+    'Tamil',
+    'History'
+  ];
+
   // Add Modal State
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [addCourseInput, setAddCourseInput] = useState('');
   const [formData, setFormData] = useState({
     name: '',
     phone: '',
@@ -43,11 +63,14 @@ export const Teachers: React.FC = () => {
     paymentRate: 70,
     paymentMethod: 'Percentage',
     photo: '',
+    courses: [] as string[],
+    assignedClassIds: [] as string[],
     status: 'ACTIVE'
   });
 
   // Edit Modal State
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editCourseInput, setEditCourseInput] = useState('');
   const [editingTeacher, setEditingTeacher] = useState<any>(null);
   const [editFormData, setEditFormData] = useState({
     id: '',
@@ -59,6 +82,8 @@ export const Teachers: React.FC = () => {
     paymentRate: 70,
     paymentMethod: 'Percentage',
     photo: '',
+    courses: [] as string[],
+    assignedClassIds: [] as string[],
     status: 'ACTIVE'
   });
 
@@ -70,6 +95,8 @@ export const Teachers: React.FC = () => {
     try {
       const data = await apiRequest('/teachers');
       setTeachers(data || []);
+      const classList = await apiRequest('/classes').catch(() => []);
+      setAllClasses(classList || []);
     } catch (err) {
       console.error('Failed to fetch teachers:', err);
     } finally {
@@ -102,8 +129,11 @@ export const Teachers: React.FC = () => {
         paymentRate: 70,
         paymentMethod: 'Percentage',
         photo: '',
+        courses: [],
+        assignedClassIds: [],
         status: 'ACTIVE'
       });
+      setAddCourseInput('');
       fetchTeachers();
     } catch (err: any) {
       setActionError(err.message || 'Failed to create teacher');
@@ -124,8 +154,11 @@ export const Teachers: React.FC = () => {
       paymentRate: teacher.paymentRate !== undefined ? teacher.paymentRate : 70,
       paymentMethod: teacher.paymentMethod || 'Percentage',
       photo: teacher.photo || '',
+      courses: teacher.courses || [],
+      assignedClassIds: (teacher.classes || []).map((c: any) => c.id),
       status: teacher.status || 'ACTIVE'
     });
+    setEditCourseInput('');
     setActionError('');
     setIsEditModalOpen(true);
   };
@@ -329,6 +362,15 @@ export const Teachers: React.FC = () => {
                     <h3 className="font-bold text-sm text-slate-900 truncate">{t.name}</h3>
                     <p className="text-[10px] text-brand-600 font-mono font-semibold">{t.teacherIdNumber}</p>
                     <p className="text-[11px] text-slate-500 line-clamp-1">{t.qualifications || 'Lecturer'}</p>
+                    {t.courses && t.courses.length > 0 && (
+                      <div className="flex flex-wrap gap-1 mt-1.5">
+                        {t.courses.map((courseItem: string, idx: number) => (
+                          <span key={idx} className="px-1.5 py-0.5 rounded-md bg-indigo-50 text-indigo-700 border border-indigo-200/60 text-[9px] font-bold">
+                            {courseItem}
+                          </span>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -417,7 +459,7 @@ export const Teachers: React.FC = () => {
             <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 bg-slate-50">
               <div>
                 <h3 className="font-bold text-sm text-slate-800 uppercase tracking-wider">Add Faculty Teacher</h3>
-                <p className="text-[11px] text-slate-500 mt-0.5">Register a new educator and configure their payout scheme</p>
+                <p className="text-[11px] text-slate-500 mt-0.5">Register a new educator and configure multiple courses taught</p>
               </div>
               <button 
                 onClick={() => setIsAddModalOpen(false)} 
@@ -495,6 +537,141 @@ export const Teachers: React.FC = () => {
                 </div>
               </div>
 
+              {/* Courses / Subjects Taught Section (One Lecturer can teach Multiple Courses) */}
+              <div className="p-4 rounded-2xl bg-indigo-50/60 border border-indigo-200/80 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <BookOpen size={16} className="text-indigo-600" />
+                    <div>
+                      <h4 className="text-xs font-bold text-indigo-950 uppercase tracking-wider">
+                        Courses &amp; Subjects Taught
+                      </h4>
+                      <p className="text-[10px] text-indigo-700">One lecturer can teach multiple courses</p>
+                    </div>
+                  </div>
+                  <span className="px-2 py-0.5 rounded-full bg-indigo-200/80 text-indigo-800 text-[10px] font-bold">
+                    {formData.courses.length} selected
+                  </span>
+                </div>
+
+                {/* Selected Courses Chips */}
+                {formData.courses.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5 pt-1">
+                    {formData.courses.map((course, idx) => (
+                      <span
+                        key={idx}
+                        className="px-2.5 py-1 rounded-xl bg-white border border-indigo-300 text-indigo-900 text-xs font-bold flex items-center gap-1.5 shadow-sm"
+                      >
+                        <span>{course}</span>
+                        <button
+                          type="button"
+                          onClick={() => setFormData({ ...formData, courses: formData.courses.filter((_, i) => i !== idx) })}
+                          className="p-0.5 hover:bg-rose-100 hover:text-rose-600 rounded-full text-slate-400"
+                        >
+                          <X size={12} />
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                )}
+
+                {/* Custom Course Add Input */}
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    placeholder="Type subject/course (e.g. Physics, Chemistry)..."
+                    value={addCourseInput}
+                    onChange={(e) => setAddCourseInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        if (addCourseInput.trim() && !formData.courses.includes(addCourseInput.trim())) {
+                          setFormData({ ...formData, courses: [...formData.courses, addCourseInput.trim()] });
+                          setAddCourseInput('');
+                        }
+                      }
+                    }}
+                    className="flex-1 px-3 py-1.5 rounded-xl border border-slate-300 text-xs bg-white"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (addCourseInput.trim() && !formData.courses.includes(addCourseInput.trim())) {
+                        setFormData({ ...formData, courses: [...formData.courses, addCourseInput.trim()] });
+                        setAddCourseInput('');
+                      }
+                    }}
+                    disabled={!addCourseInput.trim()}
+                    className="px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs disabled:opacity-50 transition-colors shrink-0"
+                  >
+                    + Add Course
+                  </button>
+                </div>
+
+                {/* Quick Add Suggestions */}
+                <div>
+                  <span className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">
+                    Quick Course Suggestions:
+                  </span>
+                  <div className="flex flex-wrap gap-1 max-h-24 overflow-y-auto">
+                    {SUGGESTED_COURSES.map((sc, scIdx) => {
+                      const isAdded = formData.courses.includes(sc);
+                      return (
+                        <button
+                          key={scIdx}
+                          type="button"
+                          onClick={() => {
+                            if (isAdded) {
+                              setFormData({ ...formData, courses: formData.courses.filter(c => c !== sc) });
+                            } else {
+                              setFormData({ ...formData, courses: [...formData.courses, sc] });
+                            }
+                          }}
+                          className={`px-2 py-0.5 rounded-lg text-[10px] font-semibold transition-all ${
+                            isAdded
+                              ? 'bg-indigo-600 text-white shadow-sm'
+                              : 'bg-white hover:bg-indigo-50 border border-slate-200 text-slate-700'
+                          }`}
+                        >
+                          {isAdded ? `✓ ${sc}` : `+ ${sc}`}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Assign to Existing Classes */}
+                {allClasses.length > 0 && (
+                  <div className="pt-2 border-t border-indigo-200/60">
+                    <span className="block text-[10px] font-bold text-slate-600 uppercase tracking-wider mb-1">
+                      Assign to Existing Classes ({formData.assignedClassIds.length} selected):
+                    </span>
+                    <div className="max-h-28 overflow-y-auto space-y-1 bg-white p-2 rounded-xl border border-slate-200">
+                      {allClasses.map((cls: any) => {
+                        const isAssigned = formData.assignedClassIds.includes(cls.id);
+                        return (
+                          <label key={cls.id} className="flex items-center space-x-2 text-xs text-slate-700 hover:bg-slate-50 p-1 rounded cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={isAssigned}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setFormData({ ...formData, assignedClassIds: [...formData.assignedClassIds, cls.id] });
+                                } else {
+                                  setFormData({ ...formData, assignedClassIds: formData.assignedClassIds.filter(id => id !== cls.id) });
+                                }
+                              }}
+                              className="rounded text-indigo-600 focus:ring-indigo-500"
+                            />
+                            <span className="truncate">{cls.name} ({cls.grade})</span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
+
               <div>
                 <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Address / Location</label>
                 <input
@@ -521,7 +698,7 @@ export const Teachers: React.FC = () => {
               <div className="p-4 rounded-2xl bg-brand-50/50 border border-brand-100 space-y-3">
                 <div className="flex items-center gap-2">
                   <CreditCard size={16} className="text-brand-600" />
-                  <h4 className="text-xs font-bold text-brand-900 uppercase tracking-wider">Payout & Remuneration Structure</h4>
+                  <h4 className="text-xs font-bold text-brand-900 uppercase tracking-wider">Payout &amp; Remuneration Structure</h4>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -679,6 +856,141 @@ export const Teachers: React.FC = () => {
                     <option value="INACTIVE">INACTIVE</option>
                   </select>
                 </div>
+              </div>
+
+              {/* Courses / Subjects Taught Section (Edit Multiple Courses) */}
+              <div className="p-4 rounded-2xl bg-indigo-50/60 border border-indigo-200/80 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <BookOpen size={16} className="text-indigo-600" />
+                    <div>
+                      <h4 className="text-xs font-bold text-indigo-950 uppercase tracking-wider">
+                        Courses &amp; Subjects Taught
+                      </h4>
+                      <p className="text-[10px] text-indigo-700">One lecturer can teach multiple courses</p>
+                    </div>
+                  </div>
+                  <span className="px-2 py-0.5 rounded-full bg-indigo-200/80 text-indigo-800 text-[10px] font-bold">
+                    {editFormData.courses.length} selected
+                  </span>
+                </div>
+
+                {/* Selected Courses Chips */}
+                {editFormData.courses.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5 pt-1">
+                    {editFormData.courses.map((course, idx) => (
+                      <span
+                        key={idx}
+                        className="px-2.5 py-1 rounded-xl bg-white border border-indigo-300 text-indigo-900 text-xs font-bold flex items-center gap-1.5 shadow-sm"
+                      >
+                        <span>{course}</span>
+                        <button
+                          type="button"
+                          onClick={() => setEditFormData({ ...editFormData, courses: editFormData.courses.filter((_, i) => i !== idx) })}
+                          className="p-0.5 hover:bg-rose-100 hover:text-rose-600 rounded-full text-slate-400"
+                        >
+                          <X size={12} />
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                )}
+
+                {/* Custom Course Add Input */}
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    placeholder="Type subject/course (e.g. Physics, Chemistry)..."
+                    value={editCourseInput}
+                    onChange={(e) => setEditCourseInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        if (editCourseInput.trim() && !editFormData.courses.includes(editCourseInput.trim())) {
+                          setEditFormData({ ...editFormData, courses: [...editFormData.courses, editCourseInput.trim()] });
+                          setEditCourseInput('');
+                        }
+                      }
+                    }}
+                    className="flex-1 px-3 py-1.5 rounded-xl border border-slate-300 text-xs bg-white"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (editCourseInput.trim() && !editFormData.courses.includes(editCourseInput.trim())) {
+                        setEditFormData({ ...editFormData, courses: [...editFormData.courses, editCourseInput.trim()] });
+                        setEditCourseInput('');
+                      }
+                    }}
+                    disabled={!editCourseInput.trim()}
+                    className="px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs disabled:opacity-50 transition-colors shrink-0"
+                  >
+                    + Add Course
+                  </button>
+                </div>
+
+                {/* Quick Add Suggestions */}
+                <div>
+                  <span className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">
+                    Quick Course Suggestions:
+                  </span>
+                  <div className="flex flex-wrap gap-1 max-h-24 overflow-y-auto">
+                    {SUGGESTED_COURSES.map((sc, scIdx) => {
+                      const isAdded = editFormData.courses.includes(sc);
+                      return (
+                        <button
+                          key={scIdx}
+                          type="button"
+                          onClick={() => {
+                            if (isAdded) {
+                              setEditFormData({ ...editFormData, courses: editFormData.courses.filter(c => c !== sc) });
+                            } else {
+                              setEditFormData({ ...editFormData, courses: [...editFormData.courses, sc] });
+                            }
+                          }}
+                          className={`px-2 py-0.5 rounded-lg text-[10px] font-semibold transition-all ${
+                            isAdded
+                              ? 'bg-indigo-600 text-white shadow-sm'
+                              : 'bg-white hover:bg-indigo-50 border border-slate-200 text-slate-700'
+                          }`}
+                        >
+                          {isAdded ? `✓ ${sc}` : `+ ${sc}`}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Assign to Existing Classes */}
+                {allClasses.length > 0 && (
+                  <div className="pt-2 border-t border-indigo-200/60">
+                    <span className="block text-[10px] font-bold text-slate-600 uppercase tracking-wider mb-1">
+                      Assign to Existing Classes ({editFormData.assignedClassIds.length} selected):
+                    </span>
+                    <div className="max-h-28 overflow-y-auto space-y-1 bg-white p-2 rounded-xl border border-slate-200">
+                      {allClasses.map((cls: any) => {
+                        const isAssigned = editFormData.assignedClassIds.includes(cls.id);
+                        return (
+                          <label key={cls.id} className="flex items-center space-x-2 text-xs text-slate-700 hover:bg-slate-50 p-1 rounded cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={isAssigned}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setEditFormData({ ...editFormData, assignedClassIds: [...editFormData.assignedClassIds, cls.id] });
+                                } else {
+                                  setEditFormData({ ...editFormData, assignedClassIds: editFormData.assignedClassIds.filter(id => id !== cls.id) });
+                                }
+                              }}
+                              className="rounded text-indigo-600 focus:ring-indigo-500"
+                            />
+                            <span className="truncate">{cls.name} ({cls.grade})</span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div>

@@ -70,6 +70,7 @@ export const QRScannerModal: React.FC<QRScannerModalProps> = ({
   const streamRef = useRef<MediaStream | null>(null);
   const animFrameRef = useRef<number | null>(null);
   const isScanningRef = useRef<boolean>(false);
+  const lastScannedTokenRef = useRef<{ token: string; timestamp: number } | null>(null);
 
   // Sound beep synthesizer
   const playBeep = (type: 'SUCCESS' | 'WARN' | 'ERROR') => {
@@ -115,7 +116,7 @@ export const QRScannerModal: React.FC<QRScannerModalProps> = ({
     }
   }, []);
 
-  // Live video frame processing loop
+  // Live video frame processing loop (Continuous high-speed scanning)
   const scanLoop = () => {
     if (!isScanningRef.current) return;
 
@@ -123,8 +124,18 @@ export const QRScannerModal: React.FC<QRScannerModalProps> = ({
       try {
         const decoded = decodeQRFromVideo(videoRef.current, canvasRef.current);
         if (decoded && !processing) {
-          handleTokenDetected(decoded);
-          return;
+          const now = Date.now();
+          // Debounce identical student token for 1.2s to prevent multiple beeps,
+          // but immediately trigger if a different student card is scanned!
+          const isSameTokenRecent = lastScannedTokenRef.current && 
+            lastScannedTokenRef.current.token === decoded && 
+            (now - lastScannedTokenRef.current.timestamp) < 1200;
+
+          if (!isSameTokenRecent) {
+            lastScannedTokenRef.current = { token: decoded, timestamp: now };
+            handleTokenDetected(decoded);
+            return;
+          }
         }
       } catch (err) {
         console.warn('Frame scan err:', err);
@@ -227,13 +238,13 @@ export const QRScannerModal: React.FC<QRScannerModalProps> = ({
       });
     } finally {
       setProcessing(false);
-      // Resume scanning after 2.5 seconds if camera still active
+      // Fast auto-resume continuous scanning after 800ms cooldown so next student can scan right away!
       setTimeout(() => {
-        if (isOpen && cameraActive) {
+        if (isOpen && streamRef.current && (streamRef.current.active || streamRef.current.getVideoTracks().some(t => t.readyState === 'live'))) {
           isScanningRef.current = true;
           animFrameRef.current = requestAnimationFrame(scanLoop);
         }
-      }, 2500);
+      }, 800);
     }
   };
 
@@ -292,49 +303,48 @@ export const QRScannerModal: React.FC<QRScannerModalProps> = ({
       <div className="relative w-full max-w-md bg-slate-900 border border-slate-800 rounded-2xl sm:rounded-3xl shadow-2xl flex flex-col max-h-[95vh] sm:max-h-[92vh] overflow-hidden text-white">
         
         {/* Top Header Bar */}
-        <div className="px-4 sm:px-5 py-3.5 sm:py-4 border-b border-slate-800 flex items-center justify-between bg-slate-900/90 backdrop-blur">
-          <div className="flex items-center space-x-2.5 sm:space-x-3">
-            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center border border-emerald-500/30 shrink-0">
-              <QrCode size={18} />
+        <div className="px-3.5 sm:px-5 py-3 border-b border-slate-800 flex items-center justify-between bg-slate-900/95 backdrop-blur z-20">
+          <div className="flex items-center space-x-2 min-w-0 mr-2">
+            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center border border-emerald-500/30 shrink-0">
+              <QrCode size={17} />
             </div>
-            <div>
-              <div className="flex items-center space-x-1.5 sm:space-x-2">
-                <h3 className="text-xs sm:text-sm font-bold text-white">Camera QR Scanner</h3>
-                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+            <div className="min-w-0">
+              <div className="flex items-center space-x-1.5">
+                <h3 className="text-xs sm:text-sm font-bold text-white truncate">QR Attendance Scanner</h3>
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0" />
               </div>
-              <p className="text-[10px] sm:text-[11px] text-slate-400 truncate max-w-[170px] sm:max-w-xs">{selectedClassName}</p>
+              <p className="text-[10px] sm:text-[11px] text-slate-400 truncate max-w-[140px] sm:max-w-xs">{selectedClassName}</p>
             </div>
           </div>
 
-          <div className="flex items-center space-x-1 sm:space-x-1.5">
+          <div className="flex items-center space-x-1.5 shrink-0">
             {/* Auto WhatsApp Toggle */}
             <button
               type="button"
               onClick={toggleAutoWhatsApp}
-              className={`p-1.5 sm:px-2.5 sm:py-1.5 rounded-xl border text-xs font-bold flex items-center space-x-1 transition-all ${
+              className={`p-1.5 sm:px-2 rounded-lg border text-[11px] font-bold flex items-center space-x-1 transition-all ${
                 autoWhatsApp
                   ? 'bg-emerald-500/20 border-emerald-500/60 text-emerald-300'
-                  : 'bg-slate-800/80 border-slate-700 text-slate-400 hover:text-slate-200'
+                  : 'bg-slate-800 border-slate-700 text-slate-400'
               }`}
-              title={autoWhatsApp ? 'Auto-open WhatsApp on scan is ON' : 'Auto-open WhatsApp on scan is OFF'}
+              title={autoWhatsApp ? 'Auto WhatsApp is ON' : 'Auto WhatsApp is OFF'}
             >
-              <MessageCircle size={15} className={autoWhatsApp ? 'text-emerald-400' : 'text-slate-400'} />
-              <span className="hidden sm:inline">WA:</span>
-              <span className={autoWhatsApp ? 'text-emerald-400' : 'text-slate-400'}>{autoWhatsApp ? 'ON' : 'OFF'}</span>
+              <MessageCircle size={14} className={autoWhatsApp ? 'text-emerald-400' : 'text-slate-400'} />
+              <span className="hidden sm:inline">WA:{autoWhatsApp ? 'ON' : 'OFF'}</span>
             </button>
 
             {/* Audio Beep Toggle */}
             <button
               type="button"
               onClick={() => setSoundEnabled(!soundEnabled)}
-              className={`p-1.5 sm:p-2 rounded-xl border text-xs transition-colors ${
+              className={`p-1.5 rounded-lg border text-xs transition-colors ${
                 soundEnabled 
                   ? 'bg-slate-800 border-slate-700 text-slate-200' 
                   : 'bg-slate-800/50 border-slate-800 text-slate-500'
               }`}
               title={soundEnabled ? 'Mute Beep' : 'Enable Beep'}
             >
-              {soundEnabled ? <Volume2 size={15} /> : <VolumeX size={15} />}
+              {soundEnabled ? <Volume2 size={14} /> : <VolumeX size={14} />}
             </button>
 
             {/* Camera Switcher (Front/Back) */}
@@ -342,20 +352,22 @@ export const QRScannerModal: React.FC<QRScannerModalProps> = ({
               <button
                 type="button"
                 onClick={toggleCameraFacing}
-                className="p-1.5 sm:p-2 rounded-xl bg-slate-800 border border-slate-700 text-slate-200 hover:bg-slate-700 transition-colors"
+                className="p-1.5 rounded-lg bg-slate-800 border border-slate-700 text-slate-200 hover:bg-slate-700 transition-colors"
                 title="Switch Camera (Front/Back)"
               >
-                <SwitchCamera size={15} />
+                <SwitchCamera size={14} />
               </button>
             )}
 
-            {/* Close Button */}
+            {/* High-Contrast Prominent Red Close Button (Always visible on mobile) */}
             <button
               type="button"
               onClick={onClose}
-              className="p-1.5 sm:p-2 rounded-xl bg-slate-800 hover:bg-rose-500/20 hover:text-rose-400 border border-slate-700 text-slate-400 transition-colors"
+              className="px-2.5 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-black text-xs flex items-center space-x-1 shadow-lg shadow-rose-600/30 transition-transform active:scale-95 shrink-0 border border-rose-500"
+              title="Close Scanner"
             >
-              <X size={17} />
+              <X size={16} className="stroke-[3]" />
+              <span className="text-[11px] font-extrabold">Close</span>
             </button>
           </div>
         </div>
@@ -398,28 +410,36 @@ export const QRScannerModal: React.FC<QRScannerModalProps> = ({
 
             {/* Processing Overlay Spinner */}
             {processing && (
-              <div className="absolute inset-0 bg-black/75 backdrop-blur-sm flex flex-col items-center justify-center p-4 z-30">
-                <div className="w-12 h-12 border-4 border-emerald-400 border-t-transparent rounded-full animate-spin mb-3" />
-                <p className="text-xs font-bold text-white">Verifying Student QR Code...</p>
-                <p className="text-[10px] text-slate-400 mt-1">Checking enrollment & attendance balance</p>
+              <div className="absolute inset-0 bg-black/80 backdrop-blur-sm flex flex-col items-center justify-center p-4 z-30">
+                <div className="w-10 h-10 border-4 border-emerald-400 border-t-transparent rounded-full animate-spin mb-2.5" />
+                <p className="text-xs font-bold text-white">Recording Attendance...</p>
+                <p className="text-[10px] text-slate-400 mt-0.5">Continuous scan will resume immediately</p>
               </div>
             )}
 
             {/* Idle State when camera is inactive */}
             {!cameraActive && !processing && (
               <div className="p-6 text-center flex flex-col items-center justify-center space-y-3">
-                <div className="w-16 h-16 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-slate-400">
-                  <Camera size={32} />
+                <div className="w-14 h-14 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-slate-400">
+                  <Camera size={28} />
                 </div>
                 <div>
                   <p className="text-xs font-bold text-white">Camera Viewfinder</p>
                   <p className="text-[11px] text-slate-400 mt-0.5 max-w-[200px]">
-                    Tap below to open your phone camera to snap student QR card.
+                    Use live video or snapshot photo below to scan student QR codes continuously.
                   </p>
                 </div>
               </div>
             )}
           </div>
+
+          {/* Continuous Scan Radar Status Bar */}
+          {cameraActive && (
+            <div className="w-full max-w-[320px] py-1.5 px-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center space-x-2 text-[11px] text-emerald-300 font-bold">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping shrink-0" />
+              <span>Continuous Scan Active: Show next QR anytime</span>
+            </div>
+          )}
 
           {/* Hidden File Input for Native Phone Camera Snapshot */}
           <input
@@ -431,16 +451,20 @@ export const QRScannerModal: React.FC<QRScannerModalProps> = ({
             className="hidden"
           />
 
-          {/* Primary Action Button: Open Native Phone Camera (100% Works on Android & iPhone) */}
+          {/* Primary Action Button: Open Native Phone Camera (or Snap Next Student) */}
           <div className="w-full max-w-[320px] space-y-2">
             <button
               type="button"
               onClick={triggerNativeCamera}
               disabled={processing}
-              className="w-full py-3.5 px-4 rounded-2xl bg-gradient-to-r from-emerald-500 via-teal-500 to-indigo-600 hover:from-emerald-400 hover:to-indigo-500 text-white font-bold text-xs sm:text-sm shadow-xl shadow-emerald-500/25 flex items-center justify-center space-x-2 active:scale-95 transition-all"
+              className={`w-full py-3 px-4 rounded-2xl font-bold text-xs sm:text-sm shadow-xl flex items-center justify-center space-x-2 active:scale-95 transition-all text-white ${
+                lastScanResult
+                  ? 'bg-gradient-to-r from-emerald-600 via-teal-600 to-indigo-600 hover:from-emerald-500 hover:to-indigo-500 shadow-emerald-600/30'
+                  : 'bg-gradient-to-r from-emerald-500 via-teal-500 to-indigo-600 hover:from-emerald-400 hover:to-indigo-500 shadow-emerald-500/25'
+              }`}
             >
               <Camera size={18} />
-              <span>📸 Open Phone Camera (Take Photo)</span>
+              <span>{lastScanResult ? '📸 Snap Next Student (Take Photo)' : '📸 Open Phone Camera (Take Photo)'}</span>
             </button>
 
             {!cameraActive && (
@@ -451,7 +475,7 @@ export const QRScannerModal: React.FC<QRScannerModalProps> = ({
                 className="w-full py-2.5 px-4 rounded-2xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold text-xs flex items-center justify-center space-x-2 border border-slate-700 transition-all"
               >
                 <RefreshCw size={14} />
-                <span>Retry Live Continuous Stream</span>
+                <span>Restart Live Continuous Video Stream</span>
               </button>
             )}
           </div>
@@ -507,132 +531,53 @@ export const QRScannerModal: React.FC<QRScannerModalProps> = ({
                   )}
                   <p className="text-[11px] mt-0.5 opacity-90">{lastScanResult.message}</p>
 
-                  {/* Interactive Fee Collection Prompt Question */}
+                  {/* Interactive Fee Collection Prompt */}
                   {lastScanResult.student && (
-                    <div className="mt-2.5 p-3 rounded-2xl bg-gradient-to-b from-indigo-950/90 via-slate-900 to-indigo-950/90 border-2 border-indigo-400/60 shadow-xl space-y-2 text-center animate-in fade-in duration-150">
-                      <div className="flex items-center justify-center space-x-1.5">
-                        <div className="w-6 h-6 rounded-lg bg-indigo-500/20 text-indigo-400 flex items-center justify-center border border-indigo-500/30">
-                          <CreditCard size={13} />
+                    <div className="mt-2.5 p-2.5 rounded-xl bg-slate-950/80 border border-slate-800 space-y-2 text-center animate-in fade-in duration-150">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-1.5">
+                          <CreditCard size={12} className="text-indigo-400" />
+                          <span className="text-[10px] font-bold text-slate-300">Fee Status</span>
                         </div>
-                        <span className="text-[10px] font-black tracking-wider uppercase text-indigo-300">
-                          Collect Class Fee Prompt
-                        </span>
+                        {(lastScanResult.hasPendingFees || (lastScanResult.pendingFees && lastScanResult.pendingFees.length > 0) || lastScanResult.feeWarning) ? (
+                          <span className="text-[10px] font-bold text-rose-400">
+                            Due: Rs. {Number(lastScanResult.totalPendingAmount || lastScanResult.pendingAmount || lastScanResult.feeWarning?.due || 0).toLocaleString()}
+                          </span>
+                        ) : (
+                          <span className="text-[10px] font-bold text-emerald-400">Paid / Clear</span>
+                        )}
                       </div>
 
-                      <p className="text-xs font-black text-white leading-snug">
-                        Need to Collect Class Fee now for <span className="text-emerald-400">{lastScanResult.student.fullName}</span>?
-                      </p>
-
-                      {(lastScanResult.hasPendingFees || (lastScanResult.pendingFees && lastScanResult.pendingFees.length > 0) || lastScanResult.feeWarning) ? (
-                        <div className="p-2 rounded-xl bg-rose-500/20 border border-rose-500/40 text-rose-200 text-[10px] font-bold flex items-center justify-between">
-                          <span>⚠️ Balance Due:</span>
-                          <span className="font-mono text-white text-xs font-black">
-                            Rs. {Number(lastScanResult.totalPendingAmount || lastScanResult.pendingAmount || lastScanResult.feeWarning?.due || 0).toLocaleString()}
-                          </span>
-                        </div>
-                      ) : (
-                        <div className="p-1.5 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-[10px] font-semibold">
-                          ✓ All fees currently clear. Collect upcoming month?
-                        </div>
-                      )}
-
-                      {/* Enrolled subjects breakdown */}
-                      {lastScanResult.pendingFees && lastScanResult.pendingFees.length > 0 && (
-                        <div className="space-y-1 max-h-24 overflow-y-auto text-left pr-1">
-                          {lastScanResult.pendingFees.map((fee: any) => (
-                            <div key={fee.id} className="flex items-center justify-between bg-black/40 px-2 py-1 rounded-lg text-[10px]">
-                              <span className="truncate text-slate-300 mr-1">{fee.className} ({fee.month})</span>
-                              <div className="flex items-center gap-1.5 shrink-0">
-                                <span className="font-mono text-amber-300 font-bold">Rs. {Number(fee.remainingBalance).toLocaleString()}</span>
-                                {onOpenPaymentModal && (
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      onClose();
-                                      onOpenPaymentModal(lastScanResult.student.id, fee.id);
-                                    }}
-                                    className="px-1.5 py-0.5 rounded bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-[9px] transition-all"
-                                  >
-                                    Pay
-                                  </button>
-                                )}
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-
-                      {/* Parent WhatsApp Attendance Slip & SMS status */}
+                      {/* Parent WhatsApp Attendance Slip */}
                       {(lastScanResult.whatsapp?.url || lastScanResult.student?.parentPhone) && (
-                        <div className="pt-1.5 border-t border-indigo-900/60 space-y-1.5 text-left">
+                        <div className="pt-1.5 border-t border-slate-800/80 flex items-center justify-between gap-1.5">
                           <a
                             href={lastScanResult.whatsapp?.url || `https://wa.me/${(lastScanResult.student?.parentPhone || lastScanResult.student?.phone || '').replace(/\D/g, '')}`}
                             target="_blank"
                             rel="noreferrer"
-                            className="w-full py-2 px-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-[11px] shadow-md shadow-emerald-600/30 flex items-center justify-center space-x-1.5 transition-all active:scale-95"
-                            title="Open WhatsApp chat with parent with formatted check-in slip"
+                            className="flex-1 py-1.5 px-2 rounded-lg bg-emerald-600/90 hover:bg-emerald-500 text-white font-bold text-[10px] flex items-center justify-center space-x-1 transition-all"
+                            title="Open WhatsApp chat with parent"
                           >
-                            <MessageCircle size={14} />
-                            <span>💬 Send Parent WhatsApp Slip</span>
+                            <MessageCircle size={12} />
+                            <span>WhatsApp Slip</span>
                           </a>
 
-                          <div className="flex items-center justify-between text-[10px] text-slate-400 px-0.5">
-                            <span className="flex items-center gap-1 font-mono truncate">
-                              <Smartphone size={11} className="text-emerald-400 shrink-0" />
-                              <span>{lastScanResult.student?.parentPhone || lastScanResult.student?.phone}</span>
-                            </span>
-                            <span className={lastScanResult.smsDispatched ? 'text-emerald-400 font-bold shrink-0' : 'text-slate-500 italic shrink-0'}>
-                              {lastScanResult.smsDispatched ? '✓ SMS Sent' : 'SMS: Off / Muted'}
-                            </span>
-                          </div>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const targetFeeId = lastScanResult.feeWarning?.feeRecordId || lastScanResult.pendingFees?.[0]?.id;
+                              onClose();
+                              if (onOpenPaymentModal) {
+                                onOpenPaymentModal(lastScanResult.student.id, targetFeeId);
+                              }
+                            }}
+                            className="flex-1 py-1.5 px-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-[10px] flex items-center justify-center space-x-1 transition-all"
+                          >
+                            <Check size={12} />
+                            <span>Collect Fee</span>
+                          </button>
                         </div>
                       )}
-
-                      {/* Action Decision Buttons */}
-                      <div className="space-y-1.5 pt-1">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const targetFeeId = lastScanResult.feeWarning?.feeRecordId || lastScanResult.pendingFees?.[0]?.id;
-                            onClose();
-                            if (onOpenPaymentModal) {
-                              onOpenPaymentModal(lastScanResult.student.id, targetFeeId);
-                            }
-                          }}
-                          className="w-full py-2.5 px-3 rounded-xl bg-gradient-to-r from-emerald-500 via-teal-500 to-indigo-600 hover:from-emerald-400 hover:to-indigo-500 text-white font-black text-xs shadow-md shadow-emerald-500/30 flex items-center justify-center space-x-1.5 transition-all active:scale-95"
-                        >
-                          <Check size={15} />
-                          <span>YES, Collect Fee</span>
-                        </button>
-
-                        <div className="grid grid-cols-2 gap-1.5">
-                          <button
-                            type="button"
-                            onClick={() => {
-                              const name = lastScanResult.student?.fullName || 'Student';
-                              setPayLaterNotice(`${name} noted to pay fee after class finishes.`);
-                              setLastScanResult(null);
-                              setTimeout(() => setPayLaterNotice(null), 4000);
-                            }}
-                            className="w-full py-2 px-2.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 font-bold text-[11px] border border-amber-500/40 flex items-center justify-center space-x-1 transition-all active:scale-95"
-                            title="Student will pay after class finishes"
-                          >
-                            <Clock size={13} className="text-amber-400" />
-                            <span>⏰ Pay Later</span>
-                          </button>
-
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setLastScanResult(null);
-                            }}
-                            className="w-full py-2 px-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-[11px] border border-slate-700 flex items-center justify-center space-x-1 transition-all active:scale-95"
-                          >
-                            <X size={13} />
-                            <span>NO, Skip</span>
-                          </button>
-                        </div>
-                      </div>
                     </div>
                   )}
                 </div>
@@ -679,10 +624,20 @@ export const QRScannerModal: React.FC<QRScannerModalProps> = ({
 
         </div>
 
-        {/* Footer Guidance */}
-        <div className="px-5 py-3 border-t border-slate-800 bg-slate-950/60 text-center text-[10px] text-slate-500 flex items-center justify-center space-x-1.5">
-          <Info size={12} className="text-slate-400" />
-          <span>Point camera at Student ID QR Pass or CR80 Barcode Card</span>
+        {/* Footer Guidance Bar with Secondary Close Button */}
+        <div className="px-4 py-3 border-t border-slate-800 bg-slate-950/80 flex items-center justify-between text-xs text-slate-400">
+          <div className="flex items-center space-x-1.5 truncate text-[11px]">
+            <Info size={13} className="text-slate-400 shrink-0" />
+            <span className="truncate">Continuous attendance scan enabled</span>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-rose-600 hover:text-white text-slate-300 font-bold transition-all shrink-0 ml-2 border border-slate-700 flex items-center space-x-1"
+          >
+            <X size={14} />
+            <span>Close</span>
+          </button>
         </div>
 
       </div>
