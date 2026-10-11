@@ -267,7 +267,7 @@ export interface LearningMaterial {
   id: string;
   title: string;
   description?: string;
-  fileType: 'PDF' | 'Document' | 'Image' | 'Video' | 'Link' | 'Past Paper';
+  fileType: 'PDF' | 'Document' | 'Image' | 'Video' | 'Link' | 'Past Paper' | 'Google Drive' | string;
   fileUrl: string;
   fileSize?: string;
   subjectId: string;
