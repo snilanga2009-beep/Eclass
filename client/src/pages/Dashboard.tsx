@@ -183,21 +183,21 @@ export const Dashboard: React.FC<DashboardProps> = ({
   return (
     <div className="space-y-6 pb-8">
       
-      {/* EXECUTIVE CONTROL STATION HEADER */}
-      <div className="bg-slate-900 text-white rounded-3xl p-6 sm:p-7 shadow-xl border border-slate-800 relative overflow-hidden">
+      {/* EXECUTIVE CONTROL STATION HEADER (ROYAL BLUE) */}
+      <div className="bg-gradient-to-r from-[#0055FF] via-[#0062FF] to-[#003ECB] text-white rounded-3xl p-6 sm:p-7 shadow-xl shadow-blue-600/20 border border-blue-400/30 relative overflow-hidden">
         {/* Subtle background glow effect */}
-        <div className="absolute top-0 right-0 -mt-12 -mr-12 w-96 h-96 bg-brand-500/10 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute bottom-0 left-1/3 -mb-16 w-80 h-80 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute top-0 right-0 -mt-12 -mr-12 w-96 h-96 bg-white/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute bottom-0 left-1/3 -mb-16 w-80 h-80 bg-sky-300/15 rounded-full blur-3xl pointer-events-none" />
 
         <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
           <div className="space-y-2">
             <div className="flex flex-wrap items-center gap-2.5">
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
-                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold bg-emerald-400/20 text-emerald-200 border border-emerald-300/30">
+                <span className="w-2 h-2 rounded-full bg-emerald-300 animate-pulse" />
                 Live Real-Time Sync Active
               </span>
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-mono text-slate-300 bg-slate-800/80 border border-slate-700/80">
-                <Clock size={12} className="text-slate-400" />
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-mono text-white bg-white/15 border border-white/20">
+                <Clock size={12} className="text-blue-100" />
                 <span>{liveClock || 'Live Sri Lanka Time'}</span>
               </span>
             </div>
@@ -206,8 +206,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
               <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
                 Campus Operations & Management Control
               </h1>
-              <p className="text-xs sm:text-sm text-slate-400 mt-1 max-w-2xl leading-relaxed">
-                Welcome, <strong className="text-white font-semibold">{user?.name}</strong>. Monitor real-time gate RFID/QR attendance, cashier collections, admission fees, and timetable sessions.
+              <p className="text-xs sm:text-sm text-blue-100 mt-1 max-w-2xl leading-relaxed">
+                Welcome, <strong className="text-white font-semibold">{user?.name}</strong>. Monitor real-time gate RFID/QR attendance, cashier collections, student exam performance, and timetable sessions.
               </p>
             </div>
           </div>
@@ -216,32 +216,40 @@ export const Dashboard: React.FC<DashboardProps> = ({
           <div className="flex items-center gap-2.5 flex-wrap shrink-0">
             <button
               onClick={onOpenQuickScan}
-              className="px-4 py-2.5 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center gap-2 shadow-lg shadow-emerald-900/30 transition-all active:scale-95 cursor-pointer"
+              className="px-4 py-2.5 rounded-2xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-extrabold text-xs flex items-center gap-2 shadow-lg transition-all active:scale-95 cursor-pointer"
             >
               <QrCode size={16} />
               <span>Gate QR Scanner</span>
             </button>
 
             <button
-              onClick={() => onNavigate('students')}
-              className="px-4 py-2.5 rounded-2xl bg-white hover:bg-slate-100 text-slate-900 font-bold text-xs flex items-center gap-2 shadow-md transition-all active:scale-95 cursor-pointer"
+              onClick={() => onNavigate('assessments')}
+              className="px-4 py-2.5 rounded-2xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-extrabold text-xs flex items-center gap-2 shadow-md transition-all active:scale-95 cursor-pointer"
             >
-              <UserPlus size={16} className="text-brand-600" />
+              <CheckCircle2 size={16} />
+              <span>Exams & Marks</span>
+            </button>
+
+            <button
+              onClick={() => onNavigate('students')}
+              className="px-4 py-2.5 rounded-2xl bg-white hover:bg-blue-50 text-[#0055FF] font-extrabold text-xs flex items-center gap-2 shadow-md transition-all active:scale-95 cursor-pointer"
+            >
+              <UserPlus size={16} className="text-[#0055FF]" />
               <span>New Admission</span>
             </button>
 
             <button
               onClick={() => onNavigate('payments')}
-              className="px-4 py-2.5 rounded-2xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs flex items-center gap-2 border border-slate-700 shadow-md transition-all active:scale-95 cursor-pointer"
+              className="px-4 py-2.5 rounded-2xl bg-[#5B8DEF] hover:bg-[#4A7CE0] text-white font-bold text-xs flex items-center gap-2 border border-white/25 shadow-md transition-all active:scale-95 cursor-pointer"
             >
-              <CreditCard size={16} className="text-amber-400" />
+              <CreditCard size={16} className="text-amber-300" />
               <span>Collect Fee</span>
             </button>
 
             <button
               onClick={() => loadDashboard(selectedAttDate)}
               disabled={refreshing}
-              className="p-2.5 rounded-2xl bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 transition-all cursor-pointer"
+              className="p-2.5 rounded-2xl bg-white/15 hover:bg-white/25 text-white border border-white/25 transition-all cursor-pointer"
               title="Refresh Dashboard"
             >
               <RefreshCw size={16} className={refreshing ? 'animate-spin text-white' : ''} />

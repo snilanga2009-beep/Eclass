@@ -11,9 +11,9 @@ export default defineConfig({
       manifest: {
         name: 'Class Accounting Management System',
         short_name: 'CAMS',
-        description: 'Modern Tuition Class Accounting & Management System',
-        theme_color: '#2563eb',
-        background_color: '#f8fafc',
+        description: 'Modern Tuition Class Accounting & Parent Portal App',
+        theme_color: '#0055FF',
+        background_color: '#0055FF',
         display: 'standalone',
         orientation: 'portrait-primary',
         icons: [
@@ -31,7 +31,10 @@ export default defineConfig({
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
-        maximumFileSizeToCacheInBytes: 5 * 1024 * 1024
+        maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
+        skipWaiting: true,
+        clientsClaim: true,
+        cleanupOutdatedCaches: true
       }
     })
   ],

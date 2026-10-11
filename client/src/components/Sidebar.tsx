@@ -126,10 +126,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
     { 
       id: 'assessments', 
       label: 'Assessments & Exams', 
-      icon: FileText, 
-      roles: ['SUPER_ADMIN', 'ADMIN', 'TEACHER'], 
+      icon: Award, 
+      roles: ['SUPER_ADMIN', 'ADMIN', 'TEACHER', 'RECEPTIONIST', 'ACCOUNTANT'], 
       category: 'ACADEMICS',
-      iconColor: 'text-amber-400'
+      iconColor: 'text-amber-300',
+      badge: 'EXAMS',
+      badgeColor: 'bg-amber-400/20 text-amber-200 border-amber-300/40'
     },
     { 
       id: 'materials', 
@@ -364,14 +366,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
         />
       )}
 
-      {/* Professional Sidebar Container */}
+      {/* Professional Sidebar Container (Royal Blue + Crisp White) */}
       <aside className={`
-        fixed top-0 bottom-0 left-0 z-50 flex flex-col bg-slate-900 text-slate-300 border-r border-slate-800 shadow-xl transition-all duration-300 ease-in-out select-none
+        fixed top-0 bottom-0 left-0 z-50 flex flex-col bg-gradient-to-b from-[#0055FF] via-[#0047D9] to-[#0033A0] text-white border-r border-blue-400/30 shadow-2xl transition-all duration-300 ease-in-out select-none
         ${collapsed ? 'w-20' : 'w-64'}
         ${isMobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
       `}>
         {/* Brand / Logo Header */}
-        <div className="flex items-center justify-between h-18 px-4 border-b border-slate-800 bg-slate-950/70">
+        <div className="flex items-center justify-between h-18 px-4 border-b border-white/15 bg-[#003ECB]/60">
           <div 
             className="flex items-center space-x-3 overflow-hidden cursor-pointer group" 
             onClick={() => {
@@ -386,8 +388,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
             }}
           >
             {/* Institutional Shield Badge */}
-            <div className="w-10 h-10 rounded-2xl bg-slate-800 border border-slate-700 text-white flex items-center justify-center shrink-0 group-hover:border-slate-500 transition-colors shadow-sm">
-              <Building2 className="w-5 h-5 text-brand-400" />
+            <div className="w-10 h-10 rounded-2xl bg-[#5B8DEF] border border-white/30 text-white flex items-center justify-center shrink-0 group-hover:bg-white group-hover:text-[#0055FF] transition-colors shadow-md">
+              <Building2 className="w-5 h-5" />
             </div>
 
             {!collapsed && (
@@ -396,9 +398,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   <span className="font-extrabold text-white text-sm tracking-tight truncate uppercase">
                     {instituteName || 'Apex Academy'}
                   </span>
-                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0" />
+                  <span className="w-2 h-2 rounded-full bg-emerald-300 animate-pulse shrink-0" />
                 </div>
-                <span className="text-[10px] font-semibold text-slate-400 truncate uppercase tracking-wider">
+                <span className="text-[10px] font-semibold text-blue-100 truncate uppercase tracking-wider">
                   {instituteTagline || 'Class Accounting ERP'}
                 </span>
               </div>
@@ -407,7 +409,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           
           <button
             onClick={() => setCollapsed(!collapsed)}
-            className="hidden lg:flex p-1.5 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
+            className="hidden lg:flex p-1.5 rounded-xl text-blue-100 hover:text-white hover:bg-white/15 transition-colors cursor-pointer"
             title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
           >
             {collapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
@@ -415,7 +417,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </div>
 
         {/* Navigation Categories and Links */}
-        <div className="flex-1 overflow-y-auto px-3 py-3 space-y-4 scrollbar-thin scrollbar-thumb-slate-800 scrollbar-track-transparent">
+        <div className="flex-1 overflow-y-auto px-3 py-3 space-y-4 scrollbar-thin scrollbar-thumb-white/20 scrollbar-track-transparent">
           {categories.map(cat => {
             const itemsInCat = filteredNavItems.filter(item => item.category === cat.key);
             if (itemsInCat.length === 0) return null;
@@ -424,9 +426,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
               <div key={cat.key} className="space-y-1">
                 {/* Category Section Header */}
                 {!collapsed && (
-                  <div className="px-3 pt-2.5 pb-1 text-[10px] font-black uppercase tracking-wider text-slate-500 flex items-center justify-between">
+                  <div className="px-3 pt-2.5 pb-1 text-[10px] font-black uppercase tracking-wider text-blue-200 flex items-center justify-between">
                     <span>{cat.title}</span>
-                    <span className="w-6 h-[1px] bg-slate-800" />
+                    <span className="w-6 h-[1px] bg-white/20" />
                   </div>
                 )}
 
@@ -444,8 +446,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
                         className={`
                           w-full flex items-center space-x-3 px-3 py-2 rounded-xl text-xs font-semibold transition-all group relative cursor-pointer
                           ${isActive 
-                            ? 'bg-slate-800 text-white font-bold border-l-4 border-brand-500 shadow-sm' 
-                            : 'text-slate-400 hover:text-white hover:bg-slate-800/60'}
+                            ? 'bg-white text-[#0055FF] font-extrabold shadow-md' 
+                            : 'text-blue-100 hover:text-white hover:bg-white/15'}
                         `}
                         title={collapsed ? item.label : undefined}
                       >
@@ -453,24 +455,26 @@ export const Sidebar: React.FC<SidebarProps> = ({
                         <div className={`
                           w-7 h-7 rounded-lg flex items-center justify-center shrink-0 transition-colors
                           ${isActive 
-                            ? 'bg-slate-700/80 text-white' 
-                            : `bg-slate-800/80 ${item.iconColor} group-hover:bg-slate-700 group-hover:text-white`}
+                            ? 'bg-[#0055FF] text-white' 
+                            : 'bg-white/15 text-white group-hover:bg-white/25'}
                         `}>
                           <Icon size={15} />
                         </div>
 
                         {/* Label & Badges */}
                         {!collapsed && (
-                          <span className={`truncate flex-1 text-left ${isActive ? 'text-white' : 'text-slate-300 group-hover:text-white'}`}>
+                          <span className={`truncate flex-1 text-left ${isActive ? 'text-[#0055FF] font-extrabold' : 'text-white'}`}>
                             {item.label}
                           </span>
                         )}
 
                         {!collapsed && item.badge && (
                           <span className={`px-2 py-0.5 text-[9px] font-mono font-bold rounded-md border flex items-center gap-1 ${
-                            item.badgeColor || 'bg-slate-800 text-slate-300 border-slate-700'
+                            isActive
+                              ? 'bg-blue-50 text-[#0055FF] border-blue-200'
+                              : 'bg-white/15 text-white border-white/25'
                           }`}>
-                            {item.badge === 'LIVE' && <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping inline-block" />}
+                            {item.badge === 'LIVE' && <span className="w-1.5 h-1.5 rounded-full bg-emerald-300 animate-ping inline-block" />}
                             <span>{item.badge}</span>
                           </span>
                         )}
@@ -484,22 +488,22 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </div>
 
         {/* Footer User Profile & Logout (Always shows icon even when collapsed) */}
-        <div className="p-3 border-t border-slate-800 bg-slate-950/70">
-          <div className={`flex ${collapsed ? 'flex-col items-center gap-2' : 'items-center space-x-3'} p-2 rounded-2xl bg-slate-900 border border-slate-800 shadow-xs`}>
+        <div className="p-3 border-t border-white/15 bg-[#0033A0]/70">
+          <div className={`flex ${collapsed ? 'flex-col items-center gap-2' : 'items-center space-x-3'} p-2 rounded-2xl bg-white/10 border border-white/20 shadow-xs`}>
             <div className="relative shrink-0">
               <img 
                 src={user?.avatar || "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&auto=format&fit=crop&q=80"} 
                 alt={user?.name} 
-                className="w-9 h-9 rounded-xl object-cover ring-2 ring-slate-700"
+                className="w-9 h-9 rounded-xl object-cover ring-2 ring-white/40"
               />
-              <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-400 ring-2 ring-slate-900" />
+              <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-400 ring-2 ring-[#0033A0]" />
             </div>
 
             {!collapsed && (
               <div className="flex-1 min-w-0">
                 <p className="text-xs font-bold text-white truncate leading-tight">{user?.name}</p>
                 <div className="mt-1 flex items-center gap-1.5">
-                  <span className={`px-1.5 py-0.2 rounded-md text-[9px] font-mono font-bold border uppercase tracking-wider truncate ${getRoleBadgeStyle(user?.role)}`}>
+                  <span className="px-1.5 py-0.2 rounded-md text-[9px] font-mono font-bold border uppercase tracking-wider truncate bg-white/20 text-white border-white/30">
                     {user?.role?.replace('_', ' ')}
                   </span>
                 </div>
@@ -508,7 +512,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
             <button 
               onClick={logout}
-              className="p-2 text-slate-300 hover:text-rose-400 hover:bg-rose-500/15 rounded-xl transition-colors cursor-pointer shrink-0"
+              className="p-2 text-blue-100 hover:text-white hover:bg-rose-500 rounded-xl transition-colors cursor-pointer shrink-0"
               title="Log out"
             >
               <LogOut size={16} />

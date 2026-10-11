@@ -63,6 +63,14 @@ export const Header: React.FC<HeaderProps> = ({
     setClearingCache(true);
     try {
       const res = await clearAppCache();
+      if ('caches' in window) {
+        const keys = await caches.keys();
+        await Promise.all(keys.map(k => caches.delete(k)));
+      }
+      if ('serviceWorker' in navigator) {
+        const regs = await navigator.serviceWorker.getRegistrations();
+        await Promise.all(regs.map(r => r.update()));
+      }
       alert(res.message || 'System cache synchronized successfully!');
     } catch (err: any) {
       alert(err.message || 'Failed to clear system cache');

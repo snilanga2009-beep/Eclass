@@ -54,13 +54,13 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({ onOpenReceipt, onO
   return (
     <div className="space-y-6 pb-20">
       {/* Hero Welcome */}
-      <div className="p-6 sm:p-8 rounded-3xl bg-gradient-to-r from-brand-900 via-indigo-950 to-slate-900 text-white shadow-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="p-6 sm:p-8 rounded-3xl bg-gradient-to-r from-[#0055FF] via-[#0062FF] to-[#003ECB] text-white shadow-xl shadow-blue-600/20 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <span className="text-xs font-bold text-brand-300 uppercase tracking-wider">Student Self-Service Portal</span>
+          <span className="text-xs font-bold text-blue-100 uppercase tracking-wider">Student Self-Service Portal</span>
           <h1 className="text-2xl sm:text-3xl font-black text-white mt-1">
             Hello, {profile?.fullName || user?.name}!
           </h1>
-          <p className="text-xs text-slate-300 mt-0.5">
+          <p className="text-xs text-blue-100 mt-0.5">
             {profile?.studentIdNumber} • {profile?.grade} • {profile?.school || 'Apex Higher Education'}
           </p>
         </div>
@@ -68,9 +68,9 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({ onOpenReceipt, onO
         {profile && (
           <button
             onClick={() => onOpenIDCard(profile.id)}
-            className="px-4 py-2.5 rounded-xl bg-white text-slate-900 hover:bg-slate-100 font-bold text-xs flex items-center gap-2 shadow-lg transition-all shrink-0 cursor-pointer"
+            className="px-4 py-2.5 rounded-xl bg-white text-[#0055FF] hover:bg-blue-50 font-extrabold text-xs flex items-center gap-2 shadow-lg transition-all shrink-0 cursor-pointer"
           >
-            <QrCode size={16} className="text-brand-600" />
+            <QrCode size={16} className="text-[#0055FF]" />
             <span>My Smart ID Pass</span>
           </button>
         )}

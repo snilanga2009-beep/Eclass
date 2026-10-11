@@ -228,31 +228,31 @@ export const ParentPortal: React.FC<ParentPortalProps> = ({
   return (
     <div className="space-y-6 pb-20">
       {/* ======================================================== */}
-      {/* HERO STUDENT & GUARDIAN APP HEADER CARD */}
+      {/* HERO STUDENT & GUARDIAN APP HEADER CARD (ROYAL BLUE) */}
       {/* ======================================================== */}
-      <div className="p-5 sm:p-7 rounded-3xl bg-gradient-to-br from-slate-900 via-teal-950 to-slate-900 border border-teal-800/50 text-white shadow-xl relative overflow-hidden">
-        <div className="absolute -top-16 -right-16 w-72 h-72 bg-teal-500/15 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute -bottom-16 left-1/4 w-72 h-72 bg-indigo-500/15 rounded-full blur-3xl pointer-events-none" />
+      <div className="p-5 sm:p-7 rounded-3xl bg-gradient-to-br from-[#0055FF] via-[#0062FF] to-[#003ECB] border border-blue-400/30 text-white shadow-xl shadow-blue-600/20 relative overflow-hidden">
+        <div className="absolute -top-16 -right-16 w-72 h-72 bg-white/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute -bottom-16 left-1/4 w-72 h-72 bg-sky-300/15 rounded-full blur-3xl pointer-events-none" />
 
         <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-5">
           {/* Student + Guardian Identity */}
           <div className="flex items-start sm:items-center gap-4">
             {childData && (
-              <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-gradient-to-tr from-teal-400 to-emerald-500 p-0.5 shadow-lg shrink-0">
+              <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-white p-0.5 shadow-lg shrink-0">
                 <img
                   src={getStudentAvatar(childData)}
                   alt={childData.fullName}
-                  className="w-full h-full object-cover rounded-2xl bg-slate-900"
+                  className="w-full h-full object-cover rounded-2xl bg-blue-900"
                 />
               </div>
             )}
 
             <div className="space-y-1.5">
               <div className="flex flex-wrap items-center gap-2">
-                <span className="px-2.5 py-0.5 rounded-full bg-teal-500/20 text-teal-300 border border-teal-500/30 text-[10px] font-bold uppercase tracking-widest">
+                <span className="px-2.5 py-0.5 rounded-full bg-white/20 text-white border border-white/30 text-[10px] font-bold uppercase tracking-widest">
                   Parent & Guardian App
                 </span>
-                <span className="inline-flex items-center space-x-1 px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 text-[10px] font-semibold">
+                <span className="inline-flex items-center space-x-1 px-2 py-0.5 rounded-full bg-emerald-400/20 text-emerald-200 border border-emerald-300/30 text-[10px] font-semibold">
                   <CheckCircle2 size={11} />
                   <span>Live Sync Active</span>
                 </span>
@@ -263,8 +263,8 @@ export const ParentPortal: React.FC<ParentPortalProps> = ({
               </h1>
 
               {childData ? (
-                <div className="flex flex-wrap items-center gap-2 text-xs text-slate-300">
-                  <span className="px-2 py-0.5 rounded-md bg-white/10 font-mono font-bold text-teal-300">
+                <div className="flex flex-wrap items-center gap-2 text-xs text-blue-100">
+                  <span className="px-2 py-0.5 rounded-md bg-white/20 font-mono font-bold text-white">
                     {childData.studentIdNumber}
                   </span>
                   <span>•</span>
@@ -272,12 +272,12 @@ export const ParentPortal: React.FC<ParentPortalProps> = ({
                   {childData.school && (
                     <>
                       <span>•</span>
-                      <span className="text-slate-300">{childData.school}</span>
+                      <span className="text-blue-100">{childData.school}</span>
                     </>
                   )}
                 </div>
               ) : (
-                <p className="text-xs text-slate-300">
+                <p className="text-xs text-blue-100">
                   Real-time gate attendance, student exam performance, and fee receipts.
                 </p>
               )}
@@ -285,20 +285,28 @@ export const ParentPortal: React.FC<ParentPortalProps> = ({
           </div>
 
           {/* Right Action Station */}
-          <div className="flex flex-wrap items-center gap-2.5">
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              onClick={() => setActiveTab('assessments')}
+              className="px-3.5 py-2.5 rounded-2xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-extrabold text-xs shadow-md flex items-center gap-1.5 transition-all active:scale-95 cursor-pointer"
+            >
+              <Award size={15} className="text-slate-950" />
+              <span>Exams ({examResults.length})</span>
+            </button>
+
             {childData && (
               <button
                 onClick={() => onOpenIDCard(childData.id)}
-                className="px-4 py-2.5 rounded-2xl bg-white text-slate-900 hover:bg-teal-50 font-bold text-xs shadow-md flex items-center gap-2 transition-all active:scale-95 cursor-pointer"
+                className="px-3.5 py-2.5 rounded-2xl bg-white text-[#0055FF] hover:bg-blue-50 font-extrabold text-xs shadow-md flex items-center gap-1.5 transition-all active:scale-95 cursor-pointer"
               >
-                <QrCode size={15} className="text-teal-600" />
+                <QrCode size={15} className="text-[#0055FF]" />
                 <span>QR ID Card</span>
               </button>
             )}
 
             <button
               onClick={handleInstallClick}
-              className="px-4 py-2.5 rounded-2xl bg-teal-600 hover:bg-teal-500 text-white font-bold text-xs shadow-lg shadow-teal-950/50 flex items-center gap-2 transition-all active:scale-95 border border-teal-400/30 cursor-pointer"
+              className="px-3.5 py-2.5 rounded-2xl bg-[#5B8DEF] hover:bg-[#4A7CE0] text-white font-bold text-xs shadow-lg flex items-center gap-1.5 transition-all active:scale-95 border border-white/25 cursor-pointer"
             >
               <Smartphone size={15} />
               <span>Save App</span>
@@ -311,7 +319,7 @@ export const ParentPortal: React.FC<ParentPortalProps> = ({
                 }
               }}
               title="Log out"
-              className="p-2.5 rounded-2xl bg-white/10 hover:bg-rose-500/20 text-slate-300 hover:text-rose-300 border border-white/10 transition-colors cursor-pointer"
+              className="p-2.5 rounded-2xl bg-white/15 hover:bg-rose-500 text-white border border-white/20 transition-colors cursor-pointer"
             >
               <LogOut size={16} />
             </button>
@@ -320,8 +328,8 @@ export const ParentPortal: React.FC<ParentPortalProps> = ({
 
         {/* Multi-Child Selector Bar (When Multiple Siblings share Parent Phone) */}
         {children.length > 1 && (
-          <div className="mt-5 pt-4 border-t border-white/10 flex items-center gap-2 overflow-x-auto no-scrollbar pb-1">
-            <span className="text-xs font-bold text-teal-200 shrink-0 mr-1 flex items-center gap-1">
+          <div className="mt-5 pt-4 border-t border-white/20 flex items-center gap-2 overflow-x-auto no-scrollbar pb-1">
+            <span className="text-xs font-bold text-blue-100 shrink-0 mr-1 flex items-center gap-1">
               <Users size={13} />
               <span>Switch Child ({children.length}):</span>
             </span>
@@ -333,13 +341,13 @@ export const ParentPortal: React.FC<ParentPortalProps> = ({
                   onClick={() => setSelectedChildId(child.id)}
                   className={`px-3.5 py-2 rounded-2xl text-xs font-bold transition-all flex items-center space-x-2 shrink-0 cursor-pointer ${
                     isSelected 
-                      ? 'bg-white text-slate-900 shadow-md ring-2 ring-teal-400' 
-                      : 'bg-white/10 text-white hover:bg-white/20'
+                      ? 'bg-white text-[#0055FF] shadow-md ring-2 ring-white' 
+                      : 'bg-white/15 text-white hover:bg-white/25'
                   }`}
                 >
-                  <span className={`w-2 h-2 rounded-full ${isSelected ? 'bg-teal-600' : 'bg-teal-400'}`} />
+                  <span className={`w-2 h-2 rounded-full ${isSelected ? 'bg-[#0055FF]' : 'bg-emerald-300'}`} />
                   <span>{child.fullName}</span>
-                  <span className={`text-[10px] px-1.5 py-0.5 rounded font-mono ${isSelected ? 'bg-slate-200 text-slate-800' : 'bg-white/20 text-teal-200'}`}>
+                  <span className={`text-[10px] px-1.5 py-0.5 rounded font-mono ${isSelected ? 'bg-blue-50 text-[#0055FF]' : 'bg-white/20 text-white'}`}>
                     {child.grade}
                   </span>
                 </button>
@@ -350,33 +358,33 @@ export const ParentPortal: React.FC<ParentPortalProps> = ({
       </div>
 
       {/* ======================================================== */}
-      {/* TOP NAVIGATION PILLS (SYNCHRONIZED WITH FOOTER BAR) */}
+      {/* TOP NAVIGATION PILLS (VISIBLE GRID ON MOBILE + PILLS ON PC) */}
       {/* ======================================================== */}
-      <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1">
+      <div className="grid grid-cols-3 sm:flex sm:flex-wrap items-center gap-2">
         <button
           onClick={() => setActiveTab('overview')}
-          className={`px-4 py-2.5 rounded-2xl font-bold text-xs transition-all flex items-center gap-2 shrink-0 cursor-pointer ${
+          className={`px-3 sm:px-4 py-2.5 rounded-2xl font-bold text-xs transition-all flex items-center justify-center sm:justify-start gap-1.5 cursor-pointer ${
             activeTab === 'overview'
-              ? 'bg-slate-900 text-white shadow-md'
-              : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
+              ? 'bg-[#0055FF] text-white shadow-md shadow-blue-600/25'
+              : 'bg-white text-slate-700 hover:bg-blue-50 border border-slate-200'
           }`}
         >
-          <LayoutDashboard size={15} className={activeTab === 'overview' ? 'text-teal-400' : 'text-slate-500'} />
-          <span>Main Dashboard</span>
+          <LayoutDashboard size={15} className={activeTab === 'overview' ? 'text-white shrink-0' : 'text-[#0055FF] shrink-0'} />
+          <span className="truncate">Dashboard</span>
         </button>
 
         <button
           onClick={() => setActiveTab('assessments')}
-          className={`px-4 py-2.5 rounded-2xl font-bold text-xs transition-all flex items-center gap-2 shrink-0 cursor-pointer ${
+          className={`px-3 sm:px-4 py-2.5 rounded-2xl font-bold text-xs transition-all flex items-center justify-center sm:justify-start gap-1.5 cursor-pointer ${
             activeTab === 'assessments'
-              ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/25'
-              : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
+              ? 'bg-[#0055FF] text-white shadow-md shadow-blue-600/25'
+              : 'bg-white text-slate-700 hover:bg-blue-50 border border-slate-200'
           }`}
         >
-          <Award size={15} className={activeTab === 'assessments' ? 'text-white' : 'text-indigo-600'} />
-          <span>Assessments & Performance</span>
-          <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono font-bold ${
-            activeTab === 'assessments' ? 'bg-indigo-800 text-white' : 'bg-indigo-50 text-indigo-700'
+          <Award size={15} className={activeTab === 'assessments' ? 'text-amber-300 shrink-0' : 'text-[#0055FF] shrink-0'} />
+          <span className="truncate">Exams</span>
+          <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono font-bold shrink-0 ${
+            activeTab === 'assessments' ? 'bg-white text-[#0055FF]' : 'bg-blue-50 text-[#0055FF]'
           }`}>
             {examResults.length}
           </span>
@@ -384,16 +392,16 @@ export const ParentPortal: React.FC<ParentPortalProps> = ({
 
         <button
           onClick={() => setActiveTab('attendance')}
-          className={`px-4 py-2.5 rounded-2xl font-bold text-xs transition-all flex items-center gap-2 shrink-0 cursor-pointer ${
+          className={`px-3 sm:px-4 py-2.5 rounded-2xl font-bold text-xs transition-all flex items-center justify-center sm:justify-start gap-1.5 cursor-pointer ${
             activeTab === 'attendance'
-              ? 'bg-teal-600 text-white shadow-md shadow-teal-600/25'
-              : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
+              ? 'bg-[#0055FF] text-white shadow-md shadow-blue-600/25'
+              : 'bg-white text-slate-700 hover:bg-blue-50 border border-slate-200'
           }`}
         >
-          <Clock size={15} className={activeTab === 'attendance' ? 'text-white' : 'text-teal-600'} />
-          <span>Attendance & Time</span>
-          <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono font-bold ${
-            activeTab === 'attendance' ? 'bg-teal-800 text-white' : 'bg-teal-50 text-teal-700'
+          <Clock size={15} className={activeTab === 'attendance' ? 'text-white shrink-0' : 'text-emerald-600 shrink-0'} />
+          <span className="truncate">Attendance</span>
+          <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono font-bold shrink-0 ${
+            activeTab === 'attendance' ? 'bg-white text-[#0055FF]' : 'bg-emerald-50 text-emerald-700'
           }`}>
             {totalSessions}
           </span>
@@ -401,38 +409,38 @@ export const ParentPortal: React.FC<ParentPortalProps> = ({
 
         <button
           onClick={() => setActiveTab('fees')}
-          className={`px-4 py-2.5 rounded-2xl font-bold text-xs transition-all flex items-center gap-2 shrink-0 cursor-pointer ${
+          className={`px-3 sm:px-4 py-2.5 rounded-2xl font-bold text-xs transition-all flex items-center justify-center sm:justify-start gap-1.5 cursor-pointer ${
             activeTab === 'fees'
-              ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/25'
-              : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
+              ? 'bg-[#0055FF] text-white shadow-md shadow-blue-600/25'
+              : 'bg-white text-slate-700 hover:bg-blue-50 border border-slate-200'
           }`}
         >
-          <CreditCard size={15} className={activeTab === 'fees' ? 'text-white' : 'text-emerald-600'} />
-          <span>Tuition Fees & Receipts</span>
+          <CreditCard size={15} className={activeTab === 'fees' ? 'text-white shrink-0' : 'text-emerald-600 shrink-0'} />
+          <span className="truncate">Tuition Fees</span>
         </button>
 
         <button
           onClick={() => setActiveTab('smartpass')}
-          className={`px-4 py-2.5 rounded-2xl font-bold text-xs transition-all flex items-center gap-2 shrink-0 cursor-pointer ${
+          className={`px-3 sm:px-4 py-2.5 rounded-2xl font-bold text-xs transition-all flex items-center justify-center sm:justify-start gap-1.5 cursor-pointer ${
             activeTab === 'smartpass'
-              ? 'bg-slate-900 text-white shadow-md'
-              : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
+              ? 'bg-[#0055FF] text-white shadow-md shadow-blue-600/25'
+              : 'bg-white text-slate-700 hover:bg-blue-50 border border-slate-200'
           }`}
         >
-          <QrCode size={15} className={activeTab === 'smartpass' ? 'text-teal-400' : 'text-slate-600'} />
-          <span>Smart QR Pass</span>
+          <QrCode size={15} className={activeTab === 'smartpass' ? 'text-white shrink-0' : 'text-[#0055FF] shrink-0'} />
+          <span className="truncate">QR Pass</span>
         </button>
 
         <button
           onClick={() => setActiveTab('classes')}
-          className={`px-4 py-2.5 rounded-2xl font-bold text-xs transition-all flex items-center gap-2 shrink-0 cursor-pointer ${
+          className={`px-3 sm:px-4 py-2.5 rounded-2xl font-bold text-xs transition-all flex items-center justify-center sm:justify-start gap-1.5 cursor-pointer ${
             activeTab === 'classes'
-              ? 'bg-brand-600 text-white shadow-md'
-              : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
+              ? 'bg-[#0055FF] text-white shadow-md shadow-blue-600/25'
+              : 'bg-white text-slate-700 hover:bg-blue-50 border border-slate-200'
           }`}
         >
-          <BookOpen size={15} className={activeTab === 'classes' ? 'text-white' : 'text-brand-600'} />
-          <span>Classes & Study Materials</span>
+          <BookOpen size={15} className={activeTab === 'classes' ? 'text-white shrink-0' : 'text-[#0055FF] shrink-0'} />
+          <span className="truncate">Materials</span>
         </button>
       </div>
 
