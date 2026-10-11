@@ -299,25 +299,63 @@ router.get('/:id', authenticateToken, async (req: AuthRequest, res: Response) =>
       })
       .sort((a, b) => b.month.localeCompare(a.month));
 
-    // 5. Exam Results
+    // 5. Exam Results (enriched with live rank, class average, highest mark, and subject/class info)
     const examResults = db.data.examResults
       .filter(er => er.studentId === student.id)
       .map(er => {
         const exam = db.data.exams.find(e => e.id === er.examId);
-        const subject = exam ? db.data.subjects.find(s => s.id === exam.subjectId) : null;
         const cls = exam?.classId ? db.data.classes.find(c => c.id === exam.classId) : null;
+        const subject = (exam ? db.data.subjects.find(s => s.id === exam.subjectId) : null) ||
+          (cls ? db.data.subjects.find(s => s.id === cls.subjectId) : null) ||
+          (exam ? { id: exam.subjectId, name: exam.subjectId, code: 'SUB' } : null);
+
+        // Compute live rank & stats across all results for this exam
+        const allForExam = db.data.examResults
+          .filter(r => r.examId === er.examId)
+          .sort((a, b) => b.marks - a.marks);
+        const totalStudents = allForExam.length;
+        const computedRank = allForExam.findIndex(r => r.studentId === student.id) + 1;
+        const classAverage = totalStudents > 0
+          ? Math.round(allForExam.reduce((sum, r) => sum + r.marks, 0) / totalStudents)
+          : er.marks;
+        const highestMarks = totalStudents > 0 ? allForExam[0].marks : er.marks;
+        const totalMarks = exam?.totalMarks || 100;
+        const passMarks = exam?.passMarks || 40;
+        const percentage = totalMarks > 0 ? Math.round((er.marks / totalMarks) * 100) : er.marks;
+
         return {
           ...er,
+          rank: er.rank || (computedRank > 0 ? computedRank : 1),
+          totalStudents,
+          classAverage,
+          highestMarks,
+          percentage,
+          passed: er.marks >= passMarks,
           exam: exam ? { ...exam, subject, class: cls } : null
         };
+      })
+      .sort((a, b) => {
+        const dateA = a.exam?.date ? new Date(a.exam.date).getTime() : 0;
+        const dateB = b.exam?.date ? new Date(b.exam.date).getTime() : 0;
+        return dateB - dateA;
       });
 
-    // 6. Learning Materials (available for this student's grade/classes)
+    // 6. Learning Materials (available for this student's grade/classes/subjects)
     const studentClassIds = new Set(enrollments.map(e => e.classId));
-    const learningMaterials = db.data.learningMaterials.filter(m => 
+    const studentSubjectIds = new Set(enrollments.map(e => e.class?.subjectId).filter(Boolean));
+    let rawMaterials = db.data.learningMaterials.filter(m => 
       (m.grade && m.grade === student.grade) ||
-      (m.classId && studentClassIds.has(m.classId))
+      (m.classId && studentClassIds.has(m.classId)) ||
+      (m.subjectId && studentSubjectIds.has(m.subjectId))
     );
+    if (rawMaterials.length === 0) {
+      rawMaterials = db.data.learningMaterials;
+    }
+    const learningMaterials = rawMaterials.map(m => ({
+      ...m,
+      subject: db.data.subjects.find(s => s.id === m.subjectId) || null,
+      teacher: m.teacherId ? db.data.teachers.find(t => t.id === m.teacherId) : null
+    }));
 
     // 7. Messages / SMS & WhatsApp Logs
     const messages = db.data.smsLogs.filter(s => s.studentId === student.id || (student.phone && s.recipient.includes(student.phone)));

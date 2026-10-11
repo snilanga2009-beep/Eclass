@@ -31,7 +31,7 @@ import { Reports } from './pages/Reports';
 import { Settings } from './pages/Settings';
 import { Users } from './pages/Users';
 import { AuditLogs } from './pages/AuditLogs';
-import { ParentPortal } from './pages/ParentPortal';
+import { ParentPortal, ParentSubTab } from './pages/ParentPortal';
 import { StudentPortal } from './pages/StudentPortal';
 import { Login } from './pages/Login';
 
@@ -40,6 +40,7 @@ export const App: React.FC = () => {
 
   // Layout & Navigation State
   const [currentTab, setCurrentTab] = useState<string>('dashboard');
+  const [parentSubTab, setParentSubTab] = useState<ParentSubTab>('overview');
   const [collapsed, setCollapsed] = useState<boolean>(false);
   const [isMobileOpen, setIsMobileOpen] = useState<boolean>(false);
 
@@ -158,6 +159,8 @@ export const App: React.FC = () => {
           setCollapsed={setCollapsed}
           isMobileOpen={isMobileOpen}
           setIsMobileOpen={setIsMobileOpen}
+          parentSubTab={parentSubTab}
+          onSelectParentSubTab={setParentSubTab}
         />
 
         {/* Main Content Area */}
@@ -271,6 +274,9 @@ export const App: React.FC = () => {
             <ParentPortal 
               onOpenReceipt={(r) => setActiveReceiptNumber(r)}
               onOpenIDCard={(id) => setActiveIDCardStudentId(id)}
+              activeSubTab={parentSubTab}
+              onChangeSubTab={setParentSubTab}
+              onNavigateGlobal={setCurrentTab}
             />
           )}
 
@@ -331,13 +337,16 @@ export const App: React.FC = () => {
       {/* PWA 1-Click Install Banner (Android / Chrome / iOS Safari) */}
       <PWAInstallPrompt />
 
-      {/* Mobile-First Fixed Bottom Navigation (visible only on mobile md:hidden) */}
+      {/* Fixed Bottom Navigation Dock */}
       <MobileBottomNav
         currentTab={currentTab}
         onNavigate={setCurrentTab}
         onOpenQuickScan={handleOpenQuickScan}
         onOpenQuickPayment={() => handleOpenPayFee('')}
         onOpenIDCard={(id) => setActiveIDCardStudentId(id)}
+        parentSubTab={parentSubTab}
+        onSelectParentSubTab={setParentSubTab}
+        collapsed={collapsed}
       />
 
       {/* Global High-Tech Mobile Camera QR Scanner Popup Modal */}

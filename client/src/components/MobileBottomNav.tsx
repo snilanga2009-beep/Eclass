@@ -17,9 +17,12 @@ import {
   Settings, 
   LogOut,
   Coins,
-  Building2
+  Building2,
+  Award,
+  Clock
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { ParentSubTab } from '../pages/ParentPortal';
 
 interface MobileBottomNavProps {
   currentTab: string;
@@ -27,6 +30,9 @@ interface MobileBottomNavProps {
   onOpenQuickScan: () => void;
   onOpenQuickPayment: () => void;
   onOpenIDCard?: (studentId: string) => void;
+  parentSubTab?: ParentSubTab;
+  onSelectParentSubTab?: (subTab: ParentSubTab) => void;
+  collapsed?: boolean;
 }
 
 export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
@@ -34,7 +40,10 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
   onNavigate,
   onOpenQuickScan,
   onOpenQuickPayment,
-  onOpenIDCard
+  onOpenIDCard,
+  parentSubTab = 'overview',
+  onSelectParentSubTab,
+  collapsed = false
 }) => {
   const { user, logout, hasRole } = useAuth();
   const [isMoreOpen, setIsMoreOpen] = useState(false);
@@ -44,7 +53,7 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
   const isStudentOrParent = isStudent || isParent;
 
   const handleTabClick = (tab: string) => {
-    if (tab === 'attendance') {
+    if (tab === 'attendance-scan') {
       onOpenQuickScan();
     } else {
       onNavigate(tab);
@@ -52,55 +61,163 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
     setIsMoreOpen(false);
   };
 
+  const handleParentNav = (subTab: ParentSubTab) => {
+    if (currentTab !== 'parent-portal') {
+      onNavigate('parent-portal');
+    }
+    if (onSelectParentSubTab) {
+      onSelectParentSubTab(subTab);
+    }
+  };
+
   const moreMenuItems = [
+    { id: 'attendance', label: 'Attendance & Roster', icon: Clock, roles: ['SUPER_ADMIN', 'ADMIN', 'TEACHER', 'RECEPTIONIST'] },
     { id: 'daily-earnings', label: 'Daily Collection', icon: Coins, roles: ['SUPER_ADMIN', 'ADMIN', 'ACCOUNTANT', 'RECEPTIONIST'] },
-    { id: 'classes', label: 'Classes', icon: BookOpen, roles: ['SUPER_ADMIN', 'ADMIN', 'TEACHER', 'RECEPTIONIST'] },
+    { id: 'classes', label: 'Classes & Batches', icon: BookOpen, roles: ['SUPER_ADMIN', 'ADMIN', 'TEACHER', 'RECEPTIONIST'] },
     { id: 'pending-fees', label: 'Pending Fees', icon: CreditCard, roles: ['SUPER_ADMIN', 'ADMIN', 'ACCOUNTANT'] },
     { id: 'accounting', label: 'Accounting & P&L', icon: Calculator, roles: ['SUPER_ADMIN', 'ADMIN', 'ACCOUNTANT'] },
-    { id: 'teachers', label: 'Teachers', icon: GraduationCap, roles: ['SUPER_ADMIN', 'ADMIN', 'TEACHER'] },
-    { id: 'assessments', label: 'Assessments', icon: FileText, roles: ['SUPER_ADMIN', 'ADMIN', 'TEACHER'] },
-    { id: 'materials', label: 'Materials', icon: FolderDown, roles: ['SUPER_ADMIN', 'ADMIN', 'TEACHER', 'STUDENT', 'PARENT'] },
+    { id: 'teachers', label: 'Teachers & Faculty', icon: GraduationCap, roles: ['SUPER_ADMIN', 'ADMIN', 'TEACHER'] },
+    { id: 'assessments', label: 'Assessments & Exams', icon: Award, roles: ['SUPER_ADMIN', 'ADMIN', 'TEACHER'] },
+    { id: 'materials', label: 'Learning Materials', icon: FolderDown, roles: ['SUPER_ADMIN', 'ADMIN', 'TEACHER', 'STUDENT', 'PARENT'] },
     { id: 'messaging', label: 'SMS & WhatsApp', icon: MessageSquare, roles: ['SUPER_ADMIN', 'ADMIN', 'RECEPTIONIST'] },
     { id: 'reports', label: 'Report Center', icon: BarChart3, roles: ['SUPER_ADMIN', 'ADMIN', 'ACCOUNTANT'] },
     { id: 'audit', label: 'Audit Trail', icon: ShieldCheck, roles: ['SUPER_ADMIN', 'ADMIN'] },
-    { id: 'settings', label: 'Settings', icon: Settings, roles: ['SUPER_ADMIN', 'ADMIN'] }
+    { id: 'settings', label: 'System Settings', icon: Settings, roles: ['SUPER_ADMIN', 'ADMIN'] }
   ].filter(item => hasRole(item.roles as any));
+
+  // For Parent & Student users, keep the bottom navigation dock visible across all screen sizes
+  // For Staff/Admin users, show on mobile & tablet (< lg) where the sidebar is collapsed into drawer
+  const navVisibilityClass = isStudentOrParent
+    ? `fixed bottom-0 left-0 right-0 ${collapsed ? 'lg:left-20' : 'lg:left-64'} z-40`
+    : 'lg:hidden fixed bottom-0 left-0 right-0 z-40';
 
   return (
     <>
-      {/* Fixed Mobile Bottom Bar (visible on < md) */}
       <nav 
-        aria-label="Mobile Bottom Navigation"
-        className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-slate-900/98 backdrop-blur-md border-t border-slate-800 shadow-2xl px-2 py-1.5 pb-[max(0.375rem,env(safe-area-inset-bottom))] flex items-center justify-around select-none"
+        aria-label="Bottom Navigation Bar"
+        className={`${navVisibilityClass} bg-slate-900/98 backdrop-blur-md border-t border-slate-800 shadow-2xl px-2 py-1.5 pb-[max(0.4rem,env(safe-area-inset-bottom))] flex items-center justify-around select-none`}
       >
-        {/* STUDENT DEDICATED BOTTOM BAR */}
+        {/* ============================================================ */}
+        {/* PARENT APP DEDICATED FOOTER NAVIGATION BAR */}
+        {/* ============================================================ */}
+        {isParent && (
+          <>
+            {/* 1. Dashboard Overview */}
+            <button
+              type="button"
+              onClick={() => handleParentNav('overview')}
+              className={`flex flex-col items-center justify-center min-w-[52px] min-h-[46px] py-1 px-2 rounded-xl transition-all cursor-pointer ${
+                currentTab === 'parent-portal' && parentSubTab === 'overview'
+                  ? 'text-teal-400 bg-teal-500/10 font-bold'
+                  : 'text-slate-300 hover:text-white'
+              }`}
+            >
+              <LayoutDashboard size={19} strokeWidth={2.2} className={currentTab === 'parent-portal' && parentSubTab === 'overview' ? 'text-teal-400' : 'text-slate-300'} />
+              <span className="text-[10px] mt-1 tracking-tight leading-none">Dashboard</span>
+            </button>
+
+            {/* 2. Attendance & Time */}
+            <button
+              type="button"
+              onClick={() => handleParentNav('attendance')}
+              className={`flex flex-col items-center justify-center min-w-[52px] min-h-[46px] py-1 px-2 rounded-xl transition-all cursor-pointer ${
+                currentTab === 'parent-portal' && parentSubTab === 'attendance'
+                  ? 'text-teal-400 bg-teal-500/10 font-bold'
+                  : 'text-slate-300 hover:text-white'
+              }`}
+            >
+              <Clock size={19} strokeWidth={2.2} className={currentTab === 'parent-portal' && parentSubTab === 'attendance' ? 'text-teal-400' : 'text-slate-300'} />
+              <span className="text-[10px] mt-1 tracking-tight leading-none">Attendance</span>
+            </button>
+
+            {/* 3. Assessments & Student Performance */}
+            <button
+              type="button"
+              onClick={() => handleParentNav('assessments')}
+              className={`flex flex-col items-center justify-center min-w-[52px] min-h-[46px] py-1 px-2 rounded-xl transition-all cursor-pointer ${
+                currentTab === 'parent-portal' && parentSubTab === 'assessments'
+                  ? 'text-indigo-400 bg-indigo-500/15 font-bold'
+                  : 'text-slate-300 hover:text-white'
+              }`}
+            >
+              <Award size={19} strokeWidth={2.2} className={currentTab === 'parent-portal' && parentSubTab === 'assessments' ? 'text-indigo-400' : 'text-slate-300'} />
+              <span className="text-[10px] mt-1 tracking-tight leading-none">Exams</span>
+            </button>
+
+            {/* 4. Center Action: Child's QR Smart Pass */}
+            <button
+              type="button"
+              onClick={() => handleParentNav('smartpass')}
+              className="flex flex-col items-center justify-center -mt-5 group focus:outline-none cursor-pointer"
+              title="Student QR ID Pass"
+            >
+              <div className={`w-12 h-12 rounded-2xl border-2 shadow-lg active:scale-95 transition-all flex items-center justify-center ${
+                currentTab === 'parent-portal' && parentSubTab === 'smartpass'
+                  ? 'bg-teal-500 border-white text-slate-950'
+                  : 'bg-teal-600 hover:bg-teal-500 border-slate-900 text-white'
+              }`}>
+                <QrCode size={22} strokeWidth={2.3} />
+              </div>
+              <span className="text-[10px] font-bold text-teal-400 mt-1 leading-none">ID Pass</span>
+            </button>
+
+            {/* 5. Tuition Fees & Receipts */}
+            <button
+              type="button"
+              onClick={() => handleParentNav('fees')}
+              className={`flex flex-col items-center justify-center min-w-[52px] min-h-[46px] py-1 px-2 rounded-xl transition-all cursor-pointer ${
+                currentTab === 'parent-portal' && parentSubTab === 'fees'
+                  ? 'text-emerald-400 bg-emerald-500/10 font-bold'
+                  : 'text-slate-300 hover:text-white'
+              }`}
+            >
+              <CreditCard size={19} strokeWidth={2.2} className={currentTab === 'parent-portal' && parentSubTab === 'fees' ? 'text-emerald-400' : 'text-slate-300'} />
+              <span className="text-[10px] mt-1 tracking-tight leading-none">Fees</span>
+            </button>
+
+            {/* 6. Study Materials & Classes */}
+            <button
+              type="button"
+              onClick={() => handleParentNav('classes')}
+              className={`flex flex-col items-center justify-center min-w-[52px] min-h-[46px] py-1 px-2 rounded-xl transition-all cursor-pointer ${
+                (currentTab === 'parent-portal' && parentSubTab === 'classes') || currentTab === 'materials'
+                  ? 'text-brand-400 bg-brand-500/10 font-bold'
+                  : 'text-slate-300 hover:text-white'
+              }`}
+            >
+              <FolderDown size={19} strokeWidth={2.2} className={(currentTab === 'parent-portal' && parentSubTab === 'classes') || currentTab === 'materials' ? 'text-brand-400' : 'text-slate-300'} />
+              <span className="text-[10px] mt-1 tracking-tight leading-none">Materials</span>
+            </button>
+          </>
+        )}
+
+        {/* ============================================================ */}
+        {/* STUDENT APP DEDICATED FOOTER NAVIGATION BAR */}
+        {/* ============================================================ */}
         {isStudent && (
           <>
-            {/* 1. Student Home */}
             <button
+              type="button"
               onClick={() => onNavigate('student-portal')}
-              className={`flex flex-col items-center justify-center min-w-[56px] min-h-[48px] py-1 px-2 rounded-xl transition-all cursor-pointer ${
-                currentTab === 'student-portal' ? 'text-brand-400 font-bold' : 'text-slate-400 hover:text-slate-200'
+              className={`flex flex-col items-center justify-center min-w-[56px] min-h-[46px] py-1 px-2 rounded-xl transition-all cursor-pointer ${
+                currentTab === 'student-portal' ? 'text-brand-400 bg-brand-500/10 font-bold' : 'text-slate-300 hover:text-white'
               }`}
             >
-              <LayoutDashboard size={20} className={currentTab === 'student-portal' ? 'text-brand-400' : 'text-slate-400'} />
-              <span className="text-[10px] mt-0.5 tracking-tight">Home</span>
+              <LayoutDashboard size={19} strokeWidth={2.2} />
+              <span className="text-[10px] mt-1 tracking-tight leading-none">Dashboard</span>
             </button>
 
-            {/* 2. My Fees & Receipts */}
             <button
+              type="button"
               onClick={() => onNavigate('student-portal')}
-              className={`flex flex-col items-center justify-center min-w-[56px] min-h-[48px] py-1 px-2 rounded-xl transition-all cursor-pointer ${
-                currentTab === 'student-portal' ? 'text-emerald-400 font-bold' : 'text-slate-400 hover:text-slate-200'
-              }`}
-              title="My Fee Records & Receipts"
+              className="flex flex-col items-center justify-center min-w-[56px] min-h-[46px] py-1 px-2 rounded-xl text-indigo-400 hover:text-indigo-300 transition-all cursor-pointer"
             >
-              <CreditCard size={20} className="text-emerald-400" />
-              <span className="text-[10px] mt-0.5 tracking-tight">My Fees</span>
+              <Award size={19} strokeWidth={2.2} />
+              <span className="text-[10px] mt-1 tracking-tight leading-none">Exams</span>
             </button>
 
-            {/* 3. Center Action: My Smart ID Pass */}
             <button
+              type="button"
               onClick={() => {
                 if (onOpenIDCard && user?.studentId) {
                   onOpenIDCard(user.studentId);
@@ -108,168 +225,120 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
                   onNavigate('student-portal');
                 }
               }}
-              className="flex flex-col items-center justify-center -mt-6 group focus:outline-none cursor-pointer"
-              title="My Student QR Pass"
+              className="flex flex-col items-center justify-center -mt-5 group focus:outline-none cursor-pointer"
             >
-              <div className="w-13 h-13 rounded-full bg-slate-800 border-2 border-brand-500 text-brand-400 shadow-lg active:scale-95 transition-transform flex items-center justify-center">
-                <QrCode size={24} />
+              <div className="w-12 h-12 rounded-2xl bg-brand-600 border-2 border-slate-900 text-white shadow-lg active:scale-95 transition-transform flex items-center justify-center">
+                <QrCode size={22} strokeWidth={2.3} />
               </div>
-              <span className="text-[10px] font-bold text-brand-400 mt-0.5">My Pass</span>
+              <span className="text-[10px] font-bold text-brand-400 mt-1 leading-none">My Pass</span>
             </button>
 
-            {/* 4. Study Materials */}
             <button
+              type="button"
               onClick={() => onNavigate('materials')}
-              className={`flex flex-col items-center justify-center min-w-[56px] min-h-[48px] py-1 px-2 rounded-xl transition-all cursor-pointer ${
-                currentTab === 'materials' ? 'text-brand-400 font-bold' : 'text-slate-400 hover:text-slate-200'
+              className={`flex flex-col items-center justify-center min-w-[56px] min-h-[46px] py-1 px-2 rounded-xl transition-all cursor-pointer ${
+                currentTab === 'materials' ? 'text-brand-400 bg-brand-500/10 font-bold' : 'text-slate-300 hover:text-white'
               }`}
             >
-              <FolderDown size={20} className={currentTab === 'materials' ? 'text-brand-400' : 'text-slate-400'} />
-              <span className="text-[10px] mt-0.5 tracking-tight">Materials</span>
+              <FolderDown size={19} strokeWidth={2.2} />
+              <span className="text-[10px] mt-1 tracking-tight leading-none">Materials</span>
             </button>
 
-            {/* 5. Logout */}
             <button
+              type="button"
               onClick={() => logout()}
-              className="flex flex-col items-center justify-center min-w-[56px] min-h-[48px] py-1 px-2 rounded-xl text-rose-400 hover:text-rose-300 transition-all cursor-pointer"
+              className="flex flex-col items-center justify-center min-w-[56px] min-h-[46px] py-1 px-2 rounded-xl text-rose-400 hover:text-rose-300 transition-all cursor-pointer"
             >
-              <LogOut size={20} />
-              <span className="text-[10px] mt-0.5 tracking-tight">Logout</span>
+              <LogOut size={19} strokeWidth={2.2} />
+              <span className="text-[10px] mt-1 tracking-tight leading-none">Logout</span>
             </button>
           </>
         )}
 
-        {/* PARENT DEDICATED BOTTOM BAR */}
-        {isParent && (
-          <>
-            {/* 1. Parent Home */}
-            <button
-              onClick={() => onNavigate('parent-portal')}
-              className={`flex flex-col items-center justify-center min-w-[56px] min-h-[48px] py-1 px-2 rounded-xl transition-all cursor-pointer ${
-                currentTab === 'parent-portal' ? 'text-teal-400 font-bold' : 'text-slate-400 hover:text-slate-200'
-              }`}
-            >
-              <LayoutDashboard size={20} className={currentTab === 'parent-portal' ? 'text-teal-400' : 'text-slate-400'} />
-              <span className="text-[10px] mt-0.5 tracking-tight">Home</span>
-            </button>
-
-            {/* 2. Child Fees & Receipts */}
-            <button
-              onClick={() => onNavigate('parent-portal')}
-              className={`flex flex-col items-center justify-center min-w-[56px] min-h-[48px] py-1 px-2 rounded-xl transition-all cursor-pointer ${
-                currentTab === 'parent-portal' ? 'text-emerald-400 font-bold' : 'text-slate-400 hover:text-slate-200'
-              }`}
-              title="Child's Fee Records & Receipts"
-            >
-              <CreditCard size={20} className="text-emerald-400" />
-              <span className="text-[10px] mt-0.5 tracking-tight">Fees</span>
-            </button>
-
-            {/* 3. Center Action: Child's QR Pass */}
-            <button
-              onClick={() => {
-                if (onOpenIDCard && user?.studentId) {
-                  onOpenIDCard(user.studentId);
-                } else {
-                  onNavigate('parent-portal');
-                }
-              }}
-              className="flex flex-col items-center justify-center -mt-6 group focus:outline-none cursor-pointer"
-              title="Child's QR ID Card"
-            >
-              <div className="w-13 h-13 rounded-full bg-slate-800 border-2 border-teal-500 text-teal-400 shadow-lg active:scale-95 transition-transform flex items-center justify-center">
-                <QrCode size={24} />
-              </div>
-              <span className="text-[10px] font-bold text-teal-400 mt-0.5">ID Pass</span>
-            </button>
-
-            {/* 4. Study Materials */}
-            <button
-              onClick={() => onNavigate('materials')}
-              className={`flex flex-col items-center justify-center min-w-[56px] min-h-[48px] py-1 px-2 rounded-xl transition-all cursor-pointer ${
-                currentTab === 'materials' ? 'text-teal-400 font-bold' : 'text-slate-400 hover:text-slate-200'
-              }`}
-            >
-              <FolderDown size={20} className={currentTab === 'materials' ? 'text-teal-400' : 'text-slate-400'} />
-              <span className="text-[10px] mt-0.5 tracking-tight">Materials</span>
-            </button>
-
-            {/* 5. Logout */}
-            <button
-              onClick={() => logout()}
-              className="flex flex-col items-center justify-center min-w-[56px] min-h-[48px] py-1 px-2 rounded-xl text-rose-400 hover:text-rose-300 transition-all cursor-pointer"
-            >
-              <LogOut size={20} />
-              <span className="text-[10px] mt-0.5 tracking-tight">Logout</span>
-            </button>
-          </>
-        )}
-
-        {/* STAFF (SUPER_ADMIN, ADMIN, ACCOUNTANT, TEACHER, RECEPTIONIST) BOTTOM BAR */}
+        {/* ============================================================ */}
+        {/* STAFF / ADMIN MOBILE & TABLET FOOTER BAR */}
+        {/* ============================================================ */}
         {!isStudentOrParent && (
           <>
             {/* 1. Home / Dashboard */}
             <button
+              type="button"
               onClick={() => handleTabClick('dashboard')}
-              className={`flex flex-col items-center justify-center min-w-[56px] min-h-[48px] py-1 px-2 rounded-xl transition-all cursor-pointer ${
-                currentTab === 'dashboard' ? 'text-white font-bold' : 'text-slate-400 hover:text-slate-200'
+              className={`flex flex-col items-center justify-center min-w-[54px] min-h-[46px] py-1 px-2 rounded-xl transition-all cursor-pointer ${
+                currentTab === 'dashboard' ? 'text-white bg-slate-800 font-bold' : 'text-slate-300 hover:text-white'
               }`}
             >
-              <LayoutDashboard size={20} className={currentTab === 'dashboard' ? 'text-white' : 'text-slate-400'} />
-              <span className="text-[10px] mt-0.5 tracking-tight">Home</span>
+              <LayoutDashboard size={19} strokeWidth={2.2} className={currentTab === 'dashboard' ? 'text-brand-400' : 'text-slate-300'} />
+              <span className="text-[10px] mt-1 tracking-tight leading-none">Home</span>
             </button>
 
             {/* 2. Students */}
             <button
+              type="button"
               onClick={() => handleTabClick('students')}
-              className={`flex flex-col items-center justify-center min-w-[56px] min-h-[48px] py-1 px-2 rounded-xl transition-all cursor-pointer ${
-                currentTab === 'students' ? 'text-white font-bold' : 'text-slate-400 hover:text-slate-200'
+              className={`flex flex-col items-center justify-center min-w-[54px] min-h-[46px] py-1 px-2 rounded-xl transition-all cursor-pointer ${
+                currentTab === 'students' ? 'text-white bg-slate-800 font-bold' : 'text-slate-300 hover:text-white'
               }`}
             >
-              <Users size={20} className={currentTab === 'students' ? 'text-white' : 'text-slate-400'} />
-              <span className="text-[10px] mt-0.5 tracking-tight">Students</span>
+              <Users size={19} strokeWidth={2.2} className={currentTab === 'students' ? 'text-indigo-400' : 'text-slate-300'} />
+              <span className="text-[10px] mt-1 tracking-tight leading-none">Students</span>
             </button>
 
-            {/* 3. High-Priority Center Action: Attendance (QR Gate Scanner) */}
+            {/* 3. Center Action: QR Gate Scanner */}
             <button
-              onClick={() => handleTabClick('attendance')}
-              className="flex flex-col items-center justify-center -mt-6 group focus:outline-none cursor-pointer"
+              type="button"
+              onClick={() => handleTabClick('attendance-scan')}
+              className="flex flex-col items-center justify-center -mt-5 group focus:outline-none cursor-pointer"
             >
-              <div className="w-13 h-13 rounded-full bg-emerald-600 hover:bg-emerald-500 border-2 border-slate-900 text-white shadow-lg active:scale-95 transition-transform flex items-center justify-center">
-                <QrCode size={24} />
+              <div className="w-12 h-12 rounded-2xl bg-emerald-600 hover:bg-emerald-500 border-2 border-slate-900 text-white shadow-lg active:scale-95 transition-transform flex items-center justify-center">
+                <QrCode size={22} strokeWidth={2.3} />
               </div>
-              <span className="text-[10px] font-bold text-emerald-400 mt-0.5">Scan</span>
+              <span className="text-[10px] font-bold text-emerald-400 mt-1 leading-none">Scan QR</span>
             </button>
 
-            {/* 4. Payments */}
+            {/* 4. Assessments / Exams */}
             <button
+              type="button"
+              onClick={() => handleTabClick('assessments')}
+              className={`flex flex-col items-center justify-center min-w-[54px] min-h-[46px] py-1 px-2 rounded-xl transition-all cursor-pointer ${
+                currentTab === 'assessments' ? 'text-white bg-slate-800 font-bold' : 'text-slate-300 hover:text-white'
+              }`}
+            >
+              <Award size={19} strokeWidth={2.2} className={currentTab === 'assessments' ? 'text-amber-400' : 'text-slate-300'} />
+              <span className="text-[10px] mt-1 tracking-tight leading-none">Exams</span>
+            </button>
+
+            {/* 5. Payments */}
+            <button
+              type="button"
               onClick={() => handleTabClick('payments')}
-              className={`flex flex-col items-center justify-center min-w-[56px] min-h-[48px] py-1 px-2 rounded-xl transition-all cursor-pointer ${
-                currentTab === 'payments' ? 'text-white font-bold' : 'text-slate-400 hover:text-slate-200'
+              className={`flex flex-col items-center justify-center min-w-[54px] min-h-[46px] py-1 px-2 rounded-xl transition-all cursor-pointer ${
+                currentTab === 'payments' ? 'text-white bg-slate-800 font-bold' : 'text-slate-300 hover:text-white'
               }`}
             >
-              <CreditCard size={20} className={currentTab === 'payments' ? 'text-white' : 'text-slate-400'} />
-              <span className="text-[10px] mt-0.5 tracking-tight">Payments</span>
+              <CreditCard size={19} strokeWidth={2.2} className={currentTab === 'payments' ? 'text-emerald-400' : 'text-slate-300'} />
+              <span className="text-[10px] mt-1 tracking-tight leading-none">Payments</span>
             </button>
 
-            {/* 5. More Sheet Trigger */}
+            {/* 6. More Sheet Trigger */}
             <button
+              type="button"
               onClick={() => setIsMoreOpen(true)}
-              className={`flex flex-col items-center justify-center min-w-[56px] min-h-[48px] py-1 px-2 rounded-xl transition-all cursor-pointer ${
-                isMoreOpen ? 'text-white font-bold' : 'text-slate-400 hover:text-slate-200'
+              className={`flex flex-col items-center justify-center min-w-[54px] min-h-[46px] py-1 px-2 rounded-xl transition-all cursor-pointer ${
+                isMoreOpen ? 'text-white bg-slate-800 font-bold' : 'text-slate-300 hover:text-white'
               }`}
             >
-              <Menu size={20} className={isMoreOpen ? 'text-white' : 'text-slate-400'} />
-              <span className="text-[10px] mt-0.5 tracking-tight">More</span>
+              <Menu size={19} strokeWidth={2.2} className={isMoreOpen ? 'text-white' : 'text-slate-300'} />
+              <span className="text-[10px] mt-1 tracking-tight leading-none">More</span>
             </button>
           </>
         )}
       </nav>
 
-      {/* Slide-Up "More" Sheet on Mobile */}
+      {/* Slide-Up "More" Sheet on Mobile/Tablet */}
       {isMoreOpen && (
-        <div className="md:hidden fixed inset-0 z-50 flex items-end bg-slate-950/80 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="w-full bg-slate-900 border-t border-slate-800 rounded-t-2xl max-h-[85vh] overflow-y-auto p-5 pb-8 space-y-5 animate-in slide-in-from-bottom duration-300">
+        <div className="lg:hidden fixed inset-0 z-50 flex items-end bg-slate-950/80 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="w-full bg-slate-900 border-t border-slate-800 rounded-t-3xl max-h-[85vh] overflow-y-auto p-5 pb-8 space-y-5 animate-in slide-in-from-bottom duration-300">
             {/* Header */}
             <div className="flex items-center justify-between pb-3 border-b border-slate-800">
               <div className="flex items-center space-x-2.5">

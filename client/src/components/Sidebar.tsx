@@ -21,11 +21,14 @@ import {
   Coins,
   UserCog,
   Building2,
-  CheckCircle2
+  CheckCircle2,
+  Award,
+  Clock
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useSettings } from '../context/SettingsContext';
 import { UserRole } from '../types';
+import { ParentSubTab } from '../pages/ParentPortal';
 
 interface SidebarProps {
   currentTab: string;
@@ -34,6 +37,8 @@ interface SidebarProps {
   setCollapsed: (collapsed: boolean) => void;
   isMobileOpen: boolean;
   setIsMobileOpen: (open: boolean) => void;
+  parentSubTab?: ParentSubTab;
+  onSelectParentSubTab?: (subTab: ParentSubTab) => void;
 }
 
 interface NavItemConfig {
@@ -45,6 +50,7 @@ interface NavItemConfig {
   iconColor: string;
   badge?: string;
   badgeColor?: string;
+  parentSubTab?: ParentSubTab;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
@@ -53,7 +59,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
   collapsed,
   setCollapsed,
   isMobileOpen,
-  setIsMobileOpen
+  setIsMobileOpen,
+  parentSubTab = 'overview',
+  onSelectParentSubTab
 }) => {
   const { user, logout, hasRole } = useAuth();
   const { instituteName, instituteTagline } = useSettings();
@@ -243,20 +251,60 @@ export const Sidebar: React.FC<SidebarProps> = ({
   if (user?.role === 'PARENT') {
     navItems.splice(0, navItems.length,
       { 
-        id: 'parent-portal', 
-        label: 'Guardian Portal', 
+        id: 'parent-overview', 
+        label: 'Main Dashboard', 
         icon: LayoutDashboard, 
         roles: ['PARENT'], 
         category: 'PORTAL',
-        iconColor: 'text-emerald-400'
+        iconColor: 'text-teal-400',
+        parentSubTab: 'overview'
       },
       { 
-        id: 'materials', 
-        label: 'Class Study Materials', 
+        id: 'parent-assessments', 
+        label: 'Assessments & Performance', 
+        icon: Award, 
+        roles: ['PARENT'], 
+        category: 'PORTAL',
+        iconColor: 'text-indigo-400',
+        badge: 'MARKS',
+        badgeColor: 'bg-indigo-500/20 text-indigo-300 border-indigo-500/40',
+        parentSubTab: 'assessments'
+      },
+      { 
+        id: 'parent-attendance', 
+        label: 'Attendance & Time Report', 
+        icon: Clock, 
+        roles: ['PARENT'], 
+        category: 'PORTAL',
+        iconColor: 'text-emerald-400',
+        parentSubTab: 'attendance'
+      },
+      { 
+        id: 'parent-fees', 
+        label: 'Tuition Fees & Receipts', 
+        icon: CreditCard, 
+        roles: ['PARENT'], 
+        category: 'PORTAL',
+        iconColor: 'text-amber-400',
+        parentSubTab: 'fees'
+      },
+      { 
+        id: 'parent-smartpass', 
+        label: 'Student Smart QR Pass', 
+        icon: QrCode, 
+        roles: ['PARENT'], 
+        category: 'PORTAL',
+        iconColor: 'text-teal-400',
+        parentSubTab: 'smartpass'
+      },
+      { 
+        id: 'parent-classes', 
+        label: 'Classes & Study Materials', 
         icon: FolderDown, 
         roles: ['PARENT'], 
         category: 'PORTAL',
-        iconColor: 'text-slate-300'
+        iconColor: 'text-brand-400',
+        parentSubTab: 'classes'
       }
     );
   }
@@ -273,8 +321,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
     { key: 'PORTAL', title: 'PORTAL ACCESS' }
   ];
 
-  const handleSelectTab = (id: string) => {
-    setCurrentTab(id);
+  const handleSelectTab = (item: NavItemConfig) => {
+    if (item.parentSubTab) {
+      setCurrentTab('parent-portal');
+      if (onSelectParentSubTab) {
+        onSelectParentSubTab(item.parentSubTab);
+      }
+    } else {
+      setCurrentTab(item.id);
+    }
     if (isMobileOpen) {
       setIsMobileOpen(false);
     }
@@ -319,9 +374,18 @@ export const Sidebar: React.FC<SidebarProps> = ({
         <div className="flex items-center justify-between h-18 px-4 border-b border-slate-800 bg-slate-950/70">
           <div 
             className="flex items-center space-x-3 overflow-hidden cursor-pointer group" 
-            onClick={() => handleSelectTab('dashboard')}
+            onClick={() => {
+              if (user?.role === 'PARENT') {
+                setCurrentTab('parent-portal');
+                if (onSelectParentSubTab) onSelectParentSubTab('overview');
+              } else if (user?.role === 'STUDENT') {
+                setCurrentTab('student-portal');
+              } else {
+                setCurrentTab('dashboard');
+              }
+            }}
           >
-            {/* Institutional Shield Badge (Professional, no AI rainbow gradients) */}
+            {/* Institutional Shield Badge */}
             <div className="w-10 h-10 rounded-2xl bg-slate-800 border border-slate-700 text-white flex items-center justify-center shrink-0 group-hover:border-slate-500 transition-colors shadow-sm">
               <Building2 className="w-5 h-5 text-brand-400" />
             </div>
@@ -370,11 +434,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 <div className="space-y-1">
                   {itemsInCat.map(item => {
                     const Icon = item.icon;
-                    const isActive = currentTab === item.id;
+                    const isActive = item.parentSubTab
+                      ? currentTab === 'parent-portal' && parentSubTab === item.parentSubTab
+                      : currentTab === item.id;
                     return (
                       <button
                         key={item.id}
-                        onClick={() => handleSelectTab(item.id)}
+                        onClick={() => handleSelectTab(item)}
                         className={`
                           w-full flex items-center space-x-3 px-3 py-2 rounded-xl text-xs font-semibold transition-all group relative cursor-pointer
                           ${isActive 
@@ -383,7 +449,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                         `}
                         title={collapsed ? item.label : undefined}
                       >
-                        {/* Icon Container with subtle institutional styling */}
+                        {/* Icon Container */}
                         <div className={`
                           w-7 h-7 rounded-lg flex items-center justify-center shrink-0 transition-colors
                           ${isActive 
@@ -417,9 +483,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
           })}
         </div>
 
-        {/* Footer User Profile & Logout */}
+        {/* Footer User Profile & Logout (Always shows icon even when collapsed) */}
         <div className="p-3 border-t border-slate-800 bg-slate-950/70">
-          <div className={`flex items-center ${collapsed ? 'justify-center' : 'space-x-3'} p-2 rounded-2xl bg-slate-900 border border-slate-800 shadow-xs`}>
+          <div className={`flex ${collapsed ? 'flex-col items-center gap-2' : 'items-center space-x-3'} p-2 rounded-2xl bg-slate-900 border border-slate-800 shadow-xs`}>
             <div className="relative shrink-0">
               <img 
                 src={user?.avatar || "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&auto=format&fit=crop&q=80"} 
@@ -440,15 +506,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
               </div>
             )}
 
-            {!collapsed && (
-              <button 
-                onClick={logout}
-                className="p-2 text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 rounded-xl transition-colors cursor-pointer"
-                title="Log out"
-              >
-                <LogOut size={16} />
-              </button>
-            )}
+            <button 
+              onClick={logout}
+              className="p-2 text-slate-300 hover:text-rose-400 hover:bg-rose-500/15 rounded-xl transition-colors cursor-pointer shrink-0"
+              title="Log out"
+            >
+              <LogOut size={16} />
+            </button>
           </div>
         </div>
       </aside>
