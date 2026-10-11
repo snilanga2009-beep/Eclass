@@ -26,6 +26,7 @@ import {
   Check
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { useSettings } from '../context/SettingsContext';
 import { apiRequest, formatLKR, formatDate } from '../api';
 import { getStudentAvatar } from '../utils/studentAvatars';
 
@@ -47,6 +48,7 @@ export const ParentPortal: React.FC<ParentPortalProps> = ({
   onNavigateGlobal
 }) => {
   const { user, logout } = useAuth();
+  const { instituteName, collegeName, instituteLogo, loginHeroImage } = useSettings();
   const [children, setChildren] = useState<any[]>([]);
   const [selectedChildId, setSelectedChildId] = useState<string>('');
   const [childData, setChildData] = useState<any>(null);
@@ -231,8 +233,39 @@ export const ParentPortal: React.FC<ParentPortalProps> = ({
       {/* HERO STUDENT & GUARDIAN APP HEADER CARD (ROYAL BLUE) */}
       {/* ======================================================== */}
       <div className="p-5 sm:p-7 rounded-3xl bg-gradient-to-br from-[#0055FF] via-[#0062FF] to-[#003ECB] border border-blue-400/30 text-white shadow-xl shadow-blue-600/20 relative overflow-hidden">
+        {loginHeroImage && (
+          <img
+            src={loginHeroImage}
+            alt={instituteName}
+            className="absolute inset-0 w-full h-full object-cover opacity-15 pointer-events-none"
+          />
+        )}
         <div className="absolute -top-16 -right-16 w-72 h-72 bg-white/10 rounded-full blur-3xl pointer-events-none" />
         <div className="absolute -bottom-16 left-1/4 w-72 h-72 bg-sky-300/15 rounded-full blur-3xl pointer-events-none" />
+
+        {/* Top Academy & College Branding Strip inside Parent App */}
+        <div className="relative z-10 flex items-center justify-between gap-3 pb-3.5 mb-3.5 border-b border-white/15">
+          <div className="flex items-center gap-2.5 min-w-0">
+            {instituteLogo && (
+              <div className="w-9 h-9 rounded-xl bg-white p-1 shadow-sm flex items-center justify-center shrink-0 overflow-hidden">
+                <img src={instituteLogo} alt={instituteName} className="w-full h-full object-contain" />
+              </div>
+            )}
+            <div className="min-w-0">
+              <p className="text-xs sm:text-sm font-extrabold text-white truncate leading-tight">
+                {instituteName || 'Cambridge Academy'}
+              </p>
+              {collegeName && (
+                <p className="text-[11px] font-bold text-amber-300 truncate leading-tight">
+                  {collegeName}
+                </p>
+              )}
+            </div>
+          </div>
+          <span className="px-2.5 py-0.5 rounded-full bg-white/20 text-white border border-white/30 text-[10px] font-bold uppercase tracking-widest shrink-0">
+            Parent &amp; Student App
+          </span>
+        </div>
 
         <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-5">
           {/* Student + Guardian Identity */}
@@ -249,9 +282,6 @@ export const ParentPortal: React.FC<ParentPortalProps> = ({
 
             <div className="space-y-1.5">
               <div className="flex flex-wrap items-center gap-2">
-                <span className="px-2.5 py-0.5 rounded-full bg-white/20 text-white border border-white/30 text-[10px] font-bold uppercase tracking-widest">
-                  Parent & Guardian App
-                </span>
                 <span className="inline-flex items-center space-x-1 px-2 py-0.5 rounded-full bg-emerald-400/20 text-emerald-200 border border-emerald-300/30 text-[10px] font-semibold">
                   <CheckCircle2 size={11} />
                   <span>Live Sync Active</span>

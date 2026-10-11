@@ -64,7 +64,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onSelectParentSubTab
 }) => {
   const { user, logout, hasRole } = useAuth();
-  const { instituteName, instituteTagline } = useSettings();
+  const { instituteName, collegeName, instituteTagline, instituteLogo } = useSettings();
 
   // Navigation Items with Professional Institutional Styling
   const navItems: NavItemConfig[] = [
@@ -387,21 +387,27 @@ export const Sidebar: React.FC<SidebarProps> = ({
               }
             }}
           >
-            {/* Institutional Shield Badge */}
-            <div className="w-10 h-10 rounded-2xl bg-[#5B8DEF] border border-white/30 text-white flex items-center justify-center shrink-0 group-hover:bg-white group-hover:text-[#0055FF] transition-colors shadow-md">
-              <Building2 className="w-5 h-5" />
-            </div>
+            {/* Institutional Shield Badge or Custom Logo */}
+            {instituteLogo ? (
+              <div className="w-10 h-10 rounded-2xl bg-white p-1 border border-white/40 flex items-center justify-center shrink-0 overflow-hidden shadow-md">
+                <img src={instituteLogo} alt={instituteName} className="w-full h-full object-contain" />
+              </div>
+            ) : (
+              <div className="w-10 h-10 rounded-2xl bg-[#5B8DEF] border border-white/30 text-white flex items-center justify-center shrink-0 group-hover:bg-white group-hover:text-[#0055FF] transition-colors shadow-md">
+                <GraduationCap className="w-5 h-5" />
+              </div>
+            )}
 
             {!collapsed && (
               <div className="flex flex-col truncate max-w-[155px]">
                 <div className="flex items-center gap-1.5">
                   <span className="font-extrabold text-white text-sm tracking-tight truncate uppercase">
-                    {instituteName || 'Apex Academy'}
+                    {instituteName || 'Cambridge Academy'}
                   </span>
                   <span className="w-2 h-2 rounded-full bg-emerald-300 animate-pulse shrink-0" />
                 </div>
-                <span className="text-[10px] font-semibold text-blue-100 truncate uppercase tracking-wider">
-                  {instituteTagline || 'Class Accounting ERP'}
+                <span className="text-[10px] font-semibold text-amber-300 truncate uppercase tracking-wider">
+                  {collegeName || instituteTagline || 'Higher Education College'}
                 </span>
               </div>
             )}

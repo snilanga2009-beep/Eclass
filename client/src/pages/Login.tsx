@@ -28,7 +28,15 @@ interface LoginProps {
 
 export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
   const { login, parentLogin } = useAuth();
-  const { settings, instituteName, instituteTagline } = useSettings();
+  const {
+    settings,
+    instituteName,
+    collegeName,
+    instituteTagline,
+    instituteLogo,
+    loginHeroImage,
+    appWelcomeText
+  } = useSettings();
 
   const [loginMode, setLoginMode] = useState<'parent' | 'staff'>('parent');
   const [username, setUsername] = useState('admin');
@@ -167,23 +175,33 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
     }
   };
 
-  const currentAcademyName = instituteName || settings.INSTITUTE_NAME || 'Apex Higher Education';
-  const currentTagline = instituteTagline || settings.INSTITUTE_TAGLINE || 'Smart Parent Portal & Class Accounting System';
+  const currentAcademyName = instituteName || settings.INSTITUTE_NAME || 'Cambridge Academy';
+  const currentCollegeName = collegeName || settings.COLLEGE_NAME || 'Higher Education & Tuition College';
+  const currentTagline = instituteTagline || settings.INSTITUTE_TAGLINE || 'Excellence in Tuition & Mentorship';
+  const currentWelcomeText = appWelcomeText || settings.APP_WELCOME_TEXT || 'Parent & Student Performance App • Live Gate Attendance • Exam Rankings • Fee Receipts';
+  const currentLogo = instituteLogo || settings.INSTITUTE_LOGO || '';
+  const currentHeroImage = loginHeroImage || settings.LOGIN_HERO_IMAGE || 'https://images.unsplash.com/photo-1523240795612-9a054b0db644?w=900&auto=format&fit=crop&q=80';
 
   return (
     <div className="min-h-screen w-full bg-[#0055FF] flex flex-col justify-between text-white overflow-x-hidden select-none">
       {/* Top Bar (Visible on PC & Tablet) */}
       <header className="w-full max-w-7xl mx-auto px-4 sm:px-8 pt-4 sm:pt-6 flex items-center justify-between">
         <div className="flex items-center space-x-3">
-          <div className="w-10 h-10 rounded-2xl bg-[#5B8DEF] border border-white/30 shadow-md flex items-center justify-center text-white shrink-0">
-            <Users className="w-5 h-5 text-white" />
-          </div>
+          {currentLogo ? (
+            <div className="w-11 h-11 rounded-2xl bg-white p-1 border border-white/40 shadow-md flex items-center justify-center shrink-0 overflow-hidden">
+              <img src={currentLogo} alt={currentAcademyName} className="w-full h-full object-contain" />
+            </div>
+          ) : (
+            <div className="w-11 h-11 rounded-2xl bg-white/20 border border-white/30 shadow-md flex items-center justify-center text-white shrink-0">
+              <GraduationCap className="w-6 h-6 text-white" />
+            </div>
+          )}
           <div>
             <span className="text-sm sm:text-base font-extrabold tracking-tight text-white block leading-tight">
               {currentAcademyName}
             </span>
-            <span className="text-[11px] text-blue-100 hidden sm:block">
-              {currentTagline}
+            <span className="text-[11px] font-semibold text-amber-300 block leading-tight">
+              {currentCollegeName}
             </span>
           </div>
         </div>
@@ -206,84 +224,48 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
       <main className="flex-1 flex flex-col lg:flex-row items-center justify-center w-full max-w-6xl mx-auto px-0 sm:px-6 lg:px-8 pt-2 lg:py-8 gap-6 lg:gap-12">
         
         {/* ============================================================ */}
-        {/* LEFT / TOP HERO SECTION: ROYAL BLUE + PARENT/CHILD ARTWORK */}
+        {/* LEFT / TOP HERO SECTION: CUSTOM ACADEMY/COLLEGE + HERO IMAGE */}
         {/* ============================================================ */}
         <div className="w-full lg:w-7/12 flex flex-col items-center lg:items-start text-center lg:text-left px-6 sm:px-0 pt-2 pb-2">
-          {/* Iconic App Crest (Matches Screenshot Top Icon) */}
-          <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-[22px] bg-[#5B8DEF] shadow-xl border border-white/30 flex flex-col items-center justify-between pt-3 overflow-hidden mb-3">
-            <Users className="w-8 h-8 sm:w-9 sm:h-9 text-white stroke-[2.2]" />
-            <div className="w-full bg-[#7BA5F7] py-0.5 text-[9px] font-black tracking-widest text-white uppercase text-center">
-              CAMS
+          {/* Optional Custom Logo Badge (NO CAMS Icon) */}
+          {currentLogo && (
+            <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-3xl bg-white p-2 shadow-xl border-2 border-white/40 flex items-center justify-center overflow-hidden mb-3">
+              <img src={currentLogo} alt={currentAcademyName} className="w-full h-full object-contain" />
             </div>
+          )}
+
+          {/* Academy Name & College Name */}
+          <div className="space-y-1">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/15 border border-white/25 text-amber-300 text-[11px] font-extrabold uppercase tracking-wider">
+              <GraduationCap size={13} />
+              <span>{currentCollegeName}</span>
+            </span>
+            <h1 className="text-2xl sm:text-4xl font-black text-white tracking-tight leading-snug max-w-xl">
+              {currentAcademyName}
+            </h1>
+            <p className="text-xs sm:text-sm text-blue-100 max-w-md font-medium">
+              {currentWelcomeText}
+            </p>
           </div>
 
-          <h1 className="text-2xl sm:text-4xl font-extrabold text-white tracking-tight leading-snug max-w-lg">
-            {currentAcademyName}
-          </h1>
-          <p className="text-xs sm:text-sm text-blue-100 mt-1 max-w-md font-medium">
-            Parent & Student Performance App • Live Gate Attendance • Exam Rankings • Fee Receipts
-          </p>
-
-          {/* Warm Parent & Child Learning SVG Illustration (Matching Uploaded Screenshot) */}
-          <div className="w-full max-w-[300px] sm:max-w-[360px] my-3 sm:my-5 flex items-center justify-center">
-            <svg viewBox="0 0 420 250" className="w-full h-auto drop-shadow-xl" fill="none" xmlns="http://www.w3.org/2000/svg">
-              {/* Soft Ground Shadow */}
-              <ellipse cx="210" cy="228" rx="165" ry="14" fill="#003ECB" />
-
-              {/* Decorative Sparkles / Academic Icons */}
-              <circle cx="65" cy="55" r="6" fill="#60A5FA" opacity="0.6" />
-              <circle cx="355" cy="45" r="8" fill="#FBBF24" opacity="0.8" />
-              <circle cx="210" cy="28" r="5" fill="#93C5FD" opacity="0.7" />
-
-              {/* LEFT FIGURE: STUDENT / CHILD */}
-              {/* Crossed Legs */}
-              <path d="M95 190 C75 195, 75 218, 115 220 L165 220 C180 218, 180 198, 155 192 Z" fill="#1E293B" />
-              {/* Shoes */}
-              <rect x="76" y="206" width="28" height="14" rx="7" fill="#FFFBEB" stroke="#1E293B" strokeWidth="2.5" />
-              <rect x="155" y="206" width="28" height="14" rx="7" fill="#FFFBEB" stroke="#1E293B" strokeWidth="2.5" />
-              {/* Long Dark Hair Back */}
-              <path d="M105 70 C80 85, 72 135, 82 165 C95 170, 130 165, 140 150 Z" fill="#0F172A" />
-              {/* Cream Sweater Body */}
-              <path d="M96 122 C88 135, 88 180, 96 195 L162 195 C170 180, 168 135, 156 122 C142 114, 112 114, 96 122 Z" fill="#FEF3C7" stroke="#1E293B" strokeWidth="2.5" />
-              {/* Head & Face */}
-              <circle cx="130" cy="92" r="24" fill="#FDBA74" stroke="#1E293B" strokeWidth="2.5" />
-              {/* Hair Bangs & Ponytail */}
-              <path d="M106 88 C108 68, 148 65, 154 86 C145 78, 122 78, 106 88 Z" fill="#0F172A" />
-              <circle cx="104" cy="74" r="7" fill="#FB923C" />
-              {/* Eyes & Smile */}
-              <circle cx="124" cy="93" r="2.2" fill="#0F172A" />
-              <circle cx="139" cy="93" r="2.2" fill="#0F172A" />
-              <circle cx="117" cy="99" r="3.5" fill="#F87171" opacity="0.5" />
-              <circle cx="144" cy="99" r="3.5" fill="#F87171" opacity="0.5" />
-              <path d="M127 101 Q132 106 137 101" stroke="#0F172A" strokeWidth="2.2" strokeLinecap="round" />
-              {/* Smartphone in Child's Hands */}
-              <rect x="132" y="132" width="24" height="36" rx="5" transform="rotate(8 132 132)" fill="#1E293B" stroke="#FFFFFF" strokeWidth="1.5" />
-              {/* Hands */}
-              <circle cx="132" cy="154" r="6" fill="#FDBA74" stroke="#1E293B" strokeWidth="2" />
-              <circle cx="152" cy="150" r="6" fill="#FDBA74" stroke="#1E293B" strokeWidth="2" />
-
-              {/* RIGHT FIGURE: PARENT / GUARDIAN */}
-              {/* Crossed Legs */}
-              <path d="M225 186 C200 192, 202 218, 240 220 L330 220 C358 218, 358 192, 330 186 Z" fill="#334155" stroke="#0F172A" strokeWidth="2.5" />
-              {/* White Sneakers */}
-              <rect x="202" y="205" width="34" height="15" rx="7.5" fill="#FFFBEB" stroke="#1E293B" strokeWidth="2.5" />
-              <rect x="322" y="205" width="34" height="15" rx="7.5" fill="#FFFBEB" stroke="#1E293B" strokeWidth="2.5" />
-              {/* Warm Golden-Yellow Sweater Body */}
-              <path d="M232 104 C216 118, 218 175, 228 192 L334 192 C345 175, 348 118, 330 104 C308 92, 256 92, 232 104 Z" fill="#FBBF24" stroke="#1E293B" strokeWidth="2.5" />
-              {/* Head & Face */}
-              <circle cx="276" cy="68" r="26" fill="#FDBA74" stroke="#1E293B" strokeWidth="2.5" />
-              {/* Hair */}
-              <path d="M250 64 C248 40, 298 36, 304 62 C295 50, 262 50, 250 64 Z" fill="#0F172A" />
-              {/* Eyes & Warm Smile */}
-              <circle cx="266" cy="70" r="2.3" fill="#0F172A" />
-              <circle cx="283" cy="70" r="2.3" fill="#0F172A" />
-              <path d="M268 80 Q275 85 282 80" stroke="#0F172A" strokeWidth="2.2" strokeLinecap="round" />
-              {/* Tablet in Parent's Hands */}
-              <rect x="236" y="126" width="58" height="42" rx="6" transform="rotate(-6 236 126)" fill="#0F172A" stroke="#FFFFFF" strokeWidth="2" />
-              {/* Hands */}
-              <circle cx="236" cy="152" r="7" fill="#FDBA74" stroke="#1E293B" strokeWidth="2" />
-              <circle cx="294" cy="146" r="7" fill="#FDBA74" stroke="#1E293B" strokeWidth="2" />
-            </svg>
+          {/* Custom Backend Hero Image (Displayed on both PC and Mobile App Login) */}
+          <div className="w-full max-w-[330px] sm:max-w-[440px] my-4 sm:my-5 flex items-center justify-center">
+            <div className="w-full rounded-3xl overflow-hidden border-2 border-white/30 shadow-2xl bg-white/10 backdrop-blur-xs relative">
+              <img
+                src={currentHeroImage}
+                alt={currentAcademyName}
+                className="w-full h-44 sm:h-56 object-cover"
+              />
+              <div className="p-3 sm:px-4 bg-gradient-to-r from-[#003ECB]/95 via-[#0055FF]/95 to-[#003ECB]/95 flex items-center justify-between text-left border-t border-white/20">
+                <div>
+                  <p className="text-xs font-extrabold text-white leading-tight">{currentAcademyName}</p>
+                  <p className="text-[10px] text-blue-100 leading-tight mt-0.5">{currentTagline}</p>
+                </div>
+                <span className="px-2.5 py-1 rounded-full bg-amber-400 text-slate-950 text-[10px] font-extrabold shrink-0">
+                  Smart Portal
+                </span>
+              </div>
+            </div>
           </div>
 
           {/* Desktop Feature Pills */}

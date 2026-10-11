@@ -5,10 +5,26 @@ import { logAuditAction } from '../middleware/audit';
 
 const router = Router();
 
-// GET /api/settings - Get all system settings
-router.get('/', authenticateToken, (req: AuthRequest, res: Response) => {
+// GET /api/settings/public - Public branding settings for Login & Mobile App screens
+router.get('/public', (req, res: Response) => {
   const settingsObj: { [key: string]: string } = {};
   db.data.settings.forEach(s => {
+    if (s.key !== 'TEXTLK_API_TOKEN') {
+      settingsObj[s.key] = s.value;
+    }
+  });
+  return res.json(settingsObj);
+});
+
+// GET /api/settings - Get all system settings (supports unauthenticated read for Login/App branding)
+router.get('/', (req: AuthRequest, res: Response) => {
+  const authHeader = req.headers['authorization'];
+  const hasToken = Boolean(authHeader && authHeader.split(' ')[1]);
+  const settingsObj: { [key: string]: string } = {};
+  db.data.settings.forEach(s => {
+    if (!hasToken && s.key === 'TEXTLK_API_TOKEN') {
+      return;
+    }
     settingsObj[s.key] = s.value;
   });
   return res.json(settingsObj);

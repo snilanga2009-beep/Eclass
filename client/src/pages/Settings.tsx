@@ -92,6 +92,75 @@ export const Settings: React.FC = () => {
     setSettings((prev: any) => ({ ...prev, [key]: value }));
   };
 
+  // Upload custom image (Logo or Login/App Hero Image), resize if needed, and save immediately to backend
+  const handleImageUpload = (key: string, label: string, maxDim = 900) => (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const dataUrl = ev.target?.result as string;
+      if (!dataUrl) return;
+
+      const img = new Image();
+      img.onload = async () => {
+        let finalDataUrl = dataUrl;
+        try {
+          if (img.width > maxDim || img.height > maxDim) {
+            const scale = Math.min(maxDim / img.width, maxDim / img.height);
+            const canvas = document.createElement('canvas');
+            canvas.width = Math.round(img.width * scale);
+            canvas.height = Math.round(img.height * scale);
+            const ctx = canvas.getContext('2d');
+            if (ctx) {
+              ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+              finalDataUrl = canvas.toDataURL(file.type === 'image/png' ? 'image/png' : 'image/jpeg', 0.88);
+            }
+          }
+        } catch {
+          finalDataUrl = dataUrl;
+        }
+
+        setSettings((prev: any) => ({ ...prev, [key]: finalDataUrl }));
+        try {
+          await apiRequest('/settings', {
+            method: 'PUT',
+            body: JSON.stringify({ [key]: finalDataUrl })
+          });
+          await refreshSettings();
+          setToggleNotice({
+            key,
+            message: `${label}: Custom image uploaded and saved to backend!`
+          });
+          setTimeout(() => setToggleNotice(null), 4000);
+        } catch (err: any) {
+          alert(err.message || 'Failed to save uploaded image');
+        }
+      };
+      img.src = dataUrl;
+    };
+    reader.readAsDataURL(file);
+    e.target.value = '';
+  };
+
+  const handleClearImage = async (key: string, label: string) => {
+    setSettings((prev: any) => ({ ...prev, [key]: '' }));
+    try {
+      await apiRequest('/settings', {
+        method: 'PUT',
+        body: JSON.stringify({ [key]: '' })
+      });
+      await refreshSettings();
+      setToggleNotice({
+        key,
+        message: `${label}: Custom image removed.`
+      });
+      setTimeout(() => setToggleNotice(null), 4000);
+    } catch (err: any) {
+      alert(err.message || 'Failed to clear image');
+    }
+  };
+
   // Instant toggle persistence to backend
   const handleToggle = async (key: string, nextValue: string, label: string) => {
     setSettings((prev: any) => ({ ...prev, [key]: nextValue }));
@@ -454,61 +523,242 @@ export const Settings: React.FC = () => {
       )}
 
       <form onSubmit={handleSaveAll} className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Institute Branding */}
-        <div className="p-6 rounded-3xl bg-white border border-slate-200/80 shadow-sm space-y-4">
-          <h3 className="font-bold text-sm text-slate-900 flex items-center gap-2">
-            <Building size={16} className="text-brand-600" />
-            <span>Institute Profile & Branding</span>
-          </h3>
-
-          <div className="space-y-3">
+        {/* Institute Branding, Academy/College Name & Custom Login/App Screen Images */}
+        <div className="lg:col-span-2 p-6 rounded-3xl bg-white border border-slate-200/80 shadow-sm space-y-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-slate-100">
             <div>
-              <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Institute Name</label>
-              <input
-                type="text"
-                value={settings.INSTITUTE_NAME || ''}
-                onChange={(e) => handleChange('INSTITUTE_NAME', e.target.value)}
-                className="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-xs font-semibold"
-              />
+              <h3 className="font-extrabold text-base text-slate-900 flex items-center gap-2">
+                <Building size={18} className="text-[#0055FF]" />
+                <span>Academy &amp; College Branding + Custom Login &amp; Mobile App Screen Images</span>
+              </h3>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Customize your Academy Name, College Name, Official Logo, and the Hero Image displayed on both the PC Login screen and Mobile Parent App.
+              </p>
             </div>
+            <button
+              type="button"
+              onClick={() => handleSaveAll()}
+              disabled={saving}
+              className="px-4 py-2 rounded-xl bg-[#0055FF] hover:bg-[#0044CC] text-white font-bold text-xs shadow-sm flex items-center gap-1.5 self-start sm:self-auto cursor-pointer"
+            >
+              <Check size={14} />
+              <span>Save Branding</span>
+            </button>
+          </div>
 
-            <div>
-              <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Tagline</label>
-              <input
-                type="text"
-                value={settings.INSTITUTE_TAGLINE || ''}
-                onChange={(e) => handleChange('INSTITUTE_TAGLINE', e.target.value)}
-                className="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-xs"
-              />
-            </div>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Left Column: Academy Name, College Name, Tagline & Contact */}
+            <div className="space-y-3.5">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">
+                    Academy Name (Main Title)
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Cambridge Academy"
+                    value={settings.INSTITUTE_NAME || ''}
+                    onChange={(e) => handleChange('INSTITUTE_NAME', e.target.value)}
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs font-extrabold text-slate-900 focus:ring-2 focus:ring-[#0055FF] focus:outline-none"
+                  />
+                </div>
 
-            <div>
-              <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Campus Address</label>
-              <input
-                type="text"
-                value={settings.ADDRESS || ''}
-                onChange={(e) => handleChange('ADDRESS', e.target.value)}
-                className="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-xs"
-              />
-            </div>
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">
+                    College / Campus Name (Subtitle)
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Higher Education & Tuition College"
+                    value={settings.COLLEGE_NAME || ''}
+                    onChange={(e) => handleChange('COLLEGE_NAME', e.target.value)}
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs font-bold text-slate-800 focus:ring-2 focus:ring-[#0055FF] focus:outline-none"
+                  />
+                </div>
+              </div>
 
-            <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Official Telephone</label>
+                <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">
+                  Institute Tagline / Motto
+                </label>
                 <input
                   type="text"
-                  value={settings.PHONE || ''}
-                  onChange={(e) => handleChange('PHONE', e.target.value)}
+                  placeholder="e.g. Excellence in Tuition & Mentorship"
+                  value={settings.INSTITUTE_TAGLINE || ''}
+                  onChange={(e) => handleChange('INSTITUTE_TAGLINE', e.target.value)}
                   className="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-xs"
                 />
               </div>
+
               <div>
-                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Official Email</label>
+                <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">
+                  Login &amp; Mobile App Welcome Description
+                </label>
                 <input
-                  type="email"
-                  value={settings.EMAIL || ''}
-                  onChange={(e) => handleChange('EMAIL', e.target.value)}
+                  type="text"
+                  placeholder="Parent & Student Performance App • Live Gate Attendance • Exam Rankings • Fee Receipts"
+                  value={settings.APP_WELCOME_TEXT || ''}
+                  onChange={(e) => handleChange('APP_WELCOME_TEXT', e.target.value)}
                   className="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-xs"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Campus Address</label>
+                <input
+                  type="text"
+                  value={settings.ADDRESS || ''}
+                  onChange={(e) => handleChange('ADDRESS', e.target.value)}
+                  className="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-xs"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Official Telephone</label>
+                  <input
+                    type="text"
+                    value={settings.PHONE || ''}
+                    onChange={(e) => handleChange('PHONE', e.target.value)}
+                    className="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-xs"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Official Email</label>
+                  <input
+                    type="email"
+                    value={settings.EMAIL || ''}
+                    onChange={(e) => handleChange('EMAIL', e.target.value)}
+                    className="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-xs"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Right Column: Custom Logo & Custom Login / App Screen Hero Image Upload */}
+            <div className="space-y-4">
+              {/* 1. Custom Academy / College Logo */}
+              <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/90 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs font-extrabold text-slate-900">1. Custom Academy / College Logo</p>
+                    <p className="text-[11px] text-slate-500">Shown on Login, Mobile Splash, Sidebar, and Parent App</p>
+                  </div>
+                  {settings.INSTITUTE_LOGO && (
+                    <button
+                      type="button"
+                      onClick={() => handleClearImage('INSTITUTE_LOGO', 'Academy Logo')}
+                      className="px-2.5 py-1 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-600 text-[10px] font-bold border border-rose-200 cursor-pointer"
+                    >
+                      Remove Logo
+                    </button>
+                  )}
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <div className="w-16 h-16 rounded-2xl bg-[#0055FF] border-2 border-blue-200 flex items-center justify-center overflow-hidden shrink-0 shadow-sm">
+                    {settings.INSTITUTE_LOGO ? (
+                      <img src={settings.INSTITUTE_LOGO} alt="Logo Preview" className="w-full h-full object-contain bg-white p-1" />
+                    ) : (
+                      <span className="text-[10px] font-bold text-white text-center px-1">No Logo</span>
+                    )}
+                  </div>
+
+                  <div className="flex-1 space-y-2">
+                    <label className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#0055FF] hover:bg-[#0044CC] text-white font-bold text-xs shadow-xs cursor-pointer transition-all">
+                      <Upload size={14} />
+                      <span>Upload Logo Image</span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleImageUpload('INSTITUTE_LOGO', 'Academy Logo', 400)}
+                        className="hidden"
+                      />
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="Or paste Logo Image URL (https://...)"
+                      value={settings.INSTITUTE_LOGO?.startsWith('data:') ? '' : (settings.INSTITUTE_LOGO || '')}
+                      onChange={(e) => handleChange('INSTITUTE_LOGO', e.target.value)}
+                      className="w-full px-3 py-1.5 rounded-lg border border-slate-300 text-[11px] bg-white"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* 2. Custom Login & Mobile App Screen Hero Image */}
+              <div className="p-4 rounded-2xl bg-blue-50/60 border border-blue-200/80 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs font-extrabold text-slate-900">2. Custom Login &amp; App Screen Hero Image</p>
+                    <p className="text-[11px] text-slate-500">Replaces the center illustration on PC Login, Mobile App Login &amp; App Banner</p>
+                  </div>
+                  {settings.LOGIN_HERO_IMAGE && (
+                    <button
+                      type="button"
+                      onClick={() => handleClearImage('LOGIN_HERO_IMAGE', 'Login & App Hero Image')}
+                      className="px-2.5 py-1 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-600 text-[10px] font-bold border border-rose-200 cursor-pointer"
+                    >
+                      Remove Image
+                    </button>
+                  )}
+                </div>
+
+                {/* Live Royal Blue Preview Box */}
+                <div className="p-3 rounded-2xl bg-[#0055FF] text-white flex items-center gap-3 shadow-inner">
+                  <div className="w-24 h-20 rounded-xl bg-white/15 border border-white/25 flex items-center justify-center overflow-hidden shrink-0">
+                    {settings.LOGIN_HERO_IMAGE ? (
+                      <img src={settings.LOGIN_HERO_IMAGE} alt="Hero Preview" className="w-full h-full object-cover" />
+                    ) : (
+                      <span className="text-[10px] font-semibold text-blue-100 text-center px-1.5">Default Artwork</span>
+                    )}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-xs font-extrabold truncate">{settings.INSTITUTE_NAME || 'Cambridge Academy'}</p>
+                    {settings.COLLEGE_NAME && (
+                      <p className="text-[11px] font-bold text-amber-300 truncate">{settings.COLLEGE_NAME}</p>
+                    )}
+                    <p className="text-[10px] text-blue-100 line-clamp-2 mt-0.5">
+                      {settings.APP_WELCOME_TEXT || 'Parent & Student Performance App'}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-2">
+                  <label className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#0055FF] hover:bg-[#0044CC] text-white font-bold text-xs shadow-xs cursor-pointer transition-all">
+                    <Upload size={14} />
+                    <span>Upload Custom Hero Image</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImageUpload('LOGIN_HERO_IMAGE', 'Login & App Hero Image', 1000)}
+                      className="hidden"
+                    />
+                  </label>
+
+                  {/* Quick Education Presets */}
+                  <button
+                    type="button"
+                    onClick={() => handleChange('LOGIN_HERO_IMAGE', 'https://images.unsplash.com/photo-1523240795612-9a054b0db644?w=900&auto=format&fit=crop&q=80')}
+                    className="px-2.5 py-1.5 rounded-lg bg-white hover:bg-blue-50 text-slate-700 border border-slate-200 text-[10px] font-bold cursor-pointer"
+                  >
+                    Preset: College Students
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleChange('LOGIN_HERO_IMAGE', 'https://images.unsplash.com/photo-1541339907198-e08756dedf3f?w=900&auto=format&fit=crop&q=80')}
+                    className="px-2.5 py-1.5 rounded-lg bg-white hover:bg-blue-50 text-slate-700 border border-slate-200 text-[10px] font-bold cursor-pointer"
+                  >
+                    Preset: Graduation
+                  </button>
+                </div>
+
+                <input
+                  type="text"
+                  placeholder="Or paste Custom Hero Image URL (https://...)"
+                  value={settings.LOGIN_HERO_IMAGE?.startsWith('data:') ? '' : (settings.LOGIN_HERO_IMAGE || '')}
+                  onChange={(e) => handleChange('LOGIN_HERO_IMAGE', e.target.value)}
+                  className="w-full px-3 py-1.5 rounded-lg border border-slate-300 text-[11px] bg-white"
                 />
               </div>
             </div>

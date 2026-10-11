@@ -5,7 +5,12 @@ export interface SettingsContextType {
   settings: Record<string, string>;
   loading: boolean;
   instituteName: string;
+  collegeName: string;
   instituteTagline: string;
+  instituteLogo: string;
+  loginHeroImage: string;
+  appBannerImage: string;
+  appWelcomeText: string;
   campusAddress: string;
   phone: string;
   email: string;
@@ -61,7 +66,12 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   };
 
   const instituteName = settings.INSTITUTE_NAME || 'Cambridge Academy';
+  const collegeName = settings.COLLEGE_NAME || '';
   const instituteTagline = settings.INSTITUTE_TAGLINE || 'Excellence in Tuition & Mentorship';
+  const instituteLogo = settings.INSTITUTE_LOGO || '';
+  const loginHeroImage = settings.LOGIN_HERO_IMAGE || '';
+  const appBannerImage = settings.APP_BANNER_IMAGE || '';
+  const appWelcomeText = settings.APP_WELCOME_TEXT || 'Parent & Student Performance App • Live Gate Attendance • Exam Rankings • Fee Receipts';
   const campusAddress = settings.ADDRESS || 'No. 45, Galle Road, Colombo 03, Sri Lanka';
   const phone = settings.PHONE || '+94 11 234 5678';
   const email = settings.EMAIL || 'info@cambridgeacademy.lk';
@@ -74,7 +84,12 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         settings,
         loading,
         instituteName,
+        collegeName,
         instituteTagline,
+        instituteLogo,
+        loginHeroImage,
+        appBannerImage,
+        appWelcomeText,
         campusAddress,
         phone,
         email,
@@ -96,7 +111,12 @@ export const useSettings = () => {
       settings: {},
       loading: false,
       instituteName: 'Cambridge Academy',
+      collegeName: '',
       instituteTagline: 'Excellence in Tuition & Mentorship',
+      instituteLogo: '',
+      loginHeroImage: '',
+      appBannerImage: '',
+      appWelcomeText: 'Parent & Student Performance App • Live Gate Attendance • Exam Rankings • Fee Receipts',
       campusAddress: 'No. 45, Galle Road, Colombo 03, Sri Lanka',
       phone: '+94 11 234 5678',
       email: 'info@cambridgeacademy.lk',
