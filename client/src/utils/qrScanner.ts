@@ -174,7 +174,7 @@ export function decodeQRFromVideo(
   video: HTMLVideoElement,
   canvas: HTMLCanvasElement
 ): string | null {
-  if (video.readyState !== video.HAVE_ENOUGH_DATA) {
+  if (video.readyState < 2) {
     return null;
   }
 
@@ -182,7 +182,7 @@ export function decodeQRFromVideo(
   const height = video.videoHeight;
   if (!width || !height) return null;
 
-  // Scale down if video stream is large (e.g. 1080p or 4K back camera)
+  // Pass 1: Full frame scaled to 640px max dimension
   const maxDim = 640;
   let targetW = width;
   let targetH = height;
@@ -201,8 +201,29 @@ export function decodeQRFromVideo(
   const imageData = ctx.getImageData(0, 0, targetW, targetH);
 
   const code = jsQR(imageData.data, targetW, targetH, {
-    inversionAttempts: 'dontInvert'
+    inversionAttempts: 'attemptBoth'
   });
 
-  return code && code.data ? code.data.trim() : null;
+  if (code && code.data && code.data.trim()) {
+    return code.data.trim();
+  }
+
+  // Pass 2: High-resolution center crop (middle 60% of video frame) for smaller/distant QR cards
+  const cropW = Math.round(width * 0.6);
+  const cropH = Math.round(height * 0.6);
+  const sx = Math.round((width - cropW) / 2);
+  const sy = Math.round((height - cropH) / 2);
+  const outW = Math.min(480, cropW);
+  const outH = Math.min(480, cropH);
+
+  canvas.width = outW;
+  canvas.height = outH;
+  ctx.drawImage(video, sx, sy, cropW, cropH, 0, 0, outW, outH);
+  const centerData = ctx.getImageData(0, 0, outW, outH);
+
+  const centerCode = jsQR(centerData.data, outW, outH, {
+    inversionAttempts: 'attemptBoth'
+  });
+
+  return centerCode && centerCode.data && centerCode.data.trim() ? centerCode.data.trim() : null;
 }

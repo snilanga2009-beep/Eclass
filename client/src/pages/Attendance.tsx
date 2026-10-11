@@ -33,9 +33,8 @@ import {
 } from 'lucide-react';
 import { apiRequest, formatDate, formatLKR } from '../api';
 import confetti from 'canvas-confetti';
-import { Html5Qrcode } from 'html5-qrcode';
 import { QRScannerModal } from '../components/QRScannerModal';
-import { decodeQRFromFile } from '../utils/qrScanner';
+import { decodeQRFromFile, decodeQRFromVideo } from '../utils/qrScanner';
 import { useRFIDReader } from '../utils/useRFIDReader';
 import { RFIDGuideModal } from '../components/RFIDGuideModal';
 import { getStudentAvatar } from '../utils/studentAvatars';
@@ -136,13 +135,7 @@ export const Attendance: React.FC<AttendanceProps> = ({
   const [selectedClassId, setSelectedClassId] = useState<string>('');
   const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().substring(0, 10));
   const [mode, setMode] = useState<'QR_SCANNER' | 'ROSTER' | 'MANUAL_SHEET'>(initialMode);
-  const [autoWhatsAppOnScan, setAutoWhatsAppOnScan] = useState<boolean>(() => {
-    try {
-      return localStorage.getItem('cams_auto_whatsapp_scan') === '1';
-    } catch {
-      return false;
-    }
-  });
+  const [autoWhatsAppOnScan, setAutoWhatsAppOnScan] = useState<boolean>(false);
 
   const handleToggleAutoWhatsApp = () => {
     const nextVal = !autoWhatsAppOnScan;
@@ -183,7 +176,7 @@ export const Attendance: React.FC<AttendanceProps> = ({
   const [rfidActive, setRfidActive] = useState(true);
   const [lastRfidTag, setLastRfidTag] = useState<string | null>(null);
 
-  // QR Scanner States
+  // QR Scanner States & Persistent Refs for Non-Stop Continuous Mobile Scanning
   const [isScannerModalOpen, setIsScannerModalOpen] = useState(autoOpenScanner);
   const [qrInput, setQrInput] = useState('');
   const [scanResult, setScanResult] = useState<any>(null);
@@ -192,15 +185,27 @@ export const Attendance: React.FC<AttendanceProps> = ({
   const [cameraFacing, setCameraFacing] = useState<'environment' | 'user'>('environment');
   const [cameraError, setCameraError] = useState<string | null>(null);
   const [soundEnabled, setSoundEnabled] = useState(true);
-  const html5QrCodeRef = useRef<Html5Qrcode | null>(null);
+  const inlineVideoRef = useRef<HTMLVideoElement | null>(null);
+  const inlineCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  const inlineStreamRef = useRef<MediaStream | null>(null);
+  const inlineAnimFrameRef = useRef<number | null>(null);
+  const inlineIsScanningRef = useRef<boolean>(false);
+  const inlineProcessingRef = useRef<boolean>(false);
+  const audioCtxRef = useRef<AudioContext | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const barcodeInputRef = useRef<HTMLInputElement | null>(null);
   const lastScanAttemptRef = useRef<{ token: string; time: number }>({ token: '', time: 0 });
 
-  // Auto-focus barcode scanner input in PC/laptop mode
+  const focusBarcodeIfDesktop = () => {
+    if (typeof window !== 'undefined' && window.innerWidth >= 1024 && !inlineIsScanningRef.current && !isScannerModalOpen) {
+      setTimeout(() => barcodeInputRef.current?.focus(), 150);
+    }
+  };
+
+  // Auto-focus barcode scanner input ONLY in PC/laptop desktop mode
   useEffect(() => {
     if (mode === 'QR_SCANNER') {
-      setTimeout(() => barcodeInputRef.current?.focus(), 150);
+      focusBarcodeIfDesktop();
     }
   }, [mode, selectedClassId]);
 
@@ -288,11 +293,20 @@ export const Attendance: React.FC<AttendanceProps> = ({
     window.open(`https://wa.me/${intlPhone}?text=${encodeURIComponent(message)}`, '_blank');
   };
 
-  // Web Audio API Synthesizer for instant POS scan beeps
+  // Reusable Web Audio API Synthesizer for instant POS scan beeps
   const playBeep = (type: 'SUCCESS' | 'WARN' | 'ERROR') => {
     if (!soundEnabled) return;
     try {
-      const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+      if (!AudioContextClass) return;
+      if (!audioCtxRef.current || audioCtxRef.current.state === 'closed') {
+        audioCtxRef.current = new AudioContextClass();
+      }
+      const audioCtx = audioCtxRef.current;
+      if (audioCtx.state === 'suspended') {
+        audioCtx.resume().catch(() => {});
+      }
+
       const osc = audioCtx.createOscillator();
       const gain = audioCtx.createGain();
 
@@ -325,13 +339,16 @@ export const Attendance: React.FC<AttendanceProps> = ({
   };
 
   // Perform Barcode, QR or RFID scan evaluation
-  const handlePerformScan = async (tokenToScan?: string, scanMethod: string = 'BARCODE'): Promise<any> => {
+  const handlePerformScan = async (tokenToScan?: string, scanMethod: string = 'QR_CODE'): Promise<any> => {
     const token = (tokenToScan || qrInput).trim();
-    if (!token || !selectedClassId) return null;
+    const targetClassId = selectedClassId || classes[0]?.id;
+    if (!token || !targetClassId) return null;
 
-    // Suppress rapid hardware duplicate keypresses within 1000ms
+    // Suppress duplicate scans of the SAME student within 3000ms, but allow a DIFFERENT student immediately (350ms)!
     const now = Date.now();
-    if (lastScanAttemptRef.current.token === token && (now - lastScanAttemptRef.current.time) < 1000) {
+    const isSameToken = lastScanAttemptRef.current.token === token;
+    const elapsed = now - lastScanAttemptRef.current.time;
+    if (isSameToken ? elapsed < 3000 : elapsed < 350) {
       return null;
     }
     lastScanAttemptRef.current = { token, time: now };
@@ -343,7 +360,7 @@ export const Attendance: React.FC<AttendanceProps> = ({
       const offlineItem = {
         qrToken: token,
         rfidTag: scanMethod === 'RFID' ? token : undefined,
-        classId: selectedClassId,
+        classId: targetClassId,
         date: selectedDate,
         scannedAt: new Date().toISOString(),
         method: scanMethod
@@ -360,7 +377,7 @@ export const Attendance: React.FC<AttendanceProps> = ({
       };
       setScanResult(offRes);
       setQrInput('');
-      setTimeout(() => barcodeInputRef.current?.focus(), 150);
+      focusBarcodeIfDesktop();
       setScanLoading(false);
       return offRes;
     }
@@ -372,7 +389,7 @@ export const Attendance: React.FC<AttendanceProps> = ({
           qrToken: token,
           token: token,
           rfidTag: scanMethod === 'RFID' ? token : undefined,
-          classId: selectedClassId,
+          classId: targetClassId,
           date: selectedDate,
           method: scanMethod
         })
@@ -382,10 +399,10 @@ export const Attendance: React.FC<AttendanceProps> = ({
 
       if (res.scanResult === 'SUCCESS') {
         playBeep('SUCCESS');
-        confetti({ particleCount: 35, spread: 60, origin: { y: 0.5 } });
+        confetti({ particleCount: 25, spread: 55, origin: { y: 0.5 } });
 
-        // Auto-open WhatsApp if enabled and student parent phone is available
-        if (autoWhatsAppOnScan && res.whatsapp?.url) {
+        // Only auto-open WhatsApp on desktop barcode scan when camera is NOT active, so mobile continuous camera never loses focus
+        if (autoWhatsAppOnScan && !inlineIsScanningRef.current && !isScannerModalOpen && res.whatsapp?.url) {
           try {
             window.open(res.whatsapp.url, '_blank');
           } catch (e) {
@@ -398,7 +415,7 @@ export const Attendance: React.FC<AttendanceProps> = ({
           window.dispatchEvent(new CustomEvent('cams-data-changed', {
             detail: {
               type: 'ATTENDANCE',
-              classId: selectedClassId,
+              classId: targetClassId,
               studentId: res.student?.id
             }
           }));
@@ -412,7 +429,7 @@ export const Attendance: React.FC<AttendanceProps> = ({
       }
 
       setQrInput('');
-      setTimeout(() => barcodeInputRef.current?.focus(), 150);
+      focusBarcodeIfDesktop();
       return res;
     } catch (err: any) {
       playBeep('ERROR');
@@ -422,23 +439,28 @@ export const Attendance: React.FC<AttendanceProps> = ({
         message: err.message || 'Verification failed. Student not enrolled or invalid barcode/QR.'
       };
       setScanResult(errRes);
-      setTimeout(() => barcodeInputRef.current?.focus(), 150);
+      focusBarcodeIfDesktop();
       return errRes;
     } finally {
       setScanLoading(false);
     }
   };
 
+  const handlePerformScanRef = useRef(handlePerformScan);
+  useEffect(() => {
+    handlePerformScanRef.current = handlePerformScan;
+  });
+
   // Global USB Barcode Reader & 125kHz HID RFID Reader Listener (PC/Laptop keyboard wedge)
   const { simulateScan } = useRFIDReader({
     enabled: mode === 'QR_SCANNER' && rfidActive,
     onScan: (tag, scanType) => {
       setLastRfidTag(tag);
-      handlePerformScan(tag, scanType || 'BARCODE');
+      handlePerformScanRef.current(tag, scanType || 'BARCODE');
     }
   });
 
-  // Handle QR code scanning directly from captured phone camera photo (works on Android & iPhone)
+  // Handle QR code scanning directly from captured phone camera photo (fallback)
   const handleScanFromPhoto = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -446,7 +468,7 @@ export const Attendance: React.FC<AttendanceProps> = ({
     setCameraError(null);
     try {
       const decodedText = await decodeQRFromFile(file);
-      await handlePerformScan(decodedText);
+      await handlePerformScanRef.current(decodedText, 'QR_CODE');
     } catch (err: any) {
       console.warn('QR scan from photo failed:', err);
       playBeep('ERROR');
@@ -462,71 +484,119 @@ export const Attendance: React.FC<AttendanceProps> = ({
     fileInputRef.current?.click();
   };
 
-  // Live Phone Camera Handler via Html5Qrcode
+  // Continuous, non-stop inline video frame scanner loop
+  const inlineScanLoop = () => {
+    if (!inlineIsScanningRef.current) return;
+
+    const video = inlineVideoRef.current;
+    const canvas = inlineCanvasRef.current;
+
+    if (video && canvas) {
+      if (video.paused && inlineStreamRef.current?.active) {
+        video.play().catch(() => {});
+      }
+
+      if (!inlineProcessingRef.current) {
+        try {
+          const decoded = decodeQRFromVideo(video, canvas);
+          if (decoded) {
+            const now = Date.now();
+            const isSame = lastScanAttemptRef.current.token === decoded;
+            const elapsed = now - lastScanAttemptRef.current.time;
+            if (isSame ? elapsed > 3000 : elapsed > 350) {
+              inlineProcessingRef.current = true;
+              handlePerformScanRef.current(decoded, 'QR_CODE').finally(() => {
+                setTimeout(() => {
+                  inlineProcessingRef.current = false;
+                }, 300);
+              });
+            }
+          }
+        } catch {
+          // Ignore single frame errors and keep scanning continuously
+        }
+      }
+    }
+
+    inlineAnimFrameRef.current = requestAnimationFrame(inlineScanLoop);
+  };
+
+  // Live Phone Camera Handler (Continuous non-stop stream)
   const startCamera = async (facing: 'environment' | 'user' = cameraFacing) => {
     setCameraError(null);
-    // Check if getUserMedia is supported in the current browser/context
+    await stopCamera();
+
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-      setCameraError('Live camera video stream requires HTTPS or localhost on mobile. Tap "📸 Snap QR with Phone Camera" below to use your phone camera directly!');
+      setCameraError('Live camera video stream requires HTTPS or localhost on mobile.');
       return;
     }
 
     try {
-      if (html5QrCodeRef.current && html5QrCodeRef.current.isScanning) {
-        await html5QrCodeRef.current.stop();
+      let stream: MediaStream;
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: {
+            facingMode: { ideal: facing },
+            width: { ideal: 1280 },
+            height: { ideal: 720 }
+          },
+          audio: false
+        });
+      } catch {
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: facing },
+          audio: false
+        });
       }
 
-      if (!html5QrCodeRef.current) {
-        html5QrCodeRef.current = new Html5Qrcode('mobile-qr-reader');
-      }
-
-      await html5QrCodeRef.current.start(
-        { facingMode: facing },
-        {
-          fps: 10,
-          qrbox: { width: 250, height: 250 }
-        },
-        (decodedText) => {
-          handlePerformScan(decodedText);
-        },
-        () => {
-          // ignore scan frame errors
-        }
-      );
+      inlineStreamRef.current = stream;
       setCameraActive(true);
       setCameraFacing(facing);
+
+      if (inlineVideoRef.current) {
+        inlineVideoRef.current.srcObject = stream;
+        inlineVideoRef.current.setAttribute('playsinline', 'true');
+        inlineVideoRef.current.setAttribute('webkit-playsinline', 'true');
+        inlineVideoRef.current.muted = true;
+        await inlineVideoRef.current.play().catch(() => {});
+      }
+
+      inlineIsScanningRef.current = true;
+      inlineProcessingRef.current = false;
+      inlineAnimFrameRef.current = requestAnimationFrame(inlineScanLoop);
     } catch (err: any) {
       console.error('Camera activation error:', err);
-      setCameraError('Camera access denied or unavailable. Tap "📸 Snap QR with Phone Camera" below to capture with your phone camera directly!');
+      setCameraError('Camera access denied or unavailable. Please allow camera permission in your browser.');
       setCameraActive(false);
     }
   };
 
   const stopCamera = async () => {
-    if (html5QrCodeRef.current && html5QrCodeRef.current.isScanning) {
-      try {
-        await html5QrCodeRef.current.stop();
-      } catch (e) {
-        console.error(e);
-      }
+    inlineIsScanningRef.current = false;
+    inlineProcessingRef.current = false;
+    if (inlineAnimFrameRef.current) {
+      cancelAnimationFrame(inlineAnimFrameRef.current);
+      inlineAnimFrameRef.current = null;
+    }
+    if (inlineStreamRef.current) {
+      inlineStreamRef.current.getTracks().forEach(t => t.stop());
+      inlineStreamRef.current = null;
+    }
+    if (inlineVideoRef.current) {
+      inlineVideoRef.current.srcObject = null;
     }
     setCameraActive(false);
   };
 
   const switchCamera = async () => {
     const nextFacing = cameraFacing === 'environment' ? 'user' : 'environment';
-    await stopCamera();
-    setTimeout(() => {
-      startCamera(nextFacing);
-    }, 200);
+    await startCamera(nextFacing);
   };
 
   // Cleanup camera on unmount
   useEffect(() => {
     return () => {
-      if (html5QrCodeRef.current && html5QrCodeRef.current.isScanning) {
-        html5QrCodeRef.current.stop().catch(() => {});
-      }
+      stopCamera();
     };
   }, []);
 
@@ -868,50 +938,94 @@ export const Attendance: React.FC<AttendanceProps> = ({
               <p className="text-xs text-slate-500">Hold the student ID barcode / QR code to camera or type the Student ID.</p>
             </div>
 
-            {/* Scanner Viewport / Live Phone Camera */}
-            <div className="relative rounded-2xl bg-slate-900 border-2 border-dashed border-brand-500/50 flex flex-col items-center justify-center text-center text-white min-h-[220px] overflow-hidden">
-              {/* HTML5 QR Code Video Anchor */}
-              <div id="mobile-qr-reader" className={`w-full ${cameraActive ? 'block' : 'hidden'}`} />
+            {/* Scanner Viewport / Continuous Live Phone Camera */}
+            <div className="relative rounded-2xl bg-slate-900 border-2 border-dashed border-brand-500/50 flex flex-col items-center justify-center text-center text-white min-h-[240px] overflow-hidden">
+              <video
+                ref={inlineVideoRef}
+                muted
+                playsInline
+                autoPlay
+                className={`w-full h-[260px] object-cover transition-opacity duration-200 ${cameraActive ? 'opacity-100 block' : 'opacity-0 hidden'}`}
+              />
+              <canvas ref={inlineCanvasRef} className="hidden" />
 
               {!cameraActive && (
-                <div className="p-6 flex flex-col items-center">
+                <div
+                  onClick={() => startCamera()}
+                  className="p-6 flex flex-col items-center cursor-pointer hover:bg-white/5 transition-colors w-full"
+                >
                   <div className="w-16 h-16 rounded-2xl bg-white/10 flex items-center justify-center text-brand-400 mb-3 backdrop-blur-sm border border-white/20">
                     <QrCode size={32} />
                   </div>
-                  <p className="text-xs font-bold text-white">Mobile Camera QR Scanner Ready</p>
-                  <p className="text-[11px] text-slate-400 mt-1 max-w-xs">Tap below to activate phone camera or scan using barcode scanner</p>
+                  <p className="text-xs font-bold text-white">Continuous Mobile Camera QR Scanner Ready</p>
+                  <p className="text-[11px] text-slate-400 mt-1 max-w-xs">Tap here or below to start non-stop continuous student scanning</p>
                   <p className="text-[10px] text-emerald-400 font-mono mt-1">Accepts: CAMS-STU-XXXX or STU-2026-XXXX</p>
                 </div>
               )}
 
               {cameraActive && (
-                <div className="absolute top-2 right-2 z-20 flex items-center gap-1.5 bg-black/60 backdrop-blur p-1 rounded-xl">
-                  <button
-                    type="button"
-                    onClick={switchCamera}
-                    className="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white text-xs"
-                    title="Switch Front/Back Camera"
-                  >
-                    <SwitchCamera size={14} />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={stopCamera}
-                    className="p-1.5 rounded-lg bg-rose-500/80 hover:bg-rose-600 text-white text-xs"
-                    title="Stop Camera"
-                  >
-                    <X size={14} />
-                  </button>
-                </div>
+                <>
+                  {/* Top-left Continuous Active Badge */}
+                  <div className="absolute top-2 left-2 z-20 flex items-center gap-1.5 bg-emerald-600/90 backdrop-blur px-2.5 py-1 rounded-xl text-[10px] font-extrabold text-white shadow">
+                    <span className="w-2 h-2 rounded-full bg-white animate-ping" />
+                    <span>Continuous Scan Active</span>
+                  </div>
+
+                  {/* Top-right Switch / Stop Camera Controls */}
+                  <div className="absolute top-2 right-2 z-20 flex items-center gap-1.5 bg-black/60 backdrop-blur p-1 rounded-xl">
+                    <button
+                      type="button"
+                      onClick={switchCamera}
+                      className="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white text-xs cursor-pointer"
+                      title="Switch Front/Back Camera"
+                    >
+                      <SwitchCamera size={14} />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={stopCamera}
+                      className="p-1.5 rounded-lg bg-rose-500/80 hover:bg-rose-600 text-white text-xs cursor-pointer"
+                      title="Stop Camera"
+                    >
+                      <X size={14} />
+                    </button>
+                  </div>
+
+                  {/* Live Scanned Student Overlay Banner inside Video Viewport */}
+                  {scanResult && (
+                    <div className={`absolute bottom-2 left-2 right-2 z-20 p-2.5 rounded-xl backdrop-blur-md border text-left flex items-center justify-between gap-2 shadow-lg ${
+                      scanResult.scanResult === 'SUCCESS'
+                        ? 'bg-emerald-950/90 border-emerald-400 text-emerald-100'
+                        : scanResult.scanResult === 'ALREADY_RECORDED'
+                        ? 'bg-amber-950/90 border-amber-400 text-amber-100'
+                        : 'bg-rose-950/90 border-rose-400 text-rose-100'
+                    }`}>
+                      <div className="min-w-0">
+                        <p className="text-[10px] font-extrabold uppercase tracking-wider text-emerald-300">
+                          {scanResult.scanResult === 'SUCCESS'
+                            ? '✓ Present — Hold Next Student QR!'
+                            : scanResult.scanResult === 'ALREADY_RECORDED'
+                            ? 'Already Checked In — Hold Next QR!'
+                            : 'Scan Alert — Hold Next QR!'}
+                        </p>
+                        <p className="text-xs font-black text-white truncate">
+                          {scanResult.student?.fullName || scanResult.message}
+                        </p>
+                      </div>
+                      <span className="px-2 py-0.5 rounded-lg bg-white/15 text-white text-[10px] font-bold shrink-0">
+                        Ready
+                      </span>
+                    </div>
+                  )}
+                </>
               )}
             </div>
 
-            {/* Hidden Native Phone Camera Photo Capture Input */}
+            {/* Hidden Native Phone Camera Photo Capture Input (Fallback Only) */}
             <input
               ref={fileInputRef}
               type="file"
               accept="image/*"
-              capture="environment"
               onChange={handleScanFromPhoto}
               className="hidden"
             />
@@ -926,59 +1040,43 @@ export const Attendance: React.FC<AttendanceProps> = ({
                     <p className="text-[11px] text-amber-800 mt-0.5">{cameraError}</p>
                   </div>
                 </div>
-                <button
-                  type="button"
-                  onClick={triggerPhoneCameraSnap}
-                  className="w-full py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-sm transition-all"
-                >
-                  <Camera size={14} />
-                  <span>Open Phone Camera (Take Photo)</span>
-                </button>
               </div>
             )}
 
-            {/* Dual Camera Action Buttons (Popup Modal + Direct Snap + Live Stream) */}
+            {/* Continuous Camera Action Buttons */}
             <div className="space-y-2">
-              {/* PRIMARY PROMINENT: Dedicated Mobile Camera QR Scanner Popup */}
+              {/* PRIMARY PROMINENT: Dedicated Mobile Camera QR Scanner Popup (Continuous) */}
               <button
                 type="button"
-                onClick={() => setIsScannerModalOpen(true)}
-                disabled={scanLoading}
-                className="w-full py-3.5 px-4 rounded-2xl bg-gradient-to-r from-emerald-600 via-teal-600 to-indigo-600 hover:from-emerald-500 hover:to-indigo-500 text-white text-xs sm:text-sm font-bold shadow-xl shadow-emerald-600/30 flex items-center justify-center gap-2 active:scale-95 transition-all"
+                onClick={() => {
+                  stopCamera();
+                  setIsScannerModalOpen(true);
+                }}
+                className="w-full py-3.5 px-4 rounded-2xl bg-[#0055FF] hover:bg-[#0044CC] text-white text-xs sm:text-sm font-bold shadow-xl shadow-blue-600/30 flex items-center justify-center gap-2 active:scale-95 transition-all cursor-pointer"
               >
                 <Smartphone size={18} />
-                <span>📱 Open Camera QR Scanner (Popup)</span>
+                <span>📱 Open Continuous Camera QR Scanner (Popup)</span>
               </button>
 
-              {/* Direct Phone Camera Photo Snap (Works on all mobile devices & browsers) */}
-              <button
-                type="button"
-                onClick={triggerPhoneCameraSnap}
-                disabled={scanLoading}
-                className="w-full py-2.5 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold flex items-center justify-center gap-2 border border-slate-200 transition-all"
-              >
-                <Camera size={16} className="text-slate-600" />
-              </button>
-
-              {/* Secondary: Continuous Live Video Stream (For desktop webcams or secure mobile contexts) */}
+              {/* Secondary: Inline Continuous Live Video Stream */}
               <div>
                 {!cameraActive ? (
                   <button
                     type="button"
                     onClick={() => startCamera()}
-                    className="w-full py-2.5 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold flex items-center justify-center gap-2 transition-all border border-slate-200"
+                    className="w-full py-2.5 rounded-2xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-xs font-bold flex items-center justify-center gap-2 transition-all border border-emerald-200 cursor-pointer"
                   >
-                    <QrCode size={15} className="text-slate-500" />
-                    <span>Start Continuous Video Stream</span>
+                    <QrCode size={15} className="text-emerald-600" />
+                    <span>Start Inline Continuous Video Stream</span>
                   </button>
                 ) : (
                   <button
                     type="button"
                     onClick={stopCamera}
-                    className="w-full py-2.5 rounded-2xl bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold flex items-center justify-center gap-2 transition-all"
+                    className="w-full py-2.5 rounded-2xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold flex items-center justify-center gap-2 transition-all cursor-pointer"
                   >
                     <X size={16} />
-                    <span>Close Live Video Stream</span>
+                    <span>Stop Inline Video Stream</span>
                   </button>
                 )}
               </div>

@@ -6,7 +6,7 @@ import { SettingsProvider } from './context/SettingsContext';
 import './index.css';
 
 // Automatic PWA Service Worker & Cache Buster so mobile phones always get the latest UI immediately
-const APP_BUILD_VERSION = '2026.10.11.v5';
+const APP_BUILD_VERSION = '2026.10.11.v6';
 try {
   const savedVersion = localStorage.getItem('cams_build_version');
   if (savedVersion !== APP_BUILD_VERSION) {
