@@ -203,6 +203,7 @@ export const FaceEnrollmentModal: React.FC<FaceEnrollmentModalProps> = ({
         }
       }
 
+      setConsentGiven(true);
       setStatusMessage(`Biometric template extracted with ${Math.round(res.score * 100)}% quality score.`);
     } catch (err: any) {
       alert('Capture error: ' + (err.message || 'Face analysis failed'));
@@ -281,7 +282,101 @@ export const FaceEnrollmentModal: React.FC<FaceEnrollmentModalProps> = ({
         </div>
 
         {/* Modal Body */}
-        <div className="p-4 sm:p-6 overflow-y-auto space-y-4 text-slate-800">
+        <div className="p-4 sm:p-6 overflow-y-auto space-y-4 text-slate-800 relative">
+
+          {/* ============================================================ */}
+          {/* CENTER SCREEN PROMINENT CONFIRMATION POPUP (NEVER HIDES ON MOBILE) */}
+          {/* ============================================================ */}
+          {capturedDescriptor && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-3.5 bg-black/85 backdrop-blur-md animate-in zoom-in-95 duration-200">
+              <div className="w-full max-w-sm bg-white rounded-3xl p-5 sm:p-6 shadow-2xl border-2 border-emerald-400 text-center space-y-4">
+                
+                {/* Snapshot Thumbnail with Quality Badge */}
+                <div className="relative w-24 h-24 mx-auto rounded-2xl overflow-hidden border-4 border-emerald-500 shadow-xl bg-slate-900">
+                  {capturedThumbnail ? (
+                    <img src={capturedThumbnail} alt="Captured Face" className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full bg-emerald-100 flex items-center justify-center text-emerald-600">
+                      <UserCheck size={36} />
+                    </div>
+                  )}
+                  <div className="absolute bottom-0 inset-x-0 bg-emerald-600 text-white text-[9px] font-black py-0.5 tracking-wider">
+                    {detectionQuality}% QUALITY
+                  </div>
+                </div>
+
+                <div>
+                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 text-xs font-black mb-1">
+                    <Check size={14} className="text-emerald-600" />
+                    <span>Biometric Face Scan Captured</span>
+                  </div>
+                  <h4 className="text-base font-black text-slate-900">{student.fullName}</h4>
+                  <p className="text-xs font-mono text-slate-500">{student.studentIdNumber}</p>
+                </div>
+
+                {/* Consent Confirmation Box */}
+                <div className="p-3 rounded-2xl bg-slate-50 border border-slate-200 text-left text-xs text-slate-700 space-y-2">
+                  <label className="flex items-start gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={consentGiven}
+                      onChange={(e) => setConsentGiven(e.target.checked)}
+                      className="mt-0.5 w-4 h-4 text-emerald-600 rounded border-slate-300 focus:ring-emerald-500 cursor-pointer"
+                    />
+                    <span className="text-[11px] leading-tight text-slate-800 font-bold">
+                      Parent / Student Biometric Consent Confirmed
+                    </span>
+                  </label>
+                  <div>
+                    <label className="block text-[9px] font-bold text-slate-400 uppercase">Consenting Party Name</label>
+                    <input
+                      type="text"
+                      value={consentBy}
+                      onChange={(e) => setConsentBy(e.target.value)}
+                      placeholder="Parent/Guardian Full Name"
+                      className="w-full px-2.5 py-1.5 rounded-xl border border-slate-300 text-xs font-bold text-slate-900 bg-white focus:ring-2 focus:ring-emerald-500"
+                    />
+                  </div>
+                </div>
+
+                {/* PROMINENT CENTER BUTTONS: Huge & Impossible to Miss */}
+                <div className="space-y-2 pt-1">
+                  <button
+                    type="button"
+                    onClick={handleSaveEnrollment}
+                    disabled={submitting || !consentGiven || !consentBy.trim()}
+                    className="w-full py-4 px-5 rounded-2xl bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 hover:from-emerald-500 hover:to-teal-500 text-white font-black text-sm sm:text-base shadow-xl shadow-emerald-600/35 active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                  >
+                    {submitting ? (
+                      <>
+                        <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                        <span>Registering Biometric...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Check size={20} className="stroke-[3]" />
+                        <span>Confirm & Save Face Template</span>
+                      </>
+                    )}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCapturedDescriptor(null);
+                      setCapturedThumbnail(null);
+                      setStatusMessage('');
+                      startCamera(cameraFacing);
+                    }}
+                    className="w-full py-2.5 px-4 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                  >
+                    <RefreshCw size={13} />
+                    <span>Retake Face Scan</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Privacy & Template Disclosure */}
           <div className="p-3 rounded-2xl bg-purple-50 border border-purple-200 flex items-start space-x-2.5 text-xs text-purple-900">
@@ -419,12 +514,12 @@ export const FaceEnrollmentModal: React.FC<FaceEnrollmentModalProps> = ({
             <p className="text-[11px] text-emerald-700 font-semibold text-center">{statusMessage}</p>
           )}
 
-          {/* Action Buttons */}
-          <div className="flex items-center justify-end space-x-2 pt-2 border-t border-slate-100">
+          {/* Action Buttons - Sticky at bottom */}
+          <div className="sticky bottom-0 -mx-4 -mb-4 sm:-mx-6 sm:-mb-6 bg-white/95 backdrop-blur-md px-4 py-3 sm:px-6 border-t border-slate-200 flex items-center justify-between gap-2 z-20 shadow-lg">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold cursor-pointer"
+              className="px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold cursor-pointer"
             >
               Cancel
             </button>
@@ -433,10 +528,10 @@ export const FaceEnrollmentModal: React.FC<FaceEnrollmentModalProps> = ({
               type="button"
               onClick={handleSaveEnrollment}
               disabled={!capturedDescriptor || !consentGiven || !consentBy.trim() || submitting}
-              className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 disabled:opacity-50 text-white text-xs font-extrabold shadow-md shadow-emerald-600/30 flex items-center gap-1.5 cursor-pointer"
+              className="flex-1 sm:flex-none px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 disabled:opacity-50 text-white text-xs sm:text-sm font-extrabold shadow-md shadow-emerald-600/30 flex items-center justify-center gap-1.5 cursor-pointer"
             >
               <Check size={16} />
-              <span>{submitting ? 'Saving Biometric...' : 'Confirm & Save Face Template'}</span>
+              <span>{submitting ? 'Saving...' : 'Confirm & Save Template'}</span>
             </button>
           </div>
 

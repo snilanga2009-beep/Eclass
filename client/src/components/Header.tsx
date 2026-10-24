@@ -28,6 +28,7 @@ interface HeaderProps {
   onOpenMobileMenu: () => void;
   onOpenSearch: () => void;
   onOpenQuickScan: () => void;
+  onOpenFaceScan?: () => void;
   onOpenQuickPayment: () => void;
 }
 
@@ -35,6 +36,7 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenMobileMenu,
   onOpenSearch,
   onOpenQuickScan,
+  onOpenFaceScan,
   onOpenQuickPayment
 }) => {
   const { user, switchRole, logout } = useAuth();
@@ -159,6 +161,18 @@ export const Header: React.FC<HeaderProps> = ({
         {/* Staff Quick Operational Actions */}
         {user?.role !== 'STUDENT' && user?.role !== 'PARENT' && (
           <div className="hidden sm:flex items-center space-x-2">
+            {/* Quick Face Attendance Scan (Front Office & Staff) */}
+            {onOpenFaceScan && (
+              <button
+                onClick={onOpenFaceScan}
+                className="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-purple-50 text-purple-900 hover:bg-purple-100/80 border border-purple-200 text-xs font-bold transition-all shadow-2xs cursor-pointer active:scale-98"
+                title="Launch Face Recognition Attendance (Webcam / USB Camera)"
+              >
+                <Camera size={14} className="text-purple-700" />
+                <span>Face Scan</span>
+              </button>
+            )}
+
             {/* Quick QR Attendance Scan */}
             <button
               onClick={onOpenQuickScan}
@@ -166,7 +180,7 @@ export const Header: React.FC<HeaderProps> = ({
               title="Fast Gate QR Scanner"
             >
               <QrCode size={14} className="text-emerald-700" />
-              <span>Gate Scan</span>
+              <span>QR Scan</span>
             </button>
 
             {/* Quick Fee Collection */}

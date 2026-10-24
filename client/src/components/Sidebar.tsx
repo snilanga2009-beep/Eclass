@@ -97,7 +97,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     },
     { 
       id: 'attendance', 
-      label: 'Gate Attendance (QR/RFID)', 
+      label: 'Live Gate Attendance (Face/QR/RFID)', 
       icon: QrCode, 
       roles: ['SUPER_ADMIN', 'ADMIN', 'TEACHER', 'RECEPTIONIST'], 
       category: 'ACADEMICS',

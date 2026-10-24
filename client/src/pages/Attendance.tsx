@@ -1051,8 +1051,22 @@ export const Attendance: React.FC<AttendanceProps> = ({
             )}
 
             {/* Continuous Camera Action Buttons */}
-            <div className="space-y-2">
-              {/* PRIMARY PROMINENT: Dedicated Mobile Camera QR Scanner Popup (Continuous) */}
+            <div className="space-y-2.5">
+              {/* PRIMARY PROMINENT 1: Dedicated Face Recognition Attendance Scanner Popup (Front Office & Staff) */}
+              <button
+                type="button"
+                onClick={() => {
+                  stopCamera();
+                  setIsFaceScannerModalOpen(true);
+                }}
+                className="w-full py-3.5 px-4 rounded-2xl bg-gradient-to-r from-purple-700 via-indigo-600 to-blue-700 hover:from-purple-600 hover:to-indigo-500 text-white text-xs sm:text-sm font-black shadow-xl shadow-indigo-600/30 flex items-center justify-center gap-2 active:scale-95 transition-all cursor-pointer border border-purple-400/30"
+              >
+                <div className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse shrink-0" />
+                <Camera size={18} />
+                <span>👤 Open Face Recognition Attendance Scanner</span>
+              </button>
+
+              {/* PRIMARY PROMINENT 2: Dedicated Mobile Camera QR Scanner Popup (Continuous) */}
               <button
                 type="button"
                 onClick={() => {
@@ -2092,6 +2106,19 @@ export const Attendance: React.FC<AttendanceProps> = ({
         isOpen={isScannerModalOpen}
         onClose={() => setIsScannerModalOpen(false)}
         onScanSuccess={handlePerformScan}
+        selectedClassName={currentClass?.name}
+        selectedDate={selectedDate}
+        onOpenPaymentModal={onOpenPaymentModal}
+      />
+
+      {/* Dedicated High-Tech Face Recognition Biometric Attendance Scanner Modal */}
+      <FaceScannerModal
+        isOpen={isFaceScannerModalOpen}
+        onClose={() => {
+          setIsFaceScannerModalOpen(false);
+          fetchRoster(selectedDate);
+        }}
+        selectedClassId={selectedClassId || classes[0]?.id}
         selectedClassName={currentClass?.name}
         selectedDate={selectedDate}
         onOpenPaymentModal={onOpenPaymentModal}

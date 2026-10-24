@@ -6,6 +6,7 @@ import { GlobalSearchModal } from './components/GlobalSearchModal';
 import { ReceiptModal } from './components/ReceiptModal';
 import { StudentIDCardModal } from './components/StudentIDCardModal';
 import { StudentProfileModal } from './components/StudentProfileModal';
+import { FaceScannerModal } from './components/FaceScannerModal';
 import { PaymentCollectModal } from './components/PaymentCollectModal';
 import { MobileSplashScreen } from './components/MobileSplashScreen';
 import { PWAInstallPrompt } from './components/PWAInstallPrompt';
@@ -170,6 +171,7 @@ export const App: React.FC = () => {
             onOpenMobileMenu={() => setIsMobileOpen(true)}
             onOpenSearch={() => setIsSearchOpen(true)}
             onOpenQuickScan={handleOpenQuickScan}
+            onOpenFaceScan={() => setIsGlobalFaceScannerOpen(true)}
             onOpenQuickPayment={() => handleOpenPayFee('')}
           />
 
