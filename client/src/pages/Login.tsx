@@ -38,10 +38,17 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
     appWelcomeText
   } = useSettings();
 
-  const [loginMode, setLoginMode] = useState<'parent' | 'staff'>('parent');
+  const [loginMode, setLoginMode] = useState<'parent' | 'staff'>(() => {
+    if (typeof window !== 'undefined') {
+      const p = new URLSearchParams(window.location.search).get('phone') || new URLSearchParams(window.location.search).get('parentPhone');
+      if (p) return 'parent';
+      return 'staff';
+    }
+    return 'staff';
+  });
   const [username, setUsername] = useState('admin');
   const [password, setPassword] = useState('password123');
-  const [parentPhone, setParentPhone] = useState('077 101 2001');
+  const [parentPhone, setParentPhone] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
   const [loading, setLoading] = useState(false);
@@ -305,6 +312,22 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
               <button
                 type="button"
                 onClick={() => {
+                  setLoginMode('staff');
+                  setError(null);
+                }}
+                className={`py-2.5 px-4 rounded-full text-xs font-extrabold transition-all flex items-center justify-center space-x-1.5 cursor-pointer ${
+                  loginMode === 'staff'
+                    ? 'bg-[#0055FF] text-white shadow-md shadow-blue-500/30'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                <Building2 size={15} />
+                <span>Admin & Staff Login</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
                   setLoginMode('parent');
                   setError(null);
                 }}
@@ -317,22 +340,14 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
                 <Users size={15} />
                 <span>Parent App</span>
               </button>
+            </div>
 
-              <button
-                type="button"
-                onClick={() => {
-                  setLoginMode('staff');
-                  setError(null);
-                }}
-                className={`py-2.5 px-4 rounded-full text-xs font-extrabold transition-all flex items-center justify-center space-x-1.5 cursor-pointer ${
-                  loginMode === 'staff'
-                    ? 'bg-[#0055FF] text-white shadow-md shadow-blue-500/30'
-                    : 'text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                <Building2 size={15} />
-                <span>Staff / PC Login</span>
-              </button>
+            {/* Quick Helper Banner for Admin / Teacher Access */}
+            <div className="p-2.5 rounded-2xl bg-indigo-50 border border-indigo-100 text-left flex items-start gap-2">
+              <ShieldCheck size={16} className="text-[#0055FF] shrink-0 mt-0.5" />
+              <p className="text-[11px] text-slate-700 leading-snug">
+                <strong className="text-slate-900 font-bold">Admin & Teacher Sign In:</strong> Tap <span className="font-mono text-[#0055FF] font-bold">Campus Admin</span> below or enter <span className="font-mono text-slate-900 font-bold">admin</span> / <span className="font-mono text-slate-900 font-bold">password123</span> to manage students, attendance and face recognition.
+              </p>
             </div>
 
             {/* Error Alert Box */}
@@ -375,39 +390,13 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
                       required
                       value={parentPhone}
                       onChange={(e) => setParentPhone(e.target.value)}
-                      placeholder="077 101 2001"
+                      placeholder="e.g. 0771234567"
                       className="w-full pl-20 pr-4 py-3.5 rounded-full bg-slate-50 border border-slate-200 text-slate-900 text-sm font-bold font-mono placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#0055FF] focus:bg-white transition-all"
                     />
                   </div>
                 </div>
 
-                {/* Quick 1-Tap Demo Parent Accounts (Styled like the White Outline Buttons in Screenshot) */}
-                <div className="space-y-2 pt-1">
-                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block text-center">
-                    Quick Demo Parent Accounts (1-Tap Login)
-                  </span>
-                  <div className="space-y-2">
-                    {[
-                      { phone: '077 101 2001', label: 'Continue as Kasun’s Parent (Grade 12)' },
-                      { phone: '077 102 2002', label: 'Continue as Nimali’s Parent (Grade 12)' }
-                    ].map((demo) => (
-                      <button
-                        key={demo.phone}
-                        type="button"
-                        onClick={() => {
-                          setParentPhone(demo.phone);
-                          handleParentSubmit(undefined, demo.phone);
-                        }}
-                        className="w-full py-3 px-4 rounded-full bg-white hover:bg-blue-50/60 border border-slate-200 hover:border-[#0055FF]/40 text-slate-800 text-xs font-bold transition-all flex items-center justify-center space-x-2.5 shadow-2xs cursor-pointer"
-                      >
-                        <span className="w-5 h-5 rounded-full bg-[#0055FF] text-white flex items-center justify-center text-[10px] font-black shrink-0">
-                          P
-                        </span>
-                        <span className="truncate">{demo.label}</span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
+
 
                 {/* Primary Royal Blue Pill Submit Button (Matches "Create Account" Button in Screenshot) */}
                 <button

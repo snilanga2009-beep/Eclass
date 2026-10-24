@@ -1,6 +1,6 @@
 {
   "name": "cams-server",
-  "version": "1.0.0",
+  "version": "3.0.0",
   "description": "Class Accounting Management System Backend API",
   "main": "dist/index.js",
   "scripts": {

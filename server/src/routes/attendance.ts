@@ -131,8 +131,8 @@ router.get('/session/:classId/:date', authenticateToken, async (req: AuthRequest
 // POST /api/attendance/scan - High-Speed Mobile & Desk QR/RFID Scan
 router.post('/scan', authenticateToken, async (req: AuthRequest, res: Response) => {
   try {
-    const { qrToken, rfidTag, token, classId, date, method } = req.body;
-    const rawInput = String(rfidTag || qrToken || token || '').trim();
+    const { qrToken, rfidTag, token, studentIdNumber, studentId, classId, date, method, confidenceScore, reviewStatus } = req.body;
+    const rawInput = String(rfidTag || qrToken || token || studentIdNumber || studentId || '').trim();
     if (!rawInput) {
       return res.status(400).json({ 
         scanResult: 'ERROR', 
@@ -142,6 +142,23 @@ router.post('/scan', authenticateToken, async (req: AuthRequest, res: Response) 
 
     const scanDate = date || new Date().toISOString().substring(0, 10);
     const scanMethod = method || (rfidTag ? 'RFID' : 'QR_CODE');
+
+    // Admin Method Access Control Check
+    const methodCheckKey = 
+      scanMethod === 'QR_CODE' ? 'ATTENDANCE_METHOD_QR' :
+      scanMethod === 'BARCODE' ? 'ATTENDANCE_METHOD_BARCODE' :
+      scanMethod === 'RFID' ? 'ATTENDANCE_METHOD_RFID' :
+      scanMethod === 'FACE' ? 'ATTENDANCE_METHOD_FACE' : null;
+
+    if (methodCheckKey) {
+      const isMethodEnabled = db.data.settings.find(s => s.key === methodCheckKey)?.value !== 'false';
+      if (!isMethodEnabled) {
+        return res.status(403).json({
+          scanResult: 'ERROR',
+          message: `${scanMethod} attendance is currently disabled by administrator in System Settings.`
+        });
+      }
+    }
 
     // Locate requested class or fallback to first available
     let cls = classId ? db.data.classes.find(c => c.id === classId) : null;
@@ -379,15 +396,35 @@ router.post('/scan', authenticateToken, async (req: AuthRequest, res: Response) 
     const feeRecord = db.data.feeRecords.find(f => f.studentId === student.id && f.classId === targetClassId && f.month === '2026-09');
     const feePending = feeRecord && feeRecord.remainingBalance > 0;
 
+    // Late Arrival Rule Evaluation
+    const lateThresholdMinutes = Number(db.data.settings.find(s => s.key === 'LATE_THRESHOLD_MINUTES')?.value || '15');
+    let attendanceStatus: 'PRESENT' | 'LATE' = 'PRESENT';
+
+    if (currentClass.startTime) {
+      try {
+        const [startHours, startMinutes] = currentClass.startTime.split(':').map(Number);
+        if (!isNaN(startHours) && !isNaN(startMinutes)) {
+          const classStartDate = new Date(scanDate);
+          classStartDate.setHours(startHours, startMinutes, 0, 0);
+          const lateCutoffMs = classStartDate.getTime() + (lateThresholdMinutes * 60 * 1000);
+          if (Date.now() > lateCutoffMs) {
+            attendanceStatus = 'LATE';
+          }
+        }
+      } catch {}
+    }
+
     const newAttendance: Attendance = {
       id: db.generateId(),
       sessionId: session.id,
       studentId: student.id,
       classId: targetClassId,
       date: scanDate,
-      status: 'PRESENT',
+      status: attendanceStatus,
       scannedAt: new Date().toISOString(),
       method: scanMethod as any,
+      reviewStatus: reviewStatus || (scanMethod === 'FACE' ? 'AUTO_CONFIRMED' : undefined),
+      confidenceScore: typeof confidenceScore === 'number' ? confidenceScore : undefined,
       recordedBy: req.user?.name || 'Scanner'
     };
 
@@ -628,6 +665,12 @@ router.get(['/today-roster', '/roster'], authenticateToken, async (req: AuthRequ
       dayAttendances = dayAttendances.filter(a => a.classId === targetClassId);
     }
 
+    // Filter by method if specified (QR_CODE, BARCODE, RFID, FACE, MANUAL)
+    const targetMethod = req.query.method ? String(req.query.method).toUpperCase() : null;
+    if (targetMethod && targetMethod !== 'ALL') {
+      dayAttendances = dayAttendances.filter(a => (a.method || 'QR_CODE').toUpperCase() === targetMethod);
+    }
+
     const currentMonth = targetDate.substring(0, 7);
 
     // Map each attendance to comprehensive student & class & fee details
@@ -674,7 +717,9 @@ router.get(['/today-roster', '/roster'], authenticateToken, async (req: AuthRequ
         date: att.date,
         status: att.status, // 'PRESENT' | 'LATE'
         scannedAt: att.scannedAt,
-        method: att.method || 'QR_CODE', // 'QR_CODE' | 'BARCODE' | 'RFID' | 'MANUAL'
+        method: att.method || 'QR_CODE', // 'QR_CODE' | 'BARCODE' | 'RFID' | 'FACE' | 'MANUAL'
+        reviewStatus: att.reviewStatus || 'AUTO_CONFIRMED',
+        confidenceScore: att.confidenceScore || null,
         recordedBy: att.recordedBy || 'Staff',
         feeInfo: {
           feeRecordId: feeRecord?.id,
@@ -701,6 +746,7 @@ router.get(['/today-roster', '/roster'], authenticateToken, async (req: AuthRequ
       QR_CODE: roster.filter(r => r.method === 'QR_CODE').length,
       BARCODE: roster.filter(r => r.method === 'BARCODE').length,
       RFID: roster.filter(r => r.method === 'RFID').length,
+      FACE: roster.filter(r => r.method === 'FACE').length,
       MANUAL: roster.filter(r => r.method === 'MANUAL').length
     };
 

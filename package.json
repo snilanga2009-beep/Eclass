@@ -1,6 +1,6 @@
 {
   "name": "my-class-accounting-management-system",
-  "version": "1.0.0",
+  "version": "3.0.0",
   "description": "Class Accounting Management System (CAMS) - Modern PWA",
   "scripts": {
     "install:all": "npm install && npm install --prefix server && npm install --prefix client",

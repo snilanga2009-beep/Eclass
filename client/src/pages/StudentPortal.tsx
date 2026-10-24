@@ -32,13 +32,11 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({ onOpenReceipt, onO
           setProfile(res);
           return;
         }
-        const students = await apiRequest<any[]>('/students');
-        if (students && students.length > 0) {
-          const res = await apiRequest(`/students/${students[0].id}`);
-          setProfile(res);
-        }
+        // Strict: only show the logged in student account
+        setProfile(null);
       } catch (e) {
-        console.error(e);
+        console.error('Failed to load student profile:', e);
+        setProfile(null);
       } finally {
         setLoading(false);
       }
@@ -201,7 +199,22 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({ onOpenReceipt, onO
             </div>
           </div>
         </div>
-      ) : null}
+      ) : (
+        <div className="py-20 px-6 max-w-lg mx-auto text-center bg-white rounded-3xl border border-slate-200 shadow-sm space-y-4">
+          <div className="w-14 h-14 rounded-2xl bg-blue-50 text-[#0055FF] border border-blue-200 flex items-center justify-center mx-auto">
+            <BookOpen size={28} />
+          </div>
+          <div>
+            <h3 className="text-base font-black text-slate-900">Student Profile Not Linked</h3>
+            <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+              Your logged-in user account <span className="font-mono font-bold text-slate-800">(@{user?.username})</span> is not yet connected to a registered student ID.
+            </p>
+            <p className="text-xs text-slate-400 mt-2">
+              Please contact academy administration to attach your student record to this login.
+            </p>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

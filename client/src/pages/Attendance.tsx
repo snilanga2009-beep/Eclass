@@ -29,11 +29,13 @@ import {
   Table as TableIcon,
   MessageCircle,
   BookOpen,
-  GraduationCap
+  GraduationCap,
+  UserCheck
 } from 'lucide-react';
 import { apiRequest, formatDate, formatLKR } from '../api';
 import confetti from 'canvas-confetti';
 import { QRScannerModal } from '../components/QRScannerModal';
+import { FaceScannerModal } from '../components/FaceScannerModal';
 import { decodeQRFromFile, decodeQRFromVideo } from '../utils/qrScanner';
 import { useRFIDReader } from '../utils/useRFIDReader';
 import { RFIDGuideModal } from '../components/RFIDGuideModal';
@@ -178,6 +180,8 @@ export const Attendance: React.FC<AttendanceProps> = ({
 
   // QR Scanner States & Persistent Refs for Non-Stop Continuous Mobile Scanning
   const [isScannerModalOpen, setIsScannerModalOpen] = useState(autoOpenScanner);
+  const [isFaceScannerModalOpen, setIsFaceScannerModalOpen] = useState(false);
+  const [rosterMethodFilter, setRosterMethodFilter] = useState<string>('ALL');
   const [qrInput, setQrInput] = useState('');
   const [scanResult, setScanResult] = useState<any>(null);
   const [scanLoading, setScanLoading] = useState(false);
@@ -702,6 +706,9 @@ export const Attendance: React.FC<AttendanceProps> = ({
       return false;
     }
     if (rosterFeeFilter === 'PENDING' && !item.feeInfo?.hasPendingFees) {
+      return false;
+    }
+    if (rosterMethodFilter !== 'ALL' && (item.method || 'QR_CODE') !== rosterMethodFilter) {
       return false;
     }
     if (rosterSearch.trim()) {
@@ -1902,7 +1909,7 @@ export const Attendance: React.FC<AttendanceProps> = ({
                               <span>{checkInTime}</span>
                             </span>
                             <span className="text-[10px] text-slate-500 block">
-                              {item.method === 'BARCODE' ? '⚡ Barcode Gun' : item.method === 'RFID' ? '🏷️ 125kHz RFID' : '📱 QR Pass'}
+                              {item.method === 'FACE' ? '👤 Face Rec' : item.method === 'BARCODE' ? '⚡ Barcode Gun' : item.method === 'RFID' ? '🏷️ 125kHz RFID' : item.method === 'MANUAL' ? '✍️ Manual' : '📱 QR Pass'}
                             </span>
                           </div>
                         </td>

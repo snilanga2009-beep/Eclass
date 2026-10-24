@@ -286,36 +286,38 @@ export const Header: React.FC<HeaderProps> = ({
                 </div>
               </div>
 
-              {/* Role preview switcher */}
-              <div className="px-2 pb-1.5">
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">
-                  Preview System Role
-                </p>
-                <div className="space-y-1 max-h-48 overflow-y-auto pr-1">
-                  {availableRoles.map(item => (
-                    <button
-                      key={item.role}
-                      onClick={() => {
-                        switchRole(item.role);
-                        setUserMenuOpen(false);
-                      }}
-                      className={`w-full text-left px-2.5 py-1.5 rounded-lg flex items-center justify-between transition-colors cursor-pointer text-xs ${
-                        user?.role === item.role 
-                          ? 'bg-slate-900 text-white font-semibold' 
-                          : 'text-slate-700 hover:bg-slate-100'
-                      }`}
-                    >
-                      <div className="flex items-center space-x-2 truncate">
-                        <span className={`w-2 h-2 rounded-full ${user?.role === item.role ? 'bg-emerald-400' : 'bg-slate-400'}`} />
-                        <span className="truncate">{item.label}</span>
-                      </div>
-                      {user?.role === item.role && (
-                        <Check size={13} className="text-emerald-400 shrink-0 ml-2" />
-                      )}
-                    </button>
-                  ))}
+              {/* Role preview switcher - strictly for Admin testing only */}
+              {['SUPER_ADMIN', 'ADMIN'].includes(user?.role || '') && (
+                <div className="px-2 pb-1.5">
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">
+                    Preview System Role
+                  </p>
+                  <div className="space-y-1 max-h-48 overflow-y-auto pr-1">
+                    {availableRoles.map(item => (
+                      <button
+                        key={item.role}
+                        onClick={() => {
+                          switchRole(item.role);
+                          setUserMenuOpen(false);
+                        }}
+                        className={`w-full text-left px-2.5 py-1.5 rounded-lg flex items-center justify-between transition-colors cursor-pointer text-xs ${
+                          user?.role === item.role 
+                            ? 'bg-slate-900 text-white font-semibold' 
+                            : 'text-slate-700 hover:bg-slate-100'
+                        }`}
+                      >
+                        <div className="flex items-center space-x-2 truncate">
+                          <span className={`w-2 h-2 rounded-full ${user?.role === item.role ? 'bg-emerald-400' : 'bg-slate-400'}`} />
+                          <span className="truncate">{item.label}</span>
+                        </div>
+                        {user?.role === item.role && (
+                          <Check size={13} className="text-emerald-400 shrink-0 ml-2" />
+                        )}
+                      </button>
+                    ))}
+                  </div>
                 </div>
-              </div>
+              )}
 
               {/* Account management buttons */}
               <div className="pt-2 mt-2 border-t border-slate-100 space-y-1">

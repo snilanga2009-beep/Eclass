@@ -94,7 +94,7 @@ export const ParentPortal: React.FC<ParentPortalProps> = ({
     };
   }, []);
 
-  // Fetch linked children for this guardian
+  // Fetch linked children strictly for this logged-in guardian only
   useEffect(() => {
     setLoading(true);
     apiRequest<any[]>('/auth/parent-children')
@@ -103,19 +103,16 @@ export const ParentPortal: React.FC<ParentPortalProps> = ({
           setChildren(kids);
           setSelectedChildId(kids[0].id);
         } else {
-          apiRequest<any[]>('/students').then(all => {
-            const myKids = (all || []).slice(0, 2);
-            setChildren(myKids);
-            if (myKids.length > 0) setSelectedChildId(myKids[0].id);
-          });
+          setChildren([]);
+          setSelectedChildId('');
+          setChildData(null);
         }
       })
-      .catch(() => {
-        apiRequest<any[]>('/students').then(all => {
-          const myKids = (all || []).slice(0, 2);
-          setChildren(myKids);
-          if (myKids.length > 0) setSelectedChildId(myKids[0].id);
-        });
+      .catch((err) => {
+        console.warn('Could not load parent children:', err);
+        setChildren([]);
+        setSelectedChildId('');
+        setChildData(null);
       })
       .finally(() => setLoading(false));
   }, []);
@@ -361,7 +358,7 @@ export const ParentPortal: React.FC<ParentPortalProps> = ({
           <div className="mt-5 pt-4 border-t border-white/20 flex items-center gap-2 overflow-x-auto no-scrollbar pb-1">
             <span className="text-xs font-bold text-blue-100 shrink-0 mr-1 flex items-center gap-1">
               <Users size={13} />
-              <span>Switch Child ({children.length}):</span>
+              <span>Assigned Children ({children.length}):</span>
             </span>
             {children.map(child => {
               const isSelected = selectedChildId === child.id;
@@ -377,12 +374,25 @@ export const ParentPortal: React.FC<ParentPortalProps> = ({
                 >
                   <span className={`w-2 h-2 rounded-full ${isSelected ? 'bg-[#0055FF]' : 'bg-emerald-300'}`} />
                   <span>{child.fullName}</span>
-                  <span className={`text-[10px] px-1.5 py-0.5 rounded font-mono ${isSelected ? 'bg-blue-50 text-[#0055FF]' : 'bg-white/20 text-white'}`}>
-                    {child.grade}
+                  <span className={`text-[10px] px-1.5 py-0.5 rounded font-mono font-bold ${isSelected ? 'bg-blue-50 text-[#0055FF]' : 'bg-white/20 text-white'}`}>
+                    {child.studentIdNumber || child.grade}
                   </span>
                 </button>
               );
             })}
+          </div>
+        )}
+
+        {children.length === 1 && (
+          <div className="mt-4 pt-3 border-t border-white/15 flex items-center gap-2">
+            <span className="text-xs text-blue-100 flex items-center gap-1.5 font-medium">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+              <span>Assigned Student:</span>
+              <strong className="text-white font-bold">{children[0].fullName}</strong>
+              <span className="font-mono text-[11px] bg-white/20 px-2 py-0.5 rounded-full text-white font-bold">
+                ID: {children[0].studentIdNumber}
+              </span>
+            </span>
           </div>
         )}
       </div>
@@ -519,8 +529,8 @@ export const ParentPortal: React.FC<ParentPortalProps> = ({
                     </h3>
                     <p className="text-xs text-slate-500">
                       {todayAttendance
-                        ? `Verified via ${todayAttendance.method === 'RFID' ? '125kHz RFID Card' : todayAttendance.method} • ${todayAttendance.class?.name || 'Academy Gate'}`
-                        : 'Instant check-in timestamp will appear here as soon as the student taps their card.'}
+                        ? `Verified via ${todayAttendance.method === 'RFID' ? '125kHz RFID Card' : todayAttendance.method === 'FACE' ? 'Face Recognition Biometrics' : todayAttendance.method === 'QR_CODE' ? 'QR Code Pass' : todayAttendance.method === 'BARCODE' ? 'Barcode Scanner' : todayAttendance.method} • ${todayAttendance.class?.name || 'Academy Gate'}`
+                        : 'Instant check-in timestamp will appear here as soon as the student checks in (Face, RFID, QR, Barcode).'}
                     </p>
                   </div>
                 </div>
@@ -1074,7 +1084,7 @@ export const ParentPortal: React.FC<ParentPortalProps> = ({
                               CHECKED IN - PRESENT
                             </span>
                             <span className="px-2 py-0.5 rounded bg-emerald-200 text-emerald-900 text-[10px] font-bold">
-                              {todayAttendance.method === 'RFID' ? '125kHz RFID' : todayAttendance.method}
+                              {todayAttendance.method === 'RFID' ? '125kHz RFID Card' : todayAttendance.method === 'FACE' ? '👤 Face Recognition' : todayAttendance.method === 'QR_CODE' ? '📱 QR Code' : todayAttendance.method === 'BARCODE' ? '🏷️ Barcode' : todayAttendance.method}
                             </span>
                           </div>
                           <div className="text-xl font-black text-emerald-900 font-mono mt-0.5">
@@ -1245,7 +1255,7 @@ export const ParentPortal: React.FC<ParentPortalProps> = ({
                                     ? 'bg-sky-100 text-sky-800'
                                     : 'bg-slate-100 text-slate-700'
                                 }`}>
-                                  {att.method === 'RFID' ? '125kHz RFID Tag' : att.method}
+                                  {att.method === 'RFID' ? '125kHz RFID' : att.method === 'FACE' ? '👤 Face Recognition' : att.method === 'QR_CODE' ? '📱 QR Code' : att.method === 'BARCODE' ? '🏷️ Barcode' : att.method}
                                 </span>
                               </td>
                               <td className="py-3 px-3 text-slate-500 text-[11px]">
@@ -1538,7 +1548,28 @@ export const ParentPortal: React.FC<ParentPortalProps> = ({
           )}
 
         </div>
-      ) : null}
+      ) : (
+        <div className="py-20 px-6 max-w-lg mx-auto text-center bg-white rounded-3xl border border-slate-200 shadow-sm space-y-4">
+          <div className="w-14 h-14 rounded-2xl bg-amber-50 text-amber-600 border border-amber-200 flex items-center justify-center mx-auto">
+            <Users size={28} />
+          </div>
+          <div>
+            <h3 className="text-base font-black text-slate-900">No Student Linked to Your Account</h3>
+            <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+              We could not find any active student profile associated with your login mobile number <span className="font-mono font-bold text-slate-800">({user?.phone || 'N/A'})</span>.
+            </p>
+            <p className="text-xs text-slate-400 mt-2">
+              Please check with the academy office that your registered mobile number is added to your child's student profile.
+            </p>
+          </div>
+          <button
+            onClick={() => window.location.reload()}
+            className="px-5 py-2.5 rounded-xl bg-slate-900 text-white text-xs font-bold hover:bg-slate-800 transition-colors shadow-sm cursor-pointer"
+          >
+            Check Again
+          </button>
+        </div>
+      )}
 
       {/* PWA INSTALL MODAL */}
       {showPwaModal && (

@@ -103,6 +103,8 @@ model Student {
   documents        Document[]
   messages         SMSLog[]
   whatsappLogs     WhatsAppLog[]
+  hasFaceEnrolled  Boolean           @default(false)
+  faceTemplates    FaceTemplate[]
   createdAt        DateTime          @default(now())
   updatedAt        DateTime          @updatedAt
 }
@@ -206,7 +208,9 @@ model Attendance {
   date       DateTime
   status     String            @default("PRESENT") // PRESENT, ABSENT, LATE, EXCUSED
   scannedAt  DateTime          @default(now())
-  method     String            @default("QR_CODE") // QR_CODE, BARCODE, RFID, MANUAL, ID_CARD
+  method     String            @default("QR_CODE") // QR_CODE, BARCODE, RFID, FACE, MANUAL, ID_CARD
+  reviewStatus String?          // AUTO_VERIFIED, MANUAL_CONFIRMED, UNCERTAIN
+  confidenceScore Float?        // Match confidence/distance
   remark     String?
   recordedBy String?           // User who recorded
 
@@ -446,4 +450,25 @@ model SystemSetting {
   value     String
   category  String   @default("GENERAL") // GENERAL, BRANDING, SMS, WHATSAPP, FINANCIAL, PWA
   updatedAt DateTime @updatedAt
+}
+
+// 9b. Face Recognition Biometric Templates
+model FaceTemplate {
+  id              String   @id @default(uuid())
+  studentId       String
+  student         Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  studentIdNumber String
+  label           String   @default("Primary")
+  descriptor      String   // JSON stringified 128-d Float32Array embedding vector
+  consentGiven    Boolean  @default(false)
+  consentDate     DateTime @default(now())
+  consentBy       String
+  photoSampleUrl  String?
+  qualityScore    Float?   @default(1.0)
+  enrolledBy      String
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([studentId])
+  @@index([studentIdNumber])
 }

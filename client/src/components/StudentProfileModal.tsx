@@ -1,7 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { 
-  X, 
-  User as UserIcon, 
+  X,
+  ChevronLeft,
+  ChevronRight, 
+  User as UserIcon,
+  UserCheck, 
   BookOpen, 
   CheckSquare, 
   CreditCard, 
@@ -29,6 +32,7 @@ import {
 } from 'lucide-react';
 import { apiRequest, formatLKR, formatDate } from '../api';
 import { AssignRFIDModal } from './AssignRFIDModal';
+import { FaceEnrollmentModal } from './FaceEnrollmentModal';
 import { EditStudentModal } from './EditStudentModal';
 import { 
   MALE_STUDENT_AVATAR, 
@@ -55,12 +59,23 @@ export const StudentProfileModal: React.FC<StudentProfileModalProps> = ({
   const [student, setStudent] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [isAssignRfidOpen, setIsAssignRfidOpen] = useState(false);
+  const [isFaceEnrollOpen, setIsFaceEnrollOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [sendingParentLink, setSendingParentLink] = useState(false);
   const [parentLinkSuccess, setParentLinkSuccess] = useState<{ url: string; msg: string } | null>(null);
   const [updatingAvatar, setUpdatingAvatar] = useState(false);
   const [updatingStatus, setUpdatingStatus] = useState(false);
   const profileFileInputRef = useRef<HTMLInputElement>(null);
+  const tabsRef = useRef<HTMLDivElement>(null);
+
+  const scrollTabs = (direction: 'left' | 'right') => {
+    if (tabsRef.current) {
+      tabsRef.current.scrollBy({
+        left: direction === 'left' ? -220 : 220,
+        behavior: 'smooth'
+      });
+    }
+  };
 
   const handleToggleStatus = async () => {
     if (!student?.id || updatingStatus) return;
@@ -181,13 +196,14 @@ export const StudentProfileModal: React.FC<StudentProfileModalProps> = ({
   ];
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="w-full max-w-4xl bg-white rounded-3xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col h-[90vh]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-0 sm:p-3 md:p-6 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
+      <div className="w-full h-full sm:h-[92vh] sm:max-w-5xl bg-white rounded-none sm:rounded-3xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col">
         {/* Profile Header */}
-        <div className="bg-slate-900 text-white p-5 sm:p-6 relative shrink-0">
+        <div className="bg-slate-900 text-white p-4 sm:p-6 relative shrink-0 space-y-4">
           <button 
             onClick={onClose}
-            className="absolute top-5 right-5 p-2 rounded-xl bg-white/10 hover:bg-white/20 text-white transition-colors"
+            className="absolute top-4 right-4 p-2 rounded-xl bg-white/10 hover:bg-white/20 text-white transition-colors cursor-pointer z-20"
+            title="Close Profile (Esc)"
           >
             <X size={18} />
           </button>
@@ -195,166 +211,244 @@ export const StudentProfileModal: React.FC<StudentProfileModalProps> = ({
           {loading ? (
             <div className="py-6 text-xs text-slate-400">Loading student details...</div>
           ) : student ? (
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-              <div className="flex items-start sm:items-center space-x-4">
-                {/* Profile Image & Quick Avatar Controls */}
-                <div className="relative group shrink-0">
-                  <img 
-                    src={getStudentAvatar(student)} 
-                    alt={student.fullName} 
-                    className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl object-cover ring-4 ring-white/20 shrink-0 shadow-xl bg-slate-800"
-                  />
-                  {updatingAvatar && (
-                    <div className="absolute inset-0 bg-slate-900/70 rounded-2xl flex items-center justify-center">
-                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+            <>
+              {/* Row 1: Student Avatar, Name, Status & Contacts */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pr-10">
+                <div className="flex items-start sm:items-center space-x-3.5 min-w-0">
+                  {/* Profile Image & Quick Avatar Controls */}
+                  <div className="relative group shrink-0">
+                    <img 
+                      src={getStudentAvatar(student)} 
+                      alt={student.fullName} 
+                      className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl object-cover ring-4 ring-white/20 shrink-0 shadow-xl bg-slate-800"
+                    />
+                    {updatingAvatar && (
+                      <div className="absolute inset-0 bg-slate-900/70 rounded-2xl flex items-center justify-center">
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      </div>
+                    )}
+                    <button
+                      onClick={() => profileFileInputRef.current?.click()}
+                      title="Upload Custom Student Photo"
+                      className="absolute -bottom-1 -right-1 p-1.5 rounded-lg bg-brand-600 hover:bg-brand-500 text-white shadow-md border-2 border-slate-900 transition-transform active:scale-95 cursor-pointer"
+                    >
+                      <Camera size={12} />
+                    </button>
+                    <input
+                      type="file"
+                      ref={profileFileInputRef}
+                      onChange={handleProfileImageUpload}
+                      accept="image/*"
+                      className="hidden"
+                    />
+                  </div>
+
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h2 className="text-base sm:text-xl font-bold text-white tracking-tight truncate">{student.fullName}</h2>
+                      <button
+                        type="button"
+                        onClick={handleToggleStatus}
+                        disabled={updatingStatus}
+                        title="Click to toggle Active / Inactive status"
+                        className={`px-2.5 py-0.5 rounded-full text-[10px] sm:text-[11px] font-bold border transition-all flex items-center gap-1.5 cursor-pointer shadow-sm ${
+                          student.status === 'ACTIVE'
+                            ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40 hover:bg-emerald-500/30'
+                            : 'bg-rose-500/20 text-rose-300 border-rose-500/40 hover:bg-rose-500/30'
+                        }`}
+                      >
+                        <span className={`w-2 h-2 rounded-full ${student.status === 'ACTIVE' ? 'bg-emerald-400 animate-pulse' : 'bg-rose-400'}`}></span>
+                        <span>{student.status === 'ACTIVE' ? 'Active' : 'Inactive'}</span>
+                        <span className="text-[9px] opacity-75 font-normal underline ml-0.5">
+                          {updatingStatus ? 'Saving...' : 'Switch'}
+                        </span>
+                      </button>
                     </div>
-                  )}
-                  <button
-                    onClick={() => profileFileInputRef.current?.click()}
-                    title="Upload Custom Student Photo"
-                    className="absolute -bottom-1 -right-1 p-1.5 rounded-lg bg-brand-600 hover:bg-brand-500 text-white shadow-md border-2 border-slate-900 transition-transform active:scale-95"
-                  >
-                    <Camera size={12} />
-                  </button>
-                  <input
-                    type="file"
-                    ref={profileFileInputRef}
-                    onChange={handleProfileImageUpload}
-                    accept="image/*"
-                    className="hidden"
-                  />
+
+                    <p className="text-xs text-brand-300 font-mono font-medium mt-1 truncate">
+                      {student.studentIdNumber} • <span className="text-white font-semibold">{student.grade}</span> • {student.school || 'Private Candidate'}
+                    </p>
+
+                    <div className="text-[11px] text-slate-300 mt-1 flex flex-wrap items-center gap-x-3 gap-y-1">
+                      {student.phone && (
+                        <span className="flex items-center gap-1 text-slate-300">
+                          <Phone size={11} className="text-slate-400" />
+                          <span>{student.phone}</span>
+                        </span>
+                      )}
+                      {student.parentPhone && (
+                        <span className="flex items-center gap-1 text-slate-400">
+                          <span>Guardian:</span>
+                          <span className="text-slate-200 font-semibold">{student.parentPhone}</span>
+                        </span>
+                      )}
+                    </div>
+                  </div>
                 </div>
 
-                <div>
-                  <div className="flex items-center space-x-2">
-                    <h2 className="text-lg sm:text-xl font-bold text-white tracking-tight">{student.fullName}</h2>
-                    <button
-                      type="button"
-                      onClick={handleToggleStatus}
-                      disabled={updatingStatus}
-                      title="Click to toggle Active / Inactive status"
-                      className={`px-2.5 py-0.5 rounded-full text-[11px] font-bold border transition-all flex items-center gap-1.5 cursor-pointer shadow-sm ${
-                        student.status === 'ACTIVE'
-                          ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40 hover:bg-emerald-500/30'
-                          : 'bg-rose-500/20 text-rose-300 border-rose-500/40 hover:bg-rose-500/30'
-                      }`}
-                    >
-                      <span className={`w-2 h-2 rounded-full ${student.status === 'ACTIVE' ? 'bg-emerald-400 animate-pulse' : 'bg-rose-400'}`}></span>
-                      <span>{student.status === 'ACTIVE' ? 'Active' : 'Inactive'}</span>
-                      <span className="text-[10px] opacity-75 font-normal underline ml-0.5">
-                        {updatingStatus ? 'Saving...' : 'Switch'}
-                      </span>
-                    </button>
-                  </div>
-                  <p className="text-xs text-brand-300 font-mono font-medium mt-0.5">
-                    {student.studentIdNumber} • {student.grade} • {student.school || 'Private Candidate'}
-                  </p>
-                  <p className="text-xs text-slate-400 mt-1 flex items-center gap-3">
-                    {student.phone && <span className="flex items-center gap-1"><Phone size={12} /> {student.phone}</span>}
-                    {student.parentPhone && <span className="flex items-center gap-1">Guardian: {student.parentPhone}</span>}
-                  </p>
-
-                  {/* 2 Selectable Avatar Icon Quick Toggle (Male / Female) */}
-                  <div className="flex items-center gap-1.5 mt-2">
-                    <span className="text-[10px] text-slate-400 font-semibold">Avatar Icon:</span>
-                    <button
-                      type="button"
-                      onClick={() => handleUpdateProfileAvatar(MALE_STUDENT_AVATAR)}
-                      disabled={updatingAvatar}
-                      className={`px-2 py-0.5 rounded-md text-[11px] font-medium flex items-center gap-1 transition-all ${
-                        student.photo === MALE_STUDENT_AVATAR || (!student.photo && student.gender === 'Male')
-                          ? 'bg-blue-600 text-white shadow-sm ring-1 ring-blue-300 font-bold'
-                          : 'bg-white/10 hover:bg-white/20 text-slate-300'
-                      }`}
-                      title="Set Male Student Avatar Icon"
-                    >
-                      <span>👦</span>
-                      <span>Male Icon</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleUpdateProfileAvatar(FEMALE_STUDENT_AVATAR)}
-                      disabled={updatingAvatar}
-                      className={`px-2 py-0.5 rounded-md text-[11px] font-medium flex items-center gap-1 transition-all ${
-                        student.photo === FEMALE_STUDENT_AVATAR || (!student.photo && student.gender === 'Female')
-                          ? 'bg-pink-600 text-white shadow-sm ring-1 ring-pink-300 font-bold'
-                          : 'bg-white/10 hover:bg-white/20 text-slate-300'
-                      }`}
-                      title="Set Female Student Avatar Icon"
-                    >
-                      <span>👧</span>
-                      <span>Female Icon</span>
-                    </button>
-                  </div>
+                {/* Avatar Icon Quick Toggle (Male / Female) */}
+                <div className="flex items-center gap-1.5 self-start sm:self-center shrink-0 bg-white/5 p-1.5 rounded-xl border border-white/10">
+                  <span className="text-[10px] text-slate-400 font-semibold pl-1">Avatar:</span>
+                  <button
+                    type="button"
+                    onClick={() => handleUpdateProfileAvatar(MALE_STUDENT_AVATAR)}
+                    disabled={updatingAvatar}
+                    className={`px-2.5 py-1 rounded-lg text-[10px] font-medium flex items-center gap-1 transition-all cursor-pointer ${
+                      student.photo === MALE_STUDENT_AVATAR || (!student.photo && student.gender === 'Male')
+                        ? 'bg-blue-600 text-white shadow-sm ring-1 ring-blue-300 font-bold'
+                        : 'bg-white/10 hover:bg-white/20 text-slate-300'
+                    }`}
+                    title="Set Male Student Avatar Icon"
+                  >
+                    <span>👦</span>
+                    <span>Male</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleUpdateProfileAvatar(FEMALE_STUDENT_AVATAR)}
+                    disabled={updatingAvatar}
+                    className={`px-2.5 py-1 rounded-lg text-[10px] font-medium flex items-center gap-1 transition-all cursor-pointer ${
+                      student.photo === FEMALE_STUDENT_AVATAR || (!student.photo && student.gender === 'Female')
+                        ? 'bg-pink-600 text-white shadow-sm ring-1 ring-pink-300 font-bold'
+                        : 'bg-white/10 hover:bg-white/20 text-slate-300'
+                    }`}
+                    title="Set Female Student Avatar Icon"
+                  >
+                    <span>👧</span>
+                    <span>Female</span>
+                  </button>
                 </div>
               </div>
 
-              {/* Quick Actions */}
-              <div className="flex items-center space-x-2 shrink-0">
+              {/* Row 2: Dedicated Responsive Action Bar (No Collisions or Text Overlaps) */}
+              <div className="p-2 sm:p-2.5 rounded-2xl bg-slate-800/80 border border-white/10 flex items-center gap-2 overflow-x-auto scrollbar-none flex-wrap">
+                {/* 1. Enroll / Update Face Biometrics */}
                 <button
-                  onClick={() => setIsEditModalOpen(true)}
-                  className="px-3 py-2 rounded-xl bg-brand-500/30 hover:bg-brand-500/40 text-brand-200 hover:text-white text-xs font-semibold flex items-center gap-1.5 transition-all border border-brand-400/30 shadow-sm"
-                  title="Add or Change Enrolled Classes"
+                  onClick={() => setIsFaceEnrollOpen(true)}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all shadow-sm cursor-pointer shrink-0 ${
+                    student.hasFaceEnrolled
+                      ? 'bg-purple-600/30 hover:bg-purple-600/50 text-purple-200 hover:text-white border border-purple-400/40'
+                      : 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white hover:from-purple-500 hover:to-indigo-500 shadow-purple-900/30 ring-1 ring-white/20'
+                  }`}
+                  title={student.hasFaceEnrolled ? 'Face Enrolled: Update / Re-capture Biometric Template' : 'Enroll Face Recognition Biometrics'}
                 >
-                  <BookOpen size={14} />
-                  <span>Classes ({student.enrollments?.length || 0})</span>
+                  <UserCheck size={14} className={student.hasFaceEnrolled ? 'text-emerald-400' : 'text-purple-200'} />
+                  <span>{student.hasFaceEnrolled ? 'Face: Enrolled ✓' : '👤 Enroll Face'}</span>
                 </button>
-                <button
-                  onClick={() => setIsEditModalOpen(true)}
-                  className="px-3 py-2 rounded-xl bg-amber-500/30 hover:bg-amber-500/40 text-amber-200 hover:text-white text-xs font-semibold flex items-center gap-1.5 transition-all border border-amber-400/30 shadow-sm"
-                  title="Edit Student Details & Parent Phone"
-                >
-                  <Edit3 size={14} />
-                  <span>Edit Student</span>
-                </button>
+
+                {/* 2. Assign / Reassign RFID */}
                 <button
                   onClick={() => setIsAssignRfidOpen(true)}
-                  className="px-3 py-2 rounded-xl bg-indigo-500/30 hover:bg-indigo-500/40 text-indigo-200 hover:text-white text-xs font-semibold flex items-center gap-1.5 transition-all border border-indigo-400/30 shadow-sm"
+                  className="px-3 py-1.5 rounded-xl bg-indigo-500/25 hover:bg-indigo-500/40 text-indigo-200 hover:text-white text-xs font-semibold flex items-center gap-1.5 transition-all border border-indigo-400/30 shadow-sm cursor-pointer shrink-0"
                   title={student.rfidTag ? `Current RFID: ${student.rfidTag}` : 'Assign 125kHz RFID Card'}
                 >
                   <Radio size={14} className={student.rfidTag ? 'text-emerald-400' : 'text-slate-300'} />
                   <span>{student.rfidTag ? `RFID: ${student.rfidTag}` : 'Assign RFID'}</span>
                 </button>
+
+                {/* 3. Edit Student Details */}
+                <button
+                  onClick={() => setIsEditModalOpen(true)}
+                  className="px-3 py-1.5 rounded-xl bg-amber-500/25 hover:bg-amber-500/40 text-amber-200 hover:text-white text-xs font-semibold flex items-center gap-1.5 transition-all border border-amber-400/30 shadow-sm cursor-pointer shrink-0"
+                  title="Edit Student Details & Parent Phone"
+                >
+                  <Edit3 size={14} />
+                  <span>Edit Details</span>
+                </button>
+
+                {/* 4. Enrolled Classes Tab Jump */}
+                <button
+                  onClick={() => setActiveTab('classes')}
+                  className="px-3 py-1.5 rounded-xl bg-brand-500/25 hover:bg-brand-500/40 text-brand-200 hover:text-white text-xs font-semibold flex items-center gap-1.5 transition-all border border-brand-400/30 shadow-sm cursor-pointer shrink-0"
+                  title="View and Manage Enrolled Classes"
+                >
+                  <BookOpen size={14} />
+                  <span>Classes ({student.enrollments?.length || 0})</span>
+                </button>
+
+                {/* 5. Student ID Card Pass */}
                 <button
                   onClick={() => onOpenIDCard(student.id)}
-                  className="px-3 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-semibold flex items-center gap-1.5 transition-all border border-white/10"
+                  className="px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-semibold flex items-center gap-1.5 transition-all border border-white/10 cursor-pointer shrink-0"
+                  title="View and Print Student ID Card with QR & Barcode"
                 >
                   <QrCode size={14} />
-                  <span>Student ID Card</span>
+                  <span>ID Card Pass</span>
                 </button>
               </div>
-            </div>
+            </>
           ) : null}
         </div>
 
-        {/* Tab Navigation Strip */}
-        <div className="flex items-center space-x-1 px-4 py-2 border-b border-slate-200 bg-slate-50 overflow-x-auto scrollbar-none shrink-0">
-          {tabs.map(tab => {
-            const Icon = tab.icon;
-            const isActive = activeTab === tab.id;
-            return (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`
-                  flex items-center space-x-2 px-3 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all
-                  ${isActive 
-                    ? 'bg-white text-brand-700 shadow-sm border border-slate-200' 
-                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/50'}
-                `}
-              >
-                <Icon size={14} className={isActive ? 'text-brand-600' : 'text-slate-400'} />
-                <span>{tab.label}</span>
-                {tab.count !== undefined && tab.count > 0 && (
-                  <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold ${
-                    isActive ? 'bg-brand-50 text-brand-700' : 'bg-slate-200 text-slate-600'
-                  }`}>
-                    {tab.count}
-                  </span>
-                )}
-              </button>
-            );
-          })}
+        {/* Mobile Tab Quick Dropdown (Visible on Small Phone Screens < sm) */}
+        <div className="sm:hidden px-3.5 py-2.5 bg-slate-100 border-b border-slate-200 shrink-0">
+          <div className="flex items-center space-x-2">
+            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider shrink-0">Select Tab:</span>
+            <select
+              value={activeTab}
+              onChange={(e) => setActiveTab(e.target.value)}
+              className="flex-1 px-3 py-1.5 rounded-xl border border-slate-300 text-xs font-bold text-slate-800 bg-white shadow-xs focus:ring-2 focus:ring-brand-500"
+            >
+              {tabs.map(tab => (
+                <option key={tab.id} value={tab.id}>
+                  {tab.label} {tab.count !== undefined && tab.count > 0 ? `(${tab.count})` : ''}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        {/* Tab Navigation Strip (All 10 Tabs with Left/Right Scroll Arrows for Desktop & Tablets) */}
+        <div className="relative border-b border-slate-200 bg-slate-50 flex items-center shrink-0">
+          <button
+            type="button"
+            onClick={() => scrollTabs('left')}
+            className="p-2 text-slate-500 hover:text-slate-800 hover:bg-slate-200/80 transition-colors z-10 shrink-0 cursor-pointer hidden sm:flex items-center justify-center border-r border-slate-200"
+            title="Scroll tabs left"
+          >
+            <ChevronLeft size={16} />
+          </button>
+
+          <div
+            ref={tabsRef}
+            className="flex-1 flex items-center space-x-1 px-3 py-2 overflow-x-auto scroll-smooth scrollbar-none"
+          >
+            {tabs.map(tab => {
+              const Icon = tab.icon;
+              const isActive = activeTab === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`
+                    flex items-center space-x-1.5 px-3 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all shrink-0 cursor-pointer
+                    ${isActive 
+                      ? 'bg-white text-brand-700 shadow-sm border border-slate-200 font-bold ring-1 ring-brand-500/20' 
+                      : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'}
+                  `}
+                >
+                  <Icon size={14} className={isActive ? 'text-brand-600' : 'text-slate-400'} />
+                  <span>{tab.label}</span>
+                  {tab.count !== undefined && tab.count > 0 && (
+                    <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold ${
+                      isActive ? 'bg-brand-100 text-brand-700' : 'bg-slate-200 text-slate-600'
+                    }`}>
+                      {tab.count}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+
+          <button
+            type="button"
+            onClick={() => scrollTabs('right')}
+            className="p-2 text-slate-500 hover:text-slate-800 hover:bg-slate-200/80 transition-colors z-10 shrink-0 cursor-pointer hidden sm:flex items-center justify-center border-l border-slate-200"
+            title="Scroll tabs right"
+          >
+            <ChevronRight size={16} />
+          </button>
         </div>
 
         {/* Tab Content Body */}
@@ -430,6 +524,39 @@ export const StudentProfileModal: React.FC<StudentProfileModalProps> = ({
                           </button>
                         </div>
                       </div>
+                    </div>
+
+                    {/* Face Recognition Biometrics Section */}
+                    <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200/80 space-y-2.5">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-2.5">
+                          <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${
+                            student.hasFaceEnrolled ? 'bg-purple-100 text-purple-700 border border-purple-200' : 'bg-slate-200 text-slate-500'
+                          }`}>
+                            <UserCheck size={18} />
+                          </div>
+                          <div>
+                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Face Recognition Biometrics</span>
+                            <span className={`text-xs font-bold ${student.hasFaceEnrolled ? 'text-emerald-700 flex items-center gap-1' : 'text-slate-500'}`}>
+                              {student.hasFaceEnrolled ? '✓ Biometric Template Enrolled & Active' : 'Not Enrolled Yet'}
+                            </span>
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => setIsFaceEnrollOpen(true)}
+                          className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all shadow-sm ${
+                            student.hasFaceEnrolled
+                              ? 'bg-purple-50 text-purple-700 hover:bg-purple-100 border border-purple-200'
+                              : 'bg-purple-600 hover:bg-purple-700 text-white shadow-purple-900/20'
+                          }`}
+                        >
+                          <UserCheck size={13} />
+                          <span>{student.hasFaceEnrolled ? 'Update Face' : '👤 Enroll Face'}</span>
+                        </button>
+                      </div>
+                      <p className="text-[11px] text-slate-500 leading-snug">
+                        Consent-based facial template for touchless gate check-in via PC webcam, Android phone or tablet camera.
+                      </p>
                     </div>
 
                     <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200/80 space-y-3">
@@ -847,6 +974,18 @@ export const StudentProfileModal: React.FC<StudentProfileModalProps> = ({
         </div>
       </div>
 
+      {/* Face Recognition Biometric Enrollment Modal */}
+      {isFaceEnrollOpen && student && (
+        <FaceEnrollmentModal
+          isOpen={isFaceEnrollOpen}
+          student={student}
+          onClose={() => setIsFaceEnrollOpen(false)}
+          onEnrolledSuccess={() => {
+            setStudent((prev: any) => ({ ...prev, hasFaceEnrolled: true }));
+          }}
+        />
+      )}
+
       {/* Assign 125kHz RFID Card Modal */}
       {isAssignRfidOpen && student && (
         <AssignRFIDModal
@@ -866,7 +1005,25 @@ export const StudentProfileModal: React.FC<StudentProfileModalProps> = ({
           isOpen={isEditModalOpen}
           onClose={() => setIsEditModalOpen(false)}
           onSuccess={(updatedStudent) => {
-            setStudent((prev: any) => ({ ...prev, ...updatedStudent }));
+            setStudent((prev: any) => ({
+              ...prev,
+              ...updatedStudent,
+              parentName: updatedStudent.parentName || updatedStudent.parent?.name || prev?.parentName,
+              parentPhone: updatedStudent.parentPhone || updatedStudent.parent?.phone || prev?.parentPhone,
+              parent: updatedStudent.parent || (updatedStudent.parentName || updatedStudent.parentPhone ? {
+                id: updatedStudent.parentId || prev?.parent?.id,
+                name: updatedStudent.parentName || prev?.parent?.name,
+                phone: updatedStudent.parentPhone || prev?.parent?.phone,
+                whatsapp: updatedStudent.whatsapp || prev?.parent?.whatsapp
+              } : prev?.parent)
+            }));
+            if (student?.id) {
+              apiRequest(`/students/${student.id}`)
+                .then(fresh => {
+                  if (fresh) setStudent(fresh);
+                })
+                .catch(err => console.warn('Could not refresh student deep profile:', err));
+            }
           }}
         />
       )}

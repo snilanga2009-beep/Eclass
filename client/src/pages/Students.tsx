@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Users, 
-  UserPlus, 
+  UserPlus,
+  UserCheck, 
   Search, 
   Filter, 
   Download, 
@@ -34,6 +35,7 @@ import {
 import { apiRequest, formatLKR, formatDate } from '../api';
 import { Student } from '../types';
 import { AssignRFIDModal } from '../components/AssignRFIDModal';
+import { FaceEnrollmentModal } from '../components/FaceEnrollmentModal';
 import { EditStudentModal } from '../components/EditStudentModal';
 import { useRFIDReader } from '../utils/useRFIDReader';
 import { useSettings } from '../context/SettingsContext';
@@ -68,6 +70,17 @@ export const Students: React.FC<StudentsProps> = ({ onOpenProfile, onOpenIDCard,
 
   // Assign RFID Modal State
   const [assignRfidStudent, setAssignRfidStudent] = useState<Student | null>(null);
+
+  // Face Recognition Biometric States
+  const [faceEnrollStudent, setFaceEnrollStudent] = useState<any | null>(null);
+  const [enrollFaceNowChoice, setEnrollFaceNowChoice] = useState<'NOW' | 'LATER'>('NOW');
+  const [faceFilter, setFaceFilter] = useState<'ALL' | 'ENROLLED' | 'MISSING'>('ALL');
+
+  const displayedStudents = students.filter(s => {
+    if (faceFilter === 'ENROLLED' && !s.hasFaceEnrolled) return false;
+    if (faceFilter === 'MISSING' && s.hasFaceEnrolled) return false;
+    return true;
+  });
 
   // Add Student Modal State
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -284,6 +297,10 @@ export const Students: React.FC<StudentsProps> = ({ onOpenProfile, onOpenIDCard,
         body: JSON.stringify(payload)
       });
       setIsAddModalOpen(false);
+      // If staff chose to capture face right now, open FaceEnrollmentModal immediately
+      if (enrollFaceNowChoice === 'NOW' && created) {
+        setFaceEnrollStudent(created);
+      }
       setFormData({
         fullName: '',
         grade: 'Grade 11',
@@ -510,6 +527,21 @@ export const Students: React.FC<StudentsProps> = ({ onOpenProfile, onOpenIDCard,
               <option key={c.id} value={c.id}>{c.name}</option>
             ))}
           </select>
+
+          {/* Biometrics Face Recognition Filter */}
+          <select
+            value={faceFilter}
+            onChange={(e) => setFaceFilter(e.target.value as any)}
+            className={`px-3 py-2 rounded-xl border text-xs font-bold transition-all focus:outline-none ${
+              faceFilter !== 'ALL'
+                ? 'bg-purple-50 text-purple-700 border-purple-300 ring-1 ring-purple-400'
+                : 'bg-slate-50 text-slate-700 border-slate-200'
+            }`}
+          >
+            <option value="ALL">All Biometrics</option>
+            <option value="ENROLLED">👤 Face Enrolled ✓ ({students.filter(s => s.hasFaceEnrolled).length})</option>
+            <option value="MISSING">⚠️ Missing Face ({students.filter(s => !s.hasFaceEnrolled).length})</option>
+          </select>
         </div>
       </div>
 
@@ -539,7 +571,7 @@ export const Students: React.FC<StudentsProps> = ({ onOpenProfile, onOpenIDCard,
                   <td colSpan={8} className="py-12 text-center text-slate-400">No students match current search filter.</td>
                 </tr>
               ) : (
-                students.map(s => (
+                displayedStudents.map(s => (
                   <tr key={s.id} className="hover:bg-slate-50/60 transition-colors group">
                     <td className="py-3 px-4">
                       <div className="flex items-center space-x-3">
@@ -555,7 +587,7 @@ export const Students: React.FC<StudentsProps> = ({ onOpenProfile, onOpenIDCard,
                           >
                             {s.fullName}
                           </p>
-                          <div className="flex items-center gap-1.5 mt-0.5">
+                          <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
                             <span className="text-[10px] text-slate-400 font-mono">{s.studentIdNumber}</span>
                             {s.rfidTag ? (
                               <span className="px-1.5 py-0.5 rounded bg-indigo-50 text-indigo-700 font-mono text-[9px] font-bold border border-indigo-200 flex items-center gap-0.5" title={`125kHz RFID: ${s.rfidTag}`}>
@@ -568,11 +600,40 @@ export const Students: React.FC<StudentsProps> = ({ onOpenProfile, onOpenIDCard,
                                   e.stopPropagation();
                                   setAssignRfidStudent(s);
                                 }}
-                                className="px-1.5 py-0.5 rounded bg-slate-100 hover:bg-brand-50 hover:text-brand-600 text-slate-500 font-mono text-[9px] font-semibold border border-slate-200 flex items-center gap-0.5 transition-all"
+                                className="px-1.5 py-0.5 rounded bg-slate-100 hover:bg-brand-50 hover:text-brand-600 text-slate-500 font-mono text-[9px] font-semibold border border-slate-200 flex items-center gap-0.5 transition-all cursor-pointer"
                                 title="Click to assign 125kHz RFID Card"
                               >
                                 <Radio size={9} />
                                 <span>+RFID</span>
+                              </button>
+                            )}
+
+                            {/* 1-Click Face Status & Registration Button */}
+                            {s.hasFaceEnrolled ? (
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setFaceEnrollStudent(s);
+                                }}
+                                className="px-1.5 py-0.5 rounded bg-purple-50 hover:bg-purple-100 text-purple-700 font-bold text-[9px] border border-purple-200/80 flex items-center gap-0.5 transition-all cursor-pointer shadow-xs"
+                                title="Face Enrolled ✓ - Click to update / re-capture face biometric template"
+                              >
+                                <UserCheck size={10} className="text-purple-600" />
+                                <span>Face: ✓</span>
+                              </button>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setFaceEnrollStudent(s);
+                                }}
+                                className="px-1.5 py-0.5 rounded bg-amber-50 hover:bg-purple-600 hover:text-white text-amber-800 font-bold text-[9px] border border-amber-200 hover:border-purple-600 flex items-center gap-0.5 transition-all cursor-pointer shadow-xs"
+                                title="Click to enroll face recognition template via webcam or camera"
+                              >
+                                <UserCheck size={10} />
+                                <span>+ Enroll Face</span>
                               </button>
                             )}
                           </div>
@@ -716,7 +777,7 @@ export const Students: React.FC<StudentsProps> = ({ onOpenProfile, onOpenIDCard,
             No students found matching current filter.
           </div>
         ) : (
-          students.map(s => {
+          displayedStudents.map(s => {
             const rawPhone = (s.parentPhone || s.phone || '').replace(/[^0-9]/g, '');
             const cleanPhone = rawPhone.startsWith('0') ? '94' + rawPhone.substring(1) : rawPhone;
             return (
@@ -836,15 +897,28 @@ export const Students: React.FC<StudentsProps> = ({ onOpenProfile, onOpenIDCard,
 
                   <button
                     onClick={() => onOpenProfile(s.id)}
-                    className="py-2 px-1 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-[10px] font-bold flex items-center justify-center gap-1 transition-colors"
+                    className="py-2 px-1 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-[10px] font-bold flex items-center justify-center gap-1 transition-colors cursor-pointer"
                   >
                     <Eye size={12} />
                     <span>Profile</span>
                   </button>
 
                   <button
+                    onClick={() => setFaceEnrollStudent(s)}
+                    className={`py-2 px-1 rounded-xl text-[10px] font-bold flex items-center justify-center gap-1 transition-all cursor-pointer ${
+                      s.hasFaceEnrolled
+                        ? 'bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200'
+                        : 'bg-purple-600 hover:bg-purple-700 text-white shadow-sm'
+                    }`}
+                    title={s.hasFaceEnrolled ? 'Update Face' : 'Enroll Face'}
+                  >
+                    <UserCheck size={12} />
+                    <span>{s.hasFaceEnrolled ? 'Face ✓' : '+ Face'}</span>
+                  </button>
+
+                  <button
                     onClick={() => onOpenIDCard(s.id)}
-                    className="py-2 px-2 rounded-xl bg-purple-50 hover:bg-purple-100 text-purple-700 text-[11px] font-bold flex items-center justify-center gap-1 transition-colors"
+                    className="py-2 px-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-[11px] font-bold flex items-center justify-center gap-1 transition-colors cursor-pointer"
                   >
                     <QrCode size={13} />
                     <span>ID Pass</span>
@@ -1107,6 +1181,57 @@ export const Students: React.FC<StudentsProps> = ({ onOpenProfile, onOpenIDCard,
                       <span>Tap Reader</span>
                     </span>
                   </div>
+                </div>
+
+                {/* Face Recognition Biometrics (Enroll Now vs Add Later) */}
+                <div className="sm:col-span-2 p-4 rounded-2xl bg-purple-50/80 border border-purple-200 space-y-2.5">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-purple-950 flex items-center gap-1.5">
+                      <UserCheck size={16} className="text-purple-600" />
+                      <span>Face Recognition Biometrics</span>
+                    </span>
+                    <span className="text-[10px] font-extrabold px-2.5 py-0.5 rounded-full bg-purple-200 text-purple-900 uppercase tracking-wider">
+                      Webcam / Phone Camera
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-purple-900 leading-snug">
+                    Would you like to enroll this student's face recognition template now, or register the student and add their face later?
+                  </p>
+                  <div className="grid grid-cols-2 gap-2 pt-1">
+                    <button
+                      type="button"
+                      onClick={() => setEnrollFaceNowChoice('NOW')}
+                      className={`py-2.5 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                        enrollFaceNowChoice === 'NOW'
+                          ? 'bg-purple-600 text-white shadow-md ring-2 ring-purple-300'
+                          : 'bg-white text-slate-700 hover:bg-purple-100/50 border border-purple-200'
+                      }`}
+                    >
+                      <Camera size={14} />
+                      <span>Enroll Face Now</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setEnrollFaceNowChoice('LATER')}
+                      className={`py-2.5 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                        enrollFaceNowChoice === 'LATER'
+                          ? 'bg-purple-600 text-white shadow-md ring-2 ring-purple-300'
+                          : 'bg-white text-slate-700 hover:bg-purple-100/50 border border-purple-200'
+                      }`}
+                    >
+                      <Clock size={14} />
+                      <span>Skip / Add Later</span>
+                    </button>
+                  </div>
+                  {enrollFaceNowChoice === 'NOW' ? (
+                    <p className="text-[10px] text-emerald-700 font-semibold flex items-center gap-1 pt-0.5">
+                      <span>✓ Camera will automatically open to capture face right after clicking "Register Student".</span>
+                    </p>
+                  ) : (
+                    <p className="text-[10px] text-slate-500 font-semibold flex items-center gap-1 pt-0.5">
+                      <span>ℹ️ Student will be saved now. You or any teacher can enroll their face later anytime with 1 click.</span>
+                    </p>
+                  )}
                 </div>
 
                 <div>
@@ -1697,6 +1822,19 @@ export const Students: React.FC<StudentsProps> = ({ onOpenProfile, onOpenIDCard,
           setPortalSmsInfo(info);
         }}
       />
+
+      {/* FACE RECOGNITION BIOMETRIC ENROLLMENT MODAL */}
+      {faceEnrollStudent && (
+        <FaceEnrollmentModal
+          isOpen={!!faceEnrollStudent}
+          student={faceEnrollStudent}
+          onClose={() => setFaceEnrollStudent(null)}
+          onEnrolledSuccess={() => {
+            setFaceEnrollStudent(null);
+            fetchStudents();
+          }}
+        />
+      )}
     </div>
   );
 };

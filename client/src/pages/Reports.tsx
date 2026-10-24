@@ -46,6 +46,7 @@ export const Reports: React.FC = () => {
   const [selectedReportId, setSelectedReportId] = useState('students');
   const [exportContent, setExportContent] = useState<any>(null);
   const [exportLoading, setExportLoading] = useState(false);
+  const [attendanceMethodFilter, setAttendanceMethodFilter] = useState<string>('ALL');
 
   // Load KPI overview
   useEffect(() => {

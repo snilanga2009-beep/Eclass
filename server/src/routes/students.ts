@@ -1,5 +1,6 @@
 import { Router, Response } from 'express';
 import crypto from 'crypto';
+import bcrypt from 'bcryptjs';
 import QRCode from 'qrcode';
 import db, { Student, Parent, ClassStudent, FeeRecord, Payment, PaymentItem, Income } from '../db';
 import { AuthRequest, authenticateToken, requireRoles } from '../middleware/auth';
@@ -476,24 +477,68 @@ router.post('/', authenticateToken, requireRoles(['SUPER_ADMIN', 'ADMIN', 'RECEP
       if (!existingParent) {
         existingParent = {
           id: db.generateId(),
-          name: parentName || `${fullName}'s Guardian`,
+          name: (parentName && parentName.trim()) || `${fullName.trim()}'s Guardian`,
           phone: pRaw,
-          whatsapp: whatsapp || pRaw,
-          address: address || undefined,
+          whatsapp: (whatsapp && whatsapp.trim()) || pRaw,
+          address: (address && address.trim()) || undefined,
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString()
         };
         db.data.parents.push(existingParent);
       } else {
         // Update parent name if provided and previous was generic
-        if (parentName && (!existingParent.name || existingParent.name.includes("'s Guardian"))) {
+        if (parentName && parentName.trim() && (!existingParent.name || existingParent.name.includes("'s Guardian"))) {
           existingParent.name = parentName.trim();
         }
         if (address && !existingParent.address) {
           existingParent.address = address.trim();
         }
+        existingParent.updatedAt = new Date().toISOString();
       }
       parentId = existingParent.id;
+
+      // Link any existing siblings who share this parent phone
+      db.data.students.forEach(otherStudent => {
+        if (otherStudent.parentPhone) {
+          const otherDigits = otherStudent.parentPhone.replace(/\D/g, '');
+          if (otherStudent.parentPhone.trim() === pRaw || (last9.length >= 7 && otherDigits.endsWith(last9))) {
+            otherStudent.parentId = existingParent.id;
+          }
+        }
+      });
+
+      // Synchronize/Create User with role PARENT
+      const parentRole = db.data.roles.find(r => r.name === 'PARENT');
+      const roleId = parentRole?.id || 'role-parent';
+      let parentUser = db.data.users.find(u =>
+        u.roleId === roleId && (
+          (u.phone && u.phone.replace(/\D/g, '').endsWith(last9)) ||
+          u.parentId === existingParent.id
+        )
+      );
+
+      if (parentUser) {
+        parentUser.parentId = existingParent.id;
+        parentUser.phone = pRaw;
+        if (parentName && parentName.trim()) parentUser.name = parentName.trim();
+        parentUser.updatedAt = new Date().toISOString();
+      } else {
+        const username = `parent_${last9}`;
+        db.data.users.push({
+          id: db.generateId(),
+          username,
+          email: existingParent.email || `guardian.${last9}@parent.cams.lk`,
+          passwordHash: await bcrypt.hash('parent123', 10),
+          name: existingParent.name,
+          roleId,
+          phone: pRaw,
+          avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80',
+          parentId: existingParent.id,
+          isActive: true,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        });
+      }
     }
 
     const defaultMaleAvatar = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="120" height="120"><defs><linearGradient id="bgM" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="%233b82f6"/><stop offset="100%" stop-color="%231d4ed8"/></linearGradient></defs><rect width="120" height="120" rx="28" fill="url(%23bgM)"/><circle cx="60" cy="46" r="21" fill="%23ffd1a9"/><path d="M38 42 C38 24, 48 17, 60 17 C72 17, 82 24, 82 42 C76 34, 66 31, 60 31 C54 31, 44 34, 38 42 Z" fill="%232d1c0c"/><circle cx="53" cy="46" r="2.5" fill="%231e293b"/><circle cx="67" cy="46" r="2.5" fill="%231e293b"/><path d="M54 54 Q60 59 66 54" stroke="%239a3412" stroke-width="2" fill="none" stroke-linecap="round"/><path d="M30 110 C30 84, 45 74, 60 74 C75 74, 90 84, 90 110 Z" fill="%23ffffff"/><polygon points="52,74 60,86 68,74 64,74 60,80 56,74" fill="%23cbd5e1"/><polygon points="57,84 63,84 64,106 60,112 56,106" fill="%23ef4444"/></svg>`;
@@ -922,38 +967,93 @@ router.put('/:id', authenticateToken, requireRoles(['SUPER_ADMIN', 'ADMIN', 'REC
         const pDigits = cleanParentPhone.replace(/\D/g, '');
         const last9 = pDigits.slice(-9);
 
-        let parent = student.parentId ? db.data.parents.find(p => p.id === student.parentId) : null;
-        if (!parent) {
-          parent = db.data.parents.find(p => {
-            if (!p.phone) return false;
-            const existDigits = p.phone.replace(/\D/g, '');
-            return p.phone.trim() === cleanParentPhone || (last9.length >= 7 && existDigits.endsWith(last9));
-          });
+        // 1. Look for existing parent by phone first (to unify siblings)
+        let parent = db.data.parents.find(p => {
+          if (!p.phone) return false;
+          const existDigits = p.phone.replace(/\D/g, '');
+          return p.phone.trim() === cleanParentPhone || (last9.length >= 7 && existDigits.endsWith(last9));
+        }) || null;
+
+        // 2. If not found by phone, check current student's parentId
+        if (!parent && student.parentId) {
+          parent = db.data.parents.find(p => p.id === student.parentId) || null;
         }
 
         if (parent) {
           parent.phone = cleanParentPhone;
-          if (parentName) parent.name = parentName.trim();
-          if (whatsapp) parent.whatsapp = whatsapp.trim();
+          if (parentName !== undefined && parentName.trim()) parent.name = parentName.trim();
+          if (whatsapp !== undefined && whatsapp.trim()) parent.whatsapp = whatsapp.trim();
           parent.updatedAt = new Date().toISOString();
           student.parentId = parent.id;
         } else {
           const newParent: Parent = {
             id: db.generateId(),
-            name: parentName?.trim() || `${student.fullName}'s Guardian`,
+            name: (parentName && parentName.trim()) || `${student.fullName}'s Guardian`,
             phone: cleanParentPhone,
-            whatsapp: whatsapp?.trim() || cleanParentPhone,
+            whatsapp: (whatsapp && whatsapp.trim()) || cleanParentPhone,
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString()
           };
           db.data.parents.push(newParent);
           student.parentId = newParent.id;
+          parent = newParent;
+        }
+
+        // Link all other students sharing this parent phone to this same parent record
+        db.data.students.forEach(otherStudent => {
+          if (otherStudent.id !== student.id && otherStudent.parentPhone) {
+            const otherDigits = otherStudent.parentPhone.replace(/\D/g, '');
+            if (otherStudent.parentPhone.trim() === cleanParentPhone || (last9.length >= 7 && otherDigits.endsWith(last9))) {
+              otherStudent.parentId = parent!.id;
+              if (parentName && parentName.trim() && (!otherStudent.parentName || otherStudent.parentName.includes("'s Guardian"))) {
+                otherStudent.parentName = parentName.trim();
+              }
+            }
+          }
+        });
+
+        // Sync or create PARENT user in db.data.users
+        const parentRole = db.data.roles.find(r => r.name === 'PARENT');
+        const roleId = parentRole?.id || 'role-parent';
+        let parentUser = db.data.users.find(u =>
+          u.roleId === roleId && (
+            (u.phone && u.phone.replace(/\D/g, '').endsWith(last9)) ||
+            u.parentId === parent!.id
+          )
+        );
+
+        if (parentUser) {
+          parentUser.parentId = parent.id;
+          parentUser.phone = cleanParentPhone;
+          if (parentName && parentName.trim()) parentUser.name = parentName.trim();
+          parentUser.updatedAt = new Date().toISOString();
+        } else {
+          const username = `parent_${last9}`;
+          db.data.users.push({
+            id: db.generateId(),
+            username,
+            email: parent.email || `guardian.${last9}@parent.cams.lk`,
+            passwordHash: await bcrypt.hash('parent123', 10),
+            name: parent.name,
+            roleId,
+            phone: cleanParentPhone,
+            avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80',
+            parentId: parent.id,
+            isActive: true,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+          });
         }
       }
     }
 
     if (parentName !== undefined) {
-      student.parentName = parentName ? parentName.trim() : undefined;
+      const cleanParentName = parentName ? parentName.trim() : undefined;
+      student.parentName = cleanParentName;
+      if (student.parentId && cleanParentName) {
+        const prt = db.data.parents.find(p => p.id === student.parentId);
+        if (prt) prt.name = cleanParentName;
+      }
     }
 
     // Update Class Enrollments if provided (Add new classes or change/unenroll classes)
@@ -1091,8 +1191,11 @@ router.put('/:id', authenticateToken, requireRoles(['SUPER_ADMIN', 'ADMIN', 'REC
         };
       });
 
+    const populatedParent = student.parentId ? db.data.parents.find(p => p.id === student.parentId) : null;
+
     return res.json({
       ...student,
+      parent: populatedParent,
       enrollments: updatedEnrollments,
       portalLinkResult
     });

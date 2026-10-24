@@ -70,6 +70,8 @@ export interface Student {
   status: 'ACTIVE' | 'INACTIVE' | 'SUSPENDED' | 'ALUMNI';
   notes?: string;
   rfidTag?: string; // 125kHz HID RFID Card / Keyfob UID (e.g. 10-digit decimal or 8-digit hex)
+  hasFaceEnrolled?: boolean;
+  faceEnrolledAt?: string;
   parentId?: string | null;
   parentName?: string;
   parentPhone?: string;
@@ -145,6 +147,23 @@ export interface AttendanceSession {
   createdAt: string;
 }
 
+
+export interface FaceTemplate {
+  id: string;
+  studentId: string;
+  studentIdNumber: string;
+  label: string;
+  descriptor: number[]; // 128-d facial embedding vector
+  descriptors?: number[][];
+  consentGiven: boolean;
+  consentDate: string;
+  consentBy: string;
+  photoSampleUrl?: string;
+  qualityScore?: number;
+  enrolledBy: string;
+  createdAt: string;
+  updatedAt: string;
+}
 export interface Attendance {
   id: string;
   sessionId: string;
@@ -153,7 +172,9 @@ export interface Attendance {
   date: string; // YYYY-MM-DD
   status: 'PRESENT' | 'ABSENT' | 'LATE' | 'EXCUSED';
   scannedAt: string;
-  method: 'QR_CODE' | 'BARCODE' | 'RFID' | 'MANUAL' | 'ID_CARD';
+  method: 'QR_CODE' | 'BARCODE' | 'RFID' | 'MANUAL' | 'ID_CARD' | 'FACE';
+  reviewStatus?: 'AUTO_VERIFIED' | 'MANUAL_CONFIRMED' | 'UNCERTAIN';
+  confidenceScore?: number;
   remark?: string;
   recordedBy?: string;
 }
@@ -361,6 +382,7 @@ export interface DatabaseData {
   classes: Class[];
   classStudents: ClassStudent[];
   attendanceSessions: AttendanceSession[];
+  faceTemplates: FaceTemplate[];
   attendances: Attendance[];
   feeRecords: FeeRecord[];
   payments: Payment[];
@@ -474,6 +496,7 @@ class DatabaseStore {
       classes: [],
       classStudents: [],
       attendanceSessions: [],
+      faceTemplates: [],
       attendances: [],
       feeRecords: [],
       payments: [],
@@ -508,6 +531,7 @@ class DatabaseStore {
         const raw = fs.readFileSync(DATA_FILE, 'utf-8');
         const parsed: DatabaseData = JSON.parse(raw);
         // Ensure all students have a valid 125kHz RFID Tag assigned if missing
+        if (!Array.isArray(parsed.faceTemplates)) { parsed.faceTemplates = []; }
         if (Array.isArray(parsed.students)) {
           let updated = false;
           parsed.students.forEach((s, idx) => {

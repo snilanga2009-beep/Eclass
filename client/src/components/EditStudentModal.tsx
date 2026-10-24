@@ -143,15 +143,23 @@ export const EditStudentModal: React.FC<EditStudentModalProps> = ({
       setError(null);
       setSuccessNotice(null);
 
-      // Refresh student details from server to ensure complete enrollments list
+      // Refresh student details from server to ensure complete enrollments list and latest parent details
       apiRequest<any>(`/students/${student.id}`)
         .then(fresh => {
-          if (fresh && Array.isArray(fresh.enrollments)) {
-            const freshIds = fresh.enrollments
-              .filter((e: any) => e.status !== 'INACTIVE')
-              .map((e: any) => e.classId || e.class?.id)
-              .filter(Boolean);
-            setFormData(prev => ({ ...prev, enrolledClassIds: freshIds }));
+          if (fresh) {
+            const freshClassIds = Array.isArray(fresh.enrollments)
+              ? fresh.enrollments
+                  .filter((e: any) => e.status !== 'INACTIVE')
+                  .map((e: any) => e.classId || e.class?.id)
+                  .filter(Boolean)
+              : undefined;
+
+            setFormData(prev => ({
+              ...prev,
+              ...(freshClassIds ? { enrolledClassIds: freshClassIds } : {}),
+              parentName: prev.parentName || fresh.parentName || fresh.parent?.name || '',
+              parentPhone: prev.parentPhone || fresh.parentPhone || fresh.parent?.phone || ''
+            }));
           }
         })
         .catch(err => console.warn('Could not refresh student enrollments:', err));
@@ -515,6 +523,10 @@ export const EditStudentModal: React.FC<EditStudentModalProps> = ({
             <p className="text-[11px] text-amber-800 leading-relaxed">
               This mobile number receives automated attendance check-in SMS, fee receipts, and serves as the <strong>Parent Portal PWA Login</strong> phone.
             </p>
+            <div className="p-2.5 rounded-xl bg-amber-100/70 border border-amber-300/80 flex items-center gap-2 text-[11px] text-amber-900 font-medium">
+              <span className="w-2 h-2 rounded-full bg-amber-600 shrink-0" />
+              <span><strong>Siblings & Multi-Student Family:</strong> Multiple students can share the same parent phone number. Both will be linked to this guardian portal account.</span>
+            </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>

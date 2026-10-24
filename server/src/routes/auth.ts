@@ -204,10 +204,10 @@ router.post('/parent-login', async (req: AuthRequest, res: Response) => {
 
     // Ensure all matching students have this parentId
     matchingStudents.forEach(s => {
-      if (!s.parentId) {
-        s.parentId = parent!.id;
+      s.parentId = parent!.id;
+      s.parentPhone = parent!.phone;
+      if (!s.parentName && parent!.name) {
         s.parentName = parent!.name;
-        s.parentPhone = parent!.phone;
       }
     });
 
@@ -272,15 +272,28 @@ router.post('/parent-login', async (req: AuthRequest, res: Response) => {
     return res.json({
       token,
       user: populated,
-      children: matchingStudents.map(s => ({
-        id: s.id,
-        fullName: s.fullName,
-        studentIdNumber: s.studentIdNumber,
-        grade: s.grade,
-        school: s.school,
-        photo: s.photo,
-        rfidTag: s.rfidTag
-      }))
+      children: matchingStudents.map(s => {
+        const todayStr = new Date().toISOString().substring(0, 10);
+        const todayAtt = db.data.attendances.find(a => a.studentId === s.id && a.date === todayStr);
+        return {
+          id: s.id,
+          fullName: s.fullName,
+          studentIdNumber: s.studentIdNumber,
+          grade: s.grade,
+          school: s.school,
+          photo: s.photo,
+          rfidTag: s.rfidTag,
+          parentPhone: s.parentPhone,
+          parentName: s.parentName,
+          hasFaceEnrolled: !!s.hasFaceEnrolled || db.data.faceTemplates.some(ft => ft.studentId === s.id),
+          attendancesCount: db.data.attendances.filter(a => a.studentId === s.id).length,
+          todayAttendance: todayAtt ? {
+            status: todayAtt.status,
+            method: todayAtt.method,
+            scannedAt: todayAtt.scannedAt
+          } : null
+        };
+      })
     });
   } catch (error: any) {
     console.error('Parent login error:', error);
@@ -303,18 +316,55 @@ router.get('/parent-children', authenticateToken, async (req: AuthRequest, res: 
     const parentDigits = (parent?.phone || '').replace(/\D/g, '');
     const parentLast9 = parentDigits.slice(-9);
 
-    const children = db.data.students.filter(s => {
-      if (user.parentId && s.parentId === user.parentId) return true;
+    // Collect all parent IDs for this user
+    const matchingParentIds = new Set<string>();
+    if (user.parentId) matchingParentIds.add(user.parentId);
+    if (parent?.id) matchingParentIds.add(parent.id);
+
+    db.data.parents.forEach(p => {
+      if (!p.phone) return;
+      const pD = p.phone.replace(/\D/g, '');
+      if (
+        (userLast9.length >= 7 && pD.endsWith(userLast9)) ||
+        (parentLast9.length >= 7 && pD.endsWith(parentLast9))
+      ) {
+        matchingParentIds.add(p.id);
+      }
+    });
+
+    let children = db.data.students.filter(s => {
+      if (s.parentId && matchingParentIds.has(s.parentId)) return true;
       const pDigits = (s.parentPhone || '').replace(/\D/g, '');
       const sDigits = (s.phone || '').replace(/\D/g, '');
+      const emDigits = (s.emergencyContact || '').replace(/\D/g, '');
 
-      const matchesUserPhone = userLast9.length >= 7 && (pDigits.endsWith(userLast9) || sDigits.endsWith(userLast9));
-      const matchesParentPhone = parentLast9.length >= 7 && (pDigits.endsWith(parentLast9) || sDigits.endsWith(parentLast9));
+      const matchesUserPhone = userLast9.length >= 7 && (pDigits.endsWith(userLast9) || sDigits.endsWith(userLast9) || emDigits.endsWith(userLast9));
+      const matchesParentPhone = parentLast9.length >= 7 && (pDigits.endsWith(parentLast9) || sDigits.endsWith(parentLast9) || emDigits.endsWith(parentLast9));
 
       return matchesUserPhone || matchesParentPhone;
     });
 
-    return res.json(children);
+    // Fallback for admin previewing the Parent Portal
+    if (children.length === 0 && (req.user?.role === 'SUPER_ADMIN' || req.user?.role === 'ADMIN')) {
+      children = db.data.students.filter(s => s.status === 'ACTIVE').slice(0, 3);
+    }
+
+    const todayStr = new Date().toISOString().substring(0, 10);
+    const enrichedChildren = children.map(s => {
+      const todayAtt = db.data.attendances.find(a => a.studentId === s.id && a.date === todayStr);
+      return {
+        ...s,
+        hasFaceEnrolled: !!s.hasFaceEnrolled || db.data.faceTemplates.some(ft => ft.studentId === s.id),
+        attendancesCount: db.data.attendances.filter(a => a.studentId === s.id).length,
+        todayAttendance: todayAtt ? {
+          status: todayAtt.status,
+          method: todayAtt.method,
+          scannedAt: todayAtt.scannedAt
+        } : null
+      };
+    });
+
+    return res.json(enrichedChildren);
   } catch (error) {
     return res.status(500).json({ error: 'Failed to fetch parent children' });
   }
