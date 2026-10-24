@@ -48,6 +48,7 @@ export const App: React.FC = () => {
   // Modals State
   const [isSearchOpen, setIsSearchOpen] = useState<boolean>(false);
   const [isGlobalScannerOpen, setIsGlobalScannerOpen] = useState<boolean>(false);
+  const [isGlobalFaceScannerOpen, setIsGlobalFaceScannerOpen] = useState<boolean>(false);
   const [activeReceiptNumber, setActiveReceiptNumber] = useState<string | null>(null);
   const [activeIDCardStudentId, setActiveIDCardStudentId] = useState<string | null>(null);
   const [activeProfileStudentId, setActiveProfileStudentId] = useState<string | null>(null);
@@ -344,6 +345,7 @@ export const App: React.FC = () => {
         currentTab={currentTab}
         onNavigate={setCurrentTab}
         onOpenQuickScan={handleOpenQuickScan}
+        onOpenFaceScan={() => setIsGlobalFaceScannerOpen(true)}
         onOpenQuickPayment={() => handleOpenPayFee('')}
         onOpenIDCard={(id) => setActiveIDCardStudentId(id)}
         parentSubTab={parentSubTab}
@@ -359,6 +361,15 @@ export const App: React.FC = () => {
         selectedClassName={todayClasses[0]?.name || "Today's Class"}
         onOpenPaymentModal={(stuId, feeId) => handleOpenPayFee(stuId, feeId)}
       />
+      {/* Global High-Tech Face Recognition Biometric Attendance Scanner Modal */}
+      <FaceScannerModal
+        isOpen={isGlobalFaceScannerOpen}
+        onClose={() => setIsGlobalFaceScannerOpen(false)}
+        selectedClassId={todayClasses[0]?.id}
+        selectedClassName={todayClasses[0]?.name || "Today's Class"}
+        onOpenPaymentModal={(stuId, feeId) => handleOpenPayFee(stuId, feeId)}
+      />
+
     </div>
   );
 };

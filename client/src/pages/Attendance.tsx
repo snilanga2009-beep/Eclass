@@ -725,6 +725,38 @@ export const Attendance: React.FC<AttendanceProps> = ({
 
   return (
     <div className="space-y-6">
+      {/* Biometric Touchless Gate (Admin • Teacher • Front Office) */}
+      <div className="p-4 sm:p-5 rounded-3xl bg-gradient-to-r from-purple-950 via-indigo-950 to-slate-900 text-white shadow-xl border-2 border-purple-500/40 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
+        <div className="flex items-center gap-3.5">
+          <div className="w-12 h-12 rounded-2xl bg-purple-500/20 border-2 border-purple-400/50 flex items-center justify-center text-purple-300 shrink-0 shadow-lg shadow-purple-900/50">
+            <Camera size={26} className="animate-pulse" />
+          </div>
+          <div>
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-xs font-black tracking-wider uppercase text-purple-300">Biometric Touchless Gate</span>
+              <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 text-[10px] font-bold border border-emerald-500/30">
+                Admin • Teacher • Front Office
+              </span>
+            </div>
+            <h2 className="text-sm sm:text-base font-black text-white mt-0.5">Face Recognition Attendance Scanner</h2>
+            <p className="text-[11px] text-purple-200/80">Continuous touchless gate check-in via mobile phone camera, tablet or PC webcam</p>
+          </div>
+        </div>
+
+        <button
+          type="button"
+          onClick={() => {
+            stopCamera();
+            setIsFaceScannerModalOpen(true);
+          }}
+          className="w-full sm:w-auto px-5 py-3 rounded-2xl bg-gradient-to-r from-purple-500 via-indigo-600 to-blue-600 hover:from-purple-400 hover:to-indigo-500 text-white text-xs sm:text-sm font-black shadow-xl shadow-purple-600/40 flex items-center justify-center gap-2.5 active:scale-95 transition-all cursor-pointer border-2 border-purple-300/40"
+        >
+          <div className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping shrink-0" />
+          <Camera size={18} />
+          <span>👤 Open Face Recognition Attendance Scanner</span>
+        </button>
+      </div>
+
       {/* Title & Mode Switcher */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
@@ -747,6 +779,20 @@ export const Attendance: React.FC<AttendanceProps> = ({
 
           {/* Mode Switcher */}
           <div className="bg-slate-100 p-1 rounded-2xl flex items-center border border-slate-200 overflow-x-auto touch-scroll-x shadow-inner max-w-full">
+            {/* 👤 Face Scanner Tab */}
+            <button
+              type="button"
+              onClick={() => {
+                stopCamera();
+                setIsFaceScannerModalOpen(true);
+              }}
+              className="px-3.5 py-1.5 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 shrink-0 bg-gradient-to-r from-purple-700 to-indigo-600 text-white shadow-sm hover:from-purple-600 hover:to-indigo-500 cursor-pointer active:scale-95"
+              title="Launch Face Recognition Attendance Scanner"
+            >
+              <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping shrink-0" />
+              <Camera size={13} />
+              <span>Face Scanner</span>
+            </button>
             <button
               onClick={() => setMode('QR_SCANNER')}
               className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shrink-0 ${

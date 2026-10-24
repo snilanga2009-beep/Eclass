@@ -159,6 +159,18 @@ export const Header: React.FC<HeaderProps> = ({
           </div>
         )}
 
+        {/* Mobile Quick Face Scan Button (Staff, Teacher & Front Office) */}
+        {user?.role !== 'STUDENT' && user?.role !== 'PARENT' && onOpenFaceScan && (
+          <button
+            onClick={onOpenFaceScan}
+            className="sm:hidden flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 text-white text-xs font-black shadow-md shadow-purple-600/30 cursor-pointer active:scale-95 shrink-0"
+            title="Launch Face Recognition Attendance Scanner"
+          >
+            <Camera size={14} className="animate-pulse" />
+            <span className="text-[11px] font-black">Face</span>
+          </button>
+        )}
+
         {/* Staff Quick Operational Actions */}
         {user?.role !== 'STUDENT' && user?.role !== 'PARENT' && (
           <div className="hidden sm:flex items-center space-x-2">

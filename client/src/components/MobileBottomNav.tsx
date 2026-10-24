@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { 
-  LayoutDashboard, 
+  LayoutDashboard,
+  Camera, 
   Users, 
   QrCode, 
   CreditCard, 
@@ -28,6 +29,7 @@ interface MobileBottomNavProps {
   currentTab: string;
   onNavigate: (tab: string) => void;
   onOpenQuickScan: () => void;
+  onOpenFaceScan?: () => void;
   onOpenQuickPayment: () => void;
   onOpenIDCard?: (studentId: string) => void;
   parentSubTab?: ParentSubTab;
@@ -39,6 +41,7 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
   currentTab,
   onNavigate,
   onOpenQuickScan,
+  onOpenFaceScan,
   onOpenQuickPayment,
   onOpenIDCard,
   parentSubTab = 'overview',
@@ -55,6 +58,12 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
   const handleTabClick = (tab: string) => {
     if (tab === 'attendance-scan') {
       onOpenQuickScan();
+    } else if (tab === 'face-scan') {
+      if (onOpenFaceScan) {
+        onOpenFaceScan();
+      } else {
+        onNavigate('attendance');
+      }
     } else {
       onNavigate(tab);
     }
@@ -72,6 +81,7 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
 
   const moreMenuItems = [
     { id: 'assessments', label: 'Assessments & Exams', icon: Award, roles: ['SUPER_ADMIN', 'ADMIN', 'TEACHER', 'RECEPTIONIST', 'ACCOUNTANT'] },
+    { id: 'face-scan', label: '👤 Face Recognition Scanner', icon: Camera, roles: ['SUPER_ADMIN', 'ADMIN', 'TEACHER', 'RECEPTIONIST'] },
     { id: 'attendance', label: 'Attendance & Roster', icon: Clock, roles: ['SUPER_ADMIN', 'ADMIN', 'TEACHER', 'RECEPTIONIST'] },
     { id: 'daily-earnings', label: 'Daily Collection', icon: Coins, roles: ['SUPER_ADMIN', 'ADMIN', 'ACCOUNTANT', 'RECEPTIONIST'] },
     { id: 'classes', label: 'Classes & Batches', icon: BookOpen, roles: ['SUPER_ADMIN', 'ADMIN', 'TEACHER', 'RECEPTIONIST'] },
@@ -286,28 +296,31 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
               <span className="text-[10px] mt-1 tracking-tight leading-none truncate max-w-full">Students</span>
             </button>
 
-            {/* 3. Assessments / Exams */}
-            <button
-              type="button"
-              onClick={() => handleTabClick('assessments')}
-              className={`flex flex-col items-center justify-center min-w-0 w-full min-h-[46px] py-1 px-0.5 rounded-xl transition-all cursor-pointer ${
-                currentTab === 'assessments' ? 'text-white bg-[#0055FF] font-extrabold shadow-sm' : 'text-slate-600 hover:text-[#0055FF]'
-              }`}
-            >
-              <Award size={18} strokeWidth={2.2} className={currentTab === 'assessments' ? 'text-amber-300' : 'text-[#0055FF]'} />
-              <span className="text-[10px] mt-1 tracking-tight leading-none truncate max-w-full">Exams</span>
-            </button>
-
-            {/* 4. Center Action: QR Gate Scanner */}
+            {/* 3. QR Gate Scanner */}
             <button
               type="button"
               onClick={() => handleTabClick('attendance-scan')}
-              className="flex flex-col items-center justify-center min-w-0 w-full -mt-4 group focus:outline-none cursor-pointer"
+              className="flex flex-col items-center justify-center min-w-0 w-full min-h-[46px] py-1 px-0.5 rounded-xl text-slate-700 hover:text-[#0055FF] transition-all cursor-pointer"
+              title="Open QR Scanner"
             >
-              <div className="w-11 h-11 rounded-2xl bg-[#0055FF] hover:bg-[#0044CC] border-2 border-white text-white shadow-lg shadow-blue-600/30 active:scale-95 transition-transform flex items-center justify-center">
-                <QrCode size={20} strokeWidth={2.3} />
+              <div className="w-7 h-7 rounded-lg bg-emerald-50 text-emerald-700 flex items-center justify-center border border-emerald-200">
+                <QrCode size={16} strokeWidth={2.4} />
               </div>
-              <span className="text-[10px] font-extrabold text-[#0055FF] mt-0.5 leading-none truncate max-w-full">Scan QR</span>
+              <span className="text-[10px] font-bold text-slate-700 mt-1 leading-none truncate max-w-full">Scan QR</span>
+            </button>
+
+            {/* 4. Face Recognition Attendance Scanner (Front Office, Teacher & Admin) */}
+            <button
+              type="button"
+              onClick={() => handleTabClick('face-scan')}
+              className="flex flex-col items-center justify-center min-w-0 w-full -mt-3.5 group focus:outline-none cursor-pointer"
+              title="Launch Face Recognition Attendance Scanner"
+            >
+              <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-purple-700 via-indigo-600 to-blue-600 hover:from-purple-600 hover:to-indigo-500 border-2 border-white text-white shadow-lg shadow-purple-600/40 active:scale-95 transition-transform flex items-center justify-center relative">
+                <Camera size={20} strokeWidth={2.4} />
+                <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-emerald-400 border border-white animate-pulse" />
+              </div>
+              <span className="text-[10px] font-black text-purple-700 mt-0.5 leading-none truncate max-w-full">Face Scan</span>
             </button>
 
             {/* 5. Payments */}
