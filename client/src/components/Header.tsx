@@ -6,6 +6,7 @@ import {
   Shield, 
   Download, 
   QrCode, 
+  Camera,
   CreditCard,
   CheckCircle2,
   Clock,
